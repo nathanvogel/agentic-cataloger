@@ -21,7 +21,8 @@ CREATE TABLE products (
     product_url TEXT,
     scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT valid_supermarket CHECK (supermarket IN ('migros', 'lidl', 'coop', 'denner')),
-    CONSTRAINT valid_normalized_unit CHECK (normalized_unit IS NULL OR normalized_unit IN ('kg', 'L', 'unit'))
+    CONSTRAINT valid_normalized_unit CHECK (normalized_unit IS NULL OR normalized_unit IN ('kg', 'L', 'unit')),
+    CONSTRAINT unique_product UNIQUE (name, supermarket, product_url)
 );
 
 -- Create indexes for fast queries
