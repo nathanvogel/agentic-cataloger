@@ -2,11 +2,11 @@
 
 - [x] 1. Set up project structure and dependencies
 
-  - Initialize npm project with TypeScript configuration
+  - Initialize yarn project with TypeScript configuration
   - Install dependencies: typescript, @types/node, pg, @types/pg, csv-parse, dotenv
   - Configure tsconfig.json with ES2020 target
   - Create src directory with subdirectories: utils/, parsers/, transformers/, repositories/
-  - Add npm scripts for build and import
+  - Add yarn scripts for build and import
   - _Requirements: 7.4, 7.5_
 
 - [ ] 2. Create utility functions

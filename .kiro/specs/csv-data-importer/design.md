@@ -503,19 +503,19 @@ BATCH_SIZE=500
 
 ```bash
 # Import all data
-npm run import
+yarn run import
 
 # Import specific supermarket
-npm run import -- --supermarket coop
+yarn run import -- --supermarket coop
 
 # Dry run (no database changes)
-npm run import -- --dry-run
+yarn run import -- --dry-run
 
 # Custom batch size
-npm run import -- --batch-size 1000
+yarn run import -- --batch-size 1000
 
 # Combine options
-npm run import -- --supermarket lidl --batch-size 250
+yarn run import -- --supermarket lidl --batch-size 250
 ```
 
 ## Performance Considerations

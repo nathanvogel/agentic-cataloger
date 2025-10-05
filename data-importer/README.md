@@ -7,7 +7,7 @@ CSV data importer for PostgreSQL using Zapatos for type-safe database interactio
 1. Install dependencies:
 
 ```bash
-npm install
+yarn install
 ```
 
 2. Configure environment:
@@ -20,13 +20,13 @@ cp .env.example .env
 3. Build the project:
 
 ```bash
-npm run build
+yarn run build
 ```
 
 4. Run the importer:
 
 ```bash
-npm run import
+yarn run import
 ```
 
 ## Project Structure
