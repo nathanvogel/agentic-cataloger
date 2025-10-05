@@ -16,13 +16,53 @@ Wait for PostgreSQL to be ready (about 5-10 seconds):
 docker-compose logs -f postgres
 ```
 
-### 2. Load the Data
+### 2. Install Dependencies
 
 ```bash
-python scripts/import_data.py
+cd backend-example
+yarn install
 ```
 
-### 3. Query Examples
+### 3. Load the Data
+
+```bash
+yarn db:import
+```
+
+This imports the latest CSV from each supermarket dataset.
+
+### 4. Start the API (Optional)
+
+```bash
+yarn start:dev
+```
+
+API will be available at http://localhost:3000
+
+## API Endpoints
+
+### Search products
+
+```bash
+curl "http://localhost:3000/products/search?q=lemon"
+curl "http://localhost:3000/products/search?q=lemon&bio=true"
+curl "http://localhost:3000/products/search?q=lemon&supermarket=migros"
+```
+
+### Get cheapest products
+
+```bash
+curl "http://localhost:3000/products/cheapest?name=lemon"
+curl "http://localhost:3000/products/cheapest?name=lemon&bio=true"
+```
+
+### Compare by category
+
+```bash
+curl "http://localhost:3000/products/compare-category?category=Früchte"
+```
+
+## Direct Database Queries
 
 Connect to the database:
 
@@ -38,7 +78,7 @@ Or use any PostgreSQL client:
 - User: grocery_user
 - Password: grocery_pass
 
-## Example Queries
+Connect to PostgreSQL directly:
 
 ### Find cheapest lemons
 

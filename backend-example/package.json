@@ -17,11 +17,7 @@
     "test": "jest --runInBand",
     "test:cov": "jest --coverage --runInBand",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "db:init": "ts-node scripts/initialize-db.ts",
-    "db:init:test": "ts-node scripts/initialize-db.ts --db pricecomp_test",
-    "db:reset": "ts-node scripts/initialize-db.ts --reset",
-    "db:reset:test": "ts-node scripts/initialize-db.ts --reset --db pricecomp_test",
-    "db:generate-types": "zapatos"
+    "db:import": "ts-node scripts/import-data.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.823.0",
@@ -37,6 +33,7 @@
     "axios": "1.9.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
+    "csv-parse": "^5.6.0",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.5.0",
     "jsonwebtoken": "9.0.2",
