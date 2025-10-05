@@ -2,10 +2,10 @@
   "name": "data-importer",
   "version": "1.0.0",
   "description": "CSV data importer for PostgreSQL",
-  "main": "dist/index.js",
+  "main": "dist/import.js",
   "scripts": {
     "build": "tsc",
-    "import": "node dist/index.js",
+    "import": "node dist/import.js",
     "test": "vitest --run",
     "test:watch": "vitest"
   },

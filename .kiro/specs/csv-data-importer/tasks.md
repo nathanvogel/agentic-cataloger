@@ -141,7 +141,7 @@
   - Verify all tests pass
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 9. Create main import script
+- [x] 9. Create main import script
 
   - Write integration tests for import script with mock components
   - Create src/import.ts as entry point
