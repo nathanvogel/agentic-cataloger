@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "import": "node dist/index.js"
+    "import": "node dist/index.js",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "keywords": [
     "csv",
@@ -23,6 +25,8 @@
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@types/pg": "^8.10.9",
-    "typescript": "^5.3.3"
+    "@vitest/ui": "^3.2.4",
+    "typescript": "^5.3.3",
+    "vitest": "^3.2.4"
   }
 }
