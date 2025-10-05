@@ -25,6 +25,7 @@ describe("ProductTransformer", () => {
       expect(product.name).toBe("Naturaplan Bio Apfel");
       expect(product.price).toBe(3.95);
       expect(product.price_text).toBe("CHF 3.95");
+      expect(product.currency).toBe("CHF");
       expect(product.unit).toBe("kg");
       expect(product.unit_price).toBe("3.95/kg");
       expect(product.is_discounted).toBe(true);
@@ -278,6 +279,158 @@ describe("ProductTransformer", () => {
 
       const product = transform(csvRow, "coop", scrapedAt);
       expect(product.scraped_at).toEqual(scrapedAt);
+    });
+
+    it("should extract and normalize unit from CSV unit field (grams)", () => {
+      const csvRow: CsvRow = {
+        name: "Bio Mehl",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 2.50",
+        unit: "500g",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(500);
+      expect(product.original_unit).toBe("g");
+      expect(product.normalized_quantity).toBe(0.5);
+      expect(product.normalized_unit).toBe("kg");
+      expect(product.normalized_price).toBe(5.0);
+    });
+
+    it("should extract and normalize unit from CSV unit field (milliliters)", () => {
+      const csvRow: CsvRow = {
+        name: "Orangensaft",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 3.00",
+        unit: "500ml",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(500);
+      expect(product.original_unit).toBe("ml");
+      expect(product.normalized_quantity).toBe(0.5);
+      expect(product.normalized_unit).toBe("L");
+      expect(product.normalized_price).toBe(6.0);
+    });
+
+    it("should extract and normalize unit from CSV unit field (count)", () => {
+      const csvRow: CsvRow = {
+        name: "Zitronen",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 0.50",
+        unit: "1 Stk",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(1);
+      expect(product.original_unit).toBe("Stk");
+      expect(product.normalized_quantity).toBe(1);
+      expect(product.normalized_unit).toBe("unit");
+      expect(product.normalized_price).toBe(0.5);
+    });
+
+    it("should handle multi-pack units", () => {
+      const csvRow: CsvRow = {
+        name: "Joghurt",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 4.00",
+        unit: "6x150g",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(900);
+      expect(product.original_unit).toBe("g");
+      expect(product.normalized_quantity).toBe(0.9);
+      expect(product.normalized_unit).toBe("kg");
+      expect(product.normalized_price).toBeCloseTo(4.44, 2);
+    });
+
+    it("should extract currency from price_text", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+        price_text: "CHF 3.95",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.currency).toBe("CHF");
+    });
+
+    it("should default to CHF when no currency in price_text", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+        price_text: "3.95",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.currency).toBe("CHF");
+    });
+
+    it("should default to CHF when price_text is undefined", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.currency).toBe("CHF");
+    });
+
+    it("should set unit fields to null when no unit provided", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 3.95",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(null);
+      expect(product.original_unit).toBe(null);
+      expect(product.normalized_quantity).toBe(null);
+      expect(product.normalized_unit).toBe(null);
+      expect(product.normalized_price).toBe(null);
+    });
+
+    it("should set normalized_price to null when price is null", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+        unit: "500g",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(500);
+      expect(product.original_unit).toBe("g");
+      expect(product.normalized_quantity).toBe(0.5);
+      expect(product.normalized_unit).toBe("kg");
+      expect(product.normalized_price).toBe(null);
+    });
+
+    it("should set unit fields to null when unit extraction fails", () => {
+      const csvRow: CsvRow = {
+        name: "Test Product",
+        url: "https://example.com/product",
+        store: "coop",
+        price: "CHF 3.95",
+        unit: "unknown format",
+      };
+
+      const product = transform(csvRow, "coop", new Date());
+      expect(product.original_quantity).toBe(null);
+      expect(product.original_unit).toBe(null);
+      expect(product.normalized_quantity).toBe(null);
+      expect(product.normalized_unit).toBe(null);
+      expect(product.normalized_price).toBe(null);
     });
   });
 });

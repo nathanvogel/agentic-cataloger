@@ -59,15 +59,15 @@
   - Verify all tests pass
   - _Requirements: 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3_
 
-- [ ] 6. Implement unit normalizer
+- [x] 6. Implement unit normalizer
 
-  - [ ] 6.1 Create unit models and types
+  - [x] 6.1 Create unit models and types
 
     - Create models/unit.model.ts with UnitInfo, NormalizedUnit, StandardUnit types
     - Define StandardUnit enum: kg, L, unit
     - _Requirements: 8.3, 9.5_
 
-  - [ ] 6.2 Implement unit extraction
+  - [x] 6.2 Implement unit extraction
 
     - Write tests for extractUnit function with various unit formats
     - Create transformers/unit-normalizer.ts with UnitNormalizer class
@@ -81,7 +81,7 @@
     - Verify all tests pass
     - _Requirements: 8.1, 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ] 6.3 Implement unit normalization
+  - [x] 6.3 Implement unit normalization
 
     - Write tests for normalize function with conversion scenarios
     - Implement normalize method to convert to standard units
@@ -92,7 +92,7 @@
     - Verify all tests pass
     - _Requirements: 8.3, 8.4, 8.5, 8.6_
 
-  - [ ] 6.4 Implement normalized price calculation
+  - [x] 6.4 Implement normalized price calculation
 
     - Write tests for calculateNormalizedPrice function
     - Implement calculateNormalizedPrice method
@@ -101,7 +101,7 @@
     - Verify all tests pass
     - _Requirements: 8.2_
 
-  - [ ] 6.5 Integrate unit normalizer into product transformer
+  - [x] 6.5 Integrate unit normalizer into product transformer
     - Update product-transformer.ts to use UnitNormalizer
     - Extract currency from price_text field (default "CHF")
     - Call unitNormalizer.extractUnit with CSV unit field

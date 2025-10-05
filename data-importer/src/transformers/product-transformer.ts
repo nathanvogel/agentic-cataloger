@@ -1,5 +1,7 @@
 import type { CsvRow } from "../parsers/csv-parser";
 import { parsePrice } from "../utils/price-parser";
+import { UnitNormalizer } from "./unit-normalizer";
+import { info, warn } from "../utils/logger";
 
 /**
  * Represents a product ready for database insertion
@@ -8,8 +10,14 @@ export interface Product {
   name: string;
   price: number | null;
   price_text: string | null;
+  currency: string;
   unit: string | null;
   unit_price: string | null;
+  original_quantity: number | null;
+  original_unit: string | null;
+  normalized_quantity: number | null;
+  normalized_unit: string | null;
+  normalized_price: number | null;
   is_discounted: boolean;
   discount_info: string | null;
   supermarket: "migros" | "lidl" | "coop" | "denner";
@@ -20,10 +28,13 @@ export interface Product {
   scraped_at: Date;
 }
 
+// Create a shared instance of UnitNormalizer
+const unitNormalizer = new UnitNormalizer();
+
 /**
  * Transforms a CSV row into a database-ready product object.
  * Extracts attributes from product name, parses price, converts discount flag,
- * and normalizes categories.
+ * normalizes categories, and normalizes units.
  *
  * @param csvRow - Raw CSV row data
  * @param supermarket - Supermarket identifier
@@ -36,12 +47,16 @@ export interface Product {
  *   name: "Naturaplan Bio Apfel",
  *   url: "https://example.com/product",
  *   price: "CHF 3.95",
+ *   unit: "500g",
  *   has_discount: "true",
  *   category: "Fruits"
  * };
  * const product = transform(csvRow, "coop", new Date());
  * // product.attributes.bio === true
  * // product.price === 3.95
+ * // product.normalized_quantity === 0.5
+ * // product.normalized_unit === "kg"
+ * // product.normalized_price === 7.90
  * // product.categories === ["Fruits"]
  * ```
  */
@@ -50,12 +65,36 @@ export function transform(
   supermarket: "migros" | "lidl" | "coop" | "denner",
   scrapedAt: Date
 ): Product {
+  const price = parsePrice(csvRow.price);
+  const currency = extractCurrency(csvRow.price_text || csvRow.price);
+
+  // Extract and normalize unit information
+  const unitInfo = unitNormalizer.extractUnit(csvRow.unit);
+  const normalized = unitInfo ? unitNormalizer.normalize(unitInfo) : null;
+  const normalizedPrice =
+    normalized && price !== null
+      ? unitNormalizer.calculateNormalizedPrice(price, normalized)
+      : null;
+
+  // Log warning if unit extraction fails but unit field exists
+  if (csvRow.unit && !unitInfo) {
+    warn(
+      `Failed to extract unit from: "${csvRow.unit}" for product: ${csvRow.name}`
+    );
+  }
+
   return {
     name: csvRow.name,
-    price: parsePrice(csvRow.price),
+    price,
     price_text: csvRow.price_text || null,
+    currency,
     unit: csvRow.unit || null,
     unit_price: csvRow.unit_price || null,
+    original_quantity: normalized?.originalQuantity || null,
+    original_unit: normalized?.originalUnit || null,
+    normalized_quantity: normalized?.normalizedQuantity || null,
+    normalized_unit: normalized?.normalizedUnit || null,
+    normalized_price: normalizedPrice,
     is_discounted: parseBoolean(csvRow.has_discount),
     discount_info: csvRow.discount_info || null,
     supermarket,
@@ -65,6 +104,30 @@ export function transform(
     product_url: csvRow.url,
     scraped_at: scrapedAt,
   };
+}
+
+/**
+ * Extracts currency code from price text.
+ * Defaults to "CHF" for Swiss products.
+ *
+ * @param priceText - Price text that may contain currency code
+ * @returns Currency code (e.g., "CHF", "EUR")
+ *
+ * @example
+ * ```typescript
+ * extractCurrency("CHF 3.95")  // "CHF"
+ * extractCurrency("3.95")      // "CHF"
+ * extractCurrency("EUR 5.00")  // "EUR"
+ * ```
+ */
+function extractCurrency(priceText: string | undefined): string {
+  if (!priceText) {
+    return "CHF";
+  }
+
+  // Try to extract currency code (3 uppercase letters)
+  const match = priceText.match(/\b([A-Z]{3})\b/);
+  return match ? match[1] : "CHF";
 }
 
 /**
