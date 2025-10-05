@@ -41,6 +41,16 @@ describe("UnitNormalizer", () => {
       expect(result).toEqual({ quantity: 1.5, unit: "L" });
     });
 
+    it("should extract volume in centiliters", () => {
+      const result = normalizer.extractUnit("50cl");
+      expect(result).toEqual({ quantity: 50, unit: "cl" });
+    });
+
+    it("should extract volume in centiliters with decimal", () => {
+      const result = normalizer.extractUnit("33,5cl");
+      expect(result).toEqual({ quantity: 33.5, unit: "cl" });
+    });
+
     it("should extract count with Stk", () => {
       const result = normalizer.extractUnit("1 Stk");
       expect(result).toEqual({ quantity: 1, unit: "Stk" });
@@ -54,6 +64,16 @@ describe("UnitNormalizer", () => {
     it("should extract count with Stück", () => {
       const result = normalizer.extractUnit("2 Stück");
       expect(result).toEqual({ quantity: 2, unit: "Stück" });
+    });
+
+    it("should extract count with ST", () => {
+      const result = normalizer.extractUnit("10ST");
+      expect(result).toEqual({ quantity: 10, unit: "ST" });
+    });
+
+    it("should extract count with POR (portions)", () => {
+      const result = normalizer.extractUnit("12POR");
+      expect(result).toEqual({ quantity: 12, unit: "POR" });
     });
 
     it("should extract multi-pack weight (grams)", () => {
@@ -74,6 +94,21 @@ describe("UnitNormalizer", () => {
     it("should extract multi-pack volume (liters)", () => {
       const result = normalizer.extractUnit("4x1l");
       expect(result).toEqual({ quantity: 4, unit: "l" });
+    });
+
+    it("should extract multi-pack volume (centiliters)", () => {
+      const result = normalizer.extractUnit("6x50cl");
+      expect(result).toEqual({ quantity: 300, unit: "cl" });
+    });
+
+    it("should extract multi-pack with spaces", () => {
+      const result = normalizer.extractUnit("2x 50cl");
+      expect(result).toEqual({ quantity: 100, unit: "cl" });
+    });
+
+    it("should extract multi-pack with spaces (grams)", () => {
+      const result = normalizer.extractUnit("4x 200g");
+      expect(result).toEqual({ quantity: 800, unit: "g" });
     });
 
     it("should handle weight with spaces", () => {
@@ -177,6 +212,50 @@ describe("UnitNormalizer", () => {
         originalUnit: "Stück",
         normalizedQuantity: 2,
         normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert ST to unit", () => {
+      const unitInfo = { quantity: 10, unit: "ST" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 10,
+        originalUnit: "ST",
+        normalizedQuantity: 10,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert POR to unit", () => {
+      const unitInfo = { quantity: 12, unit: "POR" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 12,
+        originalUnit: "POR",
+        normalizedQuantity: 12,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert centiliters to liters", () => {
+      const unitInfo = { quantity: 50, unit: "cl" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 50,
+        originalUnit: "cl",
+        normalizedQuantity: 0.5,
+        normalizedUnit: "L",
+      });
+    });
+
+    it("should convert centiliters to liters (large quantity)", () => {
+      const unitInfo = { quantity: 300, unit: "cl" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 300,
+        originalUnit: "cl",
+        normalizedQuantity: 3,
+        normalizedUnit: "L",
       });
     });
 

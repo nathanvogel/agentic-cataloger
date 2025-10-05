@@ -55,11 +55,48 @@ The importer automatically detects and extracts product attributes from product 
 
 Attributes are stored in the `attributes` JSONB column for flexible querying.
 
-## Database Schema
+## Unit Normalization
 
-### Products Table
+The importer automatically normalizes product units to enable price comparisons across different package sizes.
 
-Key fields for unit normalization:
+### Supported Units
+
+**Weight:**
+
+- `g` (grams) → converts to `kg`
+- `kg` (kilograms) → standard unit
+
+**Volume:**
+
+- `ml` (milliliters) → converts to `L`
+- `cl` (centiliters) → converts to `L`
+- `l` or `L` (liters) → standard unit
+
+**Count:**
+
+- `Stk`, `Stk.`, `Stück` (German for "piece") → converts to `unit`
+- `ST` (short form) → converts to `unit`
+- `POR` (portions) → converts to `unit`
+
+**Multi-pack:**
+
+- `2x200g` → 400g total
+- `6x50cl` → 300cl total
+- `4x 1kg` → 4kg total (with space)
+
+### Examples
+
+| Original | Normalized | Calculation    |
+| -------- | ---------- | -------------- |
+| 500g     | 0.5 kg     | 500 ÷ 1000     |
+| 50cl     | 0.5 L      | 50 ÷ 100       |
+| 750ml    | 0.75 L     | 750 ÷ 1000     |
+| 6x50cl   | 3 L        | (6 × 50) ÷ 100 |
+| 10ST     | 10 unit    | count items    |
+
+### Database Schema
+
+**Products Table** - Key fields for unit normalization:
 
 - `currency` - Currency code (e.g., "CHF")
 - `original_quantity` - Original quantity from product (e.g., 500)
@@ -68,7 +105,7 @@ Key fields for unit normalization:
 - `normalized_unit` - Standard unit (e.g., "kg")
 - `normalized_price` - Price per normalized unit (e.g., 5.00)
 
-### Standard Units
+**Standard Units:**
 
 - **kg** - Kilograms (for weight)
 - **L** - Liters (for volume)

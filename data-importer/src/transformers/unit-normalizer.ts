@@ -19,9 +19,9 @@ export class UnitNormalizer {
       return null;
     }
 
-    // Try multi-pack pattern first: 2x200g, 3x1kg, 6x500ml
+    // Try multi-pack pattern first: 2x200g, 3x1kg, 6x500ml, 2x 50cl
     const multiPackMatch = trimmed.match(
-      /(\d+)x(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l)/i
+      /(\d+)x\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|l)/i
     );
     if (multiPackMatch) {
       const packCount = parseInt(multiPackMatch[1], 10);
@@ -39,16 +39,16 @@ export class UnitNormalizer {
       return { quantity, unit };
     }
 
-    // Try volume pattern: 500ml, 1l, 1,5L
-    const volumeMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(ml|l)/i);
+    // Try volume pattern: 500ml, 1l, 1,5L, 50cl
+    const volumeMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(ml|cl|l)/i);
     if (volumeMatch) {
       const quantity = parseFloat(volumeMatch[1].replace(",", "."));
       const unit = volumeMatch[2];
       return { quantity, unit };
     }
 
-    // Try count pattern: 1 Stk, 3 Stk., 2 Stück
-    const countMatch = trimmed.match(/(\d+)\s*(Stk\.?|Stück)/i);
+    // Try count pattern: 1 Stk, 3 Stk., 2 Stück, 10ST, 50ST
+    const countMatch = trimmed.match(/(\d+)\s*(Stk\.?|Stück|ST|POR)/i);
     if (countMatch) {
       const quantity = parseInt(countMatch[1], 10);
       const unit = countMatch[2];
@@ -95,6 +95,15 @@ export class UnitNormalizer {
       };
     }
 
+    if (unitLower === "cl") {
+      return {
+        originalQuantity: unitInfo.quantity,
+        originalUnit: unitInfo.unit,
+        normalizedQuantity: unitInfo.quantity / 100,
+        normalizedUnit: StandardUnit.LITER,
+      };
+    }
+
     if (unitLower === "l") {
       return {
         originalQuantity: unitInfo.quantity,
@@ -104,8 +113,14 @@ export class UnitNormalizer {
       };
     }
 
-    // Count conversions (Stk, Stk., Stück)
-    if (unitLower === "stk" || unitLower === "stk." || unitLower === "stück") {
+    // Count conversions (Stk, Stk., Stück, ST, POR)
+    if (
+      unitLower === "stk" ||
+      unitLower === "stk." ||
+      unitLower === "stück" ||
+      unitLower === "st" ||
+      unitLower === "por"
+    ) {
       return {
         originalQuantity: unitInfo.quantity,
         originalUnit: unitInfo.unit,

@@ -73,12 +73,12 @@
     - Create transformers/unit-normalizer.ts with UnitNormalizer class
     - Implement extractUnit method to parse unit field from CSV
     - Handle weight patterns: /(\d+(?:[.,]\d+)?)\s\*(g|kg)/i
-    - Handle volume patterns: /(\d+(?:[.,]\d+)?)\s\*(ml|l)/i
-    - Handle count patterns: /(\d+)\s\*(Stk\.?|Stück)/i
-    - Handle multi-pack patterns: /(\d+)x(\d+)(g|kg|ml|l)/i
+    - Handle volume patterns: /(\d+(?:[.,]\d+)?)\s\*(ml|cl|l)/i (includes centiliters)
+    - Handle count patterns: /(\d+)\s\*(Stk\.?|Stück|ST|POR)/i (includes ST and POR)
+    - Handle multi-pack patterns: /(\d+)x\s\*(\d+)(g|kg|ml|cl|l)/i (with optional space)
     - Parse European decimal format (replace comma with dot)
     - Return UnitInfo or null if no unit detected
-    - Verify all tests pass
+    - Verify all tests pass (46 tests)
     - _Requirements: 8.1, 8.4, 8.5, 8.6, 8.7, 8.8_
 
   - [x] 6.3 Implement unit normalization
@@ -87,9 +87,10 @@
     - Implement normalize method to convert to standard units
     - Convert g → kg (÷ 1000)
     - Convert ml → L (÷ 1000)
-    - Map Stk/Stück → unit
+    - Convert cl → L (÷ 100) - centiliters support
+    - Map Stk/Stück/ST/POR → unit (includes ST and POR for portions)
     - Return NormalizedUnit with original and normalized values
-    - Verify all tests pass
+    - Verify all tests pass (46 tests)
     - _Requirements: 8.3, 8.4, 8.5, 8.6_
 
   - [x] 6.4 Implement normalized price calculation
@@ -122,6 +123,7 @@
   - Add normalized_unit VARCHAR(10)
   - Add normalized_price DECIMAL(10,2)
   - Add CHECK constraint on normalized_unit for valid values: 'kg', 'L', 'unit'
+  - Add UNIQUE constraint on (name, supermarket, product_url) for upsert operations
   - Create index on normalized_unit
   - Create index on normalized_price
   - Create composite index on (normalized_unit, normalized_price)
@@ -164,13 +166,15 @@
   - Document unit normalization feature and examples
   - _Requirements: 7.5, 7.6_
 
-- [ ] 11. Test with real data
+- [x] 11. Test with real data
   - Run import on actual CSV files
   - Verify products inserted with correct data including normalized units
   - Re-run import to test upsert (should update, not duplicate)
   - Verify Bio attribute extraction
-  - Verify unit normalization: check products with g→kg, ml→L, Stk→unit conversions
+  - Verify unit normalization: check products with g→kg, ml→L, cl→L, Stk/ST/POR→unit conversions
   - Verify normalized prices calculated correctly
   - Test database queries: cheapest products per kg, Bio filter, supermarket comparison
   - Test queries filtering by normalized_unit
+  - Successfully processing batches with 500 updated, 0 failed
+  - Enhanced unit support: centiliters (cl), ST, POR, multi-pack with spaces (e.g., "2x 50cl")
   - _Requirements: 3.1, 3.2, 4.4, 6.1, 6.2, 6.3, 8.2, 8.3, 8.4, 8.5, 8.6, 9.3_
