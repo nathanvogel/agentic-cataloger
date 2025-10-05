@@ -36,7 +36,7 @@ describe("logger", () => {
     it("should include ISO timestamp", () => {
       info("Test message");
 
-      const loggedMessage = consoleLogSpy.mock.calls[0][0];
+      const loggedMessage = consoleLogSpy.mock.calls[0][0] as string;
       const timestampMatch = loggedMessage.match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       );
@@ -62,7 +62,7 @@ describe("logger", () => {
     it("should include ISO timestamp", () => {
       warn("Test message");
 
-      const loggedMessage = consoleWarnSpy.mock.calls[0][0];
+      const loggedMessage = consoleWarnSpy.mock.calls[0][0] as string;
       const timestampMatch = loggedMessage.match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       );
@@ -121,7 +121,7 @@ describe("logger", () => {
     it("should include ISO timestamp", () => {
       error("Test message");
 
-      const loggedMessage = consoleErrorSpy.mock.calls[0][0];
+      const loggedMessage = consoleErrorSpy.mock.calls[0][0] as string;
       const timestampMatch = loggedMessage.match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       );
@@ -137,13 +137,13 @@ describe("logger", () => {
       warn("Warn message");
       error("Error message");
 
-      const infoTimestamp = consoleLogSpy.mock.calls[0][0].match(
+      const infoTimestamp = (consoleLogSpy.mock.calls[0][0] as string).match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       )?.[1];
-      const warnTimestamp = consoleWarnSpy.mock.calls[0][0].match(
+      const warnTimestamp = (consoleWarnSpy.mock.calls[0][0] as string).match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       )?.[1];
-      const errorTimestamp = consoleErrorSpy.mock.calls[0][0].match(
+      const errorTimestamp = (consoleErrorSpy.mock.calls[0][0] as string).match(
         /\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\]/
       )?.[1];
 

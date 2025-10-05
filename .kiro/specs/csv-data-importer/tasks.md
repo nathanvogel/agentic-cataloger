@@ -37,7 +37,7 @@
   - Verify all tests pass
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 4. Implement CSV parser with streaming
+- [x] 4. Implement CSV parser with streaming
 
   - Write tests for parseFile async generator with sample CSV data
   - Create parsers/csv-parser.ts with parseFile async generator
