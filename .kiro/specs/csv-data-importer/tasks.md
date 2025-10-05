@@ -112,7 +112,7 @@
     - Update tests to verify unit normalization
     - _Requirements: 8.1, 8.2, 8.9, 8.10, 10.7_
 
-- [ ] 7. Update database schema
+- [x] 7. Update database schema
 
   - Update db/init.sql to add new columns to products table
   - Add currency VARCHAR(3) DEFAULT 'CHF'
