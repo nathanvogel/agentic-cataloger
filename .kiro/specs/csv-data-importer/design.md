@@ -53,12 +53,14 @@ src/
 │   ├── file-scanner.ts      # File discovery logic
 │   └── csv-parser.ts        # CSV parsing logic
 ├── transformers/
-│   └── product.transformer.ts # Data transformation and attribute extraction
+│   ├── product.transformer.ts # Data transformation and attribute extraction
+│   └── unit-normalizer.ts   # Unit extraction and normalization
 ├── repositories/
 │   └── product.repository.ts  # Database operations
 ├── models/
 │   ├── csv-row.model.ts     # CSV row interface
-│   └── product.model.ts     # Database product model
+│   ├── product.model.ts     # Database product model
+│   └── unit.model.ts        # Unit normalization models
 └── utils/
     ├── logger.ts            # Logging utility
     └── price-parser.ts      # Price parsing utility
@@ -161,7 +163,7 @@ class CsvParser {
 
 ### 4. Product Transformer (product.transformer.ts)
 
-**Purpose**: Transform CSV rows into database-ready product objects with extracted attributes.
+**Purpose**: Transform CSV rows into database-ready product objects with extracted attributes and normalized units.
 
 **Interface**:
 
@@ -170,8 +172,14 @@ interface Product {
   name: string;
   price: number | null;
   price_text: string | null;
+  currency: string;
   unit: string | null;
   unit_price: string | null;
+  original_quantity: number | null;
+  original_unit: string | null;
+  normalized_quantity: number | null;
+  normalized_unit: string | null;
+  normalized_price: number | null;
   is_discounted: boolean;
   discount_info: string | null;
   supermarket: string;
@@ -183,9 +191,12 @@ interface Product {
 }
 
 class ProductTransformer {
+  constructor(private unitNormalizer: UnitNormalizer);
+
   transform(csvRow: CsvRow, fileInfo: CsvFileInfo): Product;
   private extractAttributes(name: string): Record<string, any>;
   private parsePrice(priceStr: string): number | null;
+  private extractCurrency(priceStr: string): string;
   private parseBoolean(value: string | boolean): boolean;
   private extractCategories(category: string): string[];
 }
@@ -200,8 +211,56 @@ class ProductTransformer {
   - Demeter: `/\bdemeter\b/i`
   - Knospe: `/\bknospe\b/i`
 - **Price Parsing**: Extract numeric value from strings like "CHF 3.95" or "4.95"
+- **Currency Extraction**: Extract currency code (default "CHF" for Swiss products)
 - **Category Handling**: Split on delimiters if multiple categories exist, normalize whitespace
+- **Unit Normalization**: Delegate to UnitNormalizer for quantity/unit extraction and conversion
 - **Validation**: Ensure required fields (name, product_url) are present
+
+### 4a. Unit Normalizer (unit-normalizer.ts)
+
+**Purpose**: Extract quantity and unit information from product names and normalize to standard units.
+
+**Interface**:
+
+```typescript
+interface UnitInfo {
+  quantity: number;
+  unit: string;
+}
+
+interface NormalizedUnit {
+  originalQuantity: number;
+  originalUnit: string;
+  normalizedQuantity: number;
+  normalizedUnit: StandardUnit;
+}
+
+class UnitNormalizer {
+  extractUnit(productName: string, unitField?: string): UnitInfo | null;
+  normalize(unitInfo: UnitInfo): NormalizedUnit | null;
+  calculateNormalizedPrice(price: number, normalized: NormalizedUnit): number;
+  private detectUnitPattern(text: string): UnitInfo | null;
+  private convertToStandardUnit(
+    quantity: number,
+    unit: string
+  ): NormalizedUnit | null;
+}
+```
+
+**Implementation Details**:
+
+- **Pattern Detection**: Use regex to extract quantities and units from the CSV unit field:
+  - Weight: `/(\d+(?:[.,]\d+)?)\s*(g|kg)/i` (e.g., "500g", "1kg", "1,5kg")
+  - Volume: `/(\d+(?:[.,]\d+)?)\s*(ml|l)/i` (e.g., "500ml", "1l")
+  - Count: `/(\d+)\s*(Stk\.?|Stück)/i` (e.g., "1 Stk.", "3 Stück", "2Stk.")
+  - Multi-pack: `/(\d+)x(\d+)(g|kg|ml|l)/i` (e.g., "2x200g" → 400g)
+- **European Decimal Format**: Replace comma with dot for parsing (e.g., "1,5kg" → 1.5)
+- **Conversion Factors**:
+  - g → kg: ÷ 1000
+  - ml → L: ÷ 1000
+- **Standard Units**: kg, L, unit
+- **Price Calculation**: normalized_price = price / normalized_quantity
+- **Fallback**: If no unit detected, return null (product stored without normalization)
 
 ### 5. Product Repository (product.repository.ts)
 
@@ -326,8 +385,14 @@ interface Product {
   name: string;
   price: number | null;
   price_text: string | null;
-  unit: string | null;
+  currency: string; // e.g., "CHF"
+  unit: string | null; // Original unit from source
   unit_price: string | null;
+  original_quantity: number | null; // e.g., 500 (from "500g")
+  original_unit: string | null; // e.g., "g"
+  normalized_quantity: number | null; // e.g., 0.5 (converted to kg)
+  normalized_unit: string | null; // e.g., "kg" (standard unit)
+  normalized_price: number | null; // Price per normalized unit
   is_discounted: boolean;
   discount_info: string | null;
   supermarket: "migros" | "lidl" | "coop" | "denner";
@@ -339,14 +404,63 @@ interface Product {
 }
 ```
 
+### Unit Normalization Model
+
+```typescript
+// Represents extracted quantity and unit information
+interface UnitInfo {
+  quantity: number;
+  unit: string;
+}
+
+// Standard unit types
+enum StandardUnit {
+  KILOGRAM = "kg",
+  LITER = "L",
+  UNIT = "unit",
+  METER = "m",
+  SQUARE_METER = "m2",
+  CUBIC_METER = "m3",
+}
+
+// Unit conversion mappings
+interface UnitConversion {
+  from: string;
+  to: StandardUnit;
+  factor: number;
+}
+```
+
 ### Database Schema Mapping
 
-The existing database schema already supports our needs:
+The database schema needs to be extended to support unit normalization:
+
+**Existing Fields:**
 
 - `categories TEXT[]` - Maps to Product.categories
 - `attributes JSONB` - Maps to Product.attributes
 - Indexes on categories (GIN) and attributes (GIN) for fast queries
 - Full-text search index on name
+
+**New Fields Required:**
+
+- `currency VARCHAR(3)` - Currency code (e.g., "CHF")
+- `original_quantity DECIMAL(10,3)` - Original quantity from product (e.g., 500)
+- `original_unit VARCHAR(20)` - Original unit (e.g., "g")
+- `normalized_quantity DECIMAL(10,3)` - Normalized quantity (e.g., 0.5)
+- `normalized_unit VARCHAR(10)` - Standard unit (e.g., "kg")
+- `normalized_price DECIMAL(10,2)` - Price per normalized unit
+
+**Indexes to Add:**
+
+- Index on `normalized_unit` for filtering by unit type
+- Index on `normalized_price` for price comparisons
+- Composite index on `(normalized_unit, normalized_price)` for efficient price ranking
+
+**Constraints:**
+
+- `normalized_unit` should be constrained to valid values: 'kg', 'L', 'unit', 'm', 'm2', 'm3'
+- `currency` should default to 'CHF' for Swiss products
 
 ## Error Handling
 
@@ -534,6 +648,32 @@ yarn run import -- --supermarket lidl --batch-size 250
 
 7. **Parallel Processing**: Initially process files sequentially; can be enhanced later with worker threads if needed
 
+## Unit Normalization Examples
+
+### Weight Products
+
+- "Bio Mehl 500g" → original: 500g, normalized: 0.5kg
+- "Zucker 1kg" → original: 1kg, normalized: 1kg
+- "Salz 250g" → original: 250g, normalized: 0.25kg
+
+### Volume Products
+
+- "Milch 1L" → original: 1L, normalized: 1L
+- "Orangensaft 500ml" → original: 500ml, normalized: 0.5L
+- "Olivenöl 250ml" → original: 250ml, normalized: 0.25L
+
+### Count Products
+
+- "Zitronen 1 Stk" → original: 1 unit, normalized: 1 unit
+- "Eier 6er Pack" → original: 6 unit, normalized: 6 unit
+- "Äpfel 4 Stück" → original: 4 unit, normalized: 4 unit
+
+### Price Normalization
+
+- Product: "Bio Mehl 500g" at CHF 2.50
+  - normalized_quantity: 0.5kg
+  - normalized_price: CHF 5.00/kg (2.50 ÷ 0.5)
+
 ## Future Enhancements
 
 1. **Parallel File Processing**: Use worker threads to process multiple files simultaneously
@@ -542,3 +682,5 @@ yarn run import -- --supermarket lidl --batch-size 250
 4. **Progress Bar**: Add visual progress indicator for long imports
 5. **Category Mapping**: Add configuration file to map/normalize category names across supermarkets
 6. **Deduplication**: Implement fuzzy matching to detect duplicate products across supermarkets
+7. **Advanced LLM Features**: Use LLM for product matching across supermarkets and brand recognition
+8. **Multi-Currency Support**: Extend to support products from different countries with currency conversion

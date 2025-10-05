@@ -93,7 +93,37 @@ This feature provides a TypeScript-based data import system to load grocery prod
 5. WHEN no command-line options are provided THEN the system SHALL import all available data with default settings
 6. WHEN the script completes THEN the system SHALL exit with code 0 on success or non-zero on failure
 
-### Requirement 8: Logging and Error Reporting
+### Requirement 8: Unit Normalization and Standardization
+
+**User Story:** As a user comparing prices, I want all products to be normalized to consistent units (e.g., flour per 1kg, lemons per unit), so that I can accurately compare prices across different package sizes and supermarkets.
+
+#### Acceptance Criteria
+
+1. WHEN importing a product THEN the system SHALL extract the quantity and unit from the unit field in the CSV
+2. WHEN a quantity and unit are extracted THEN the system SHALL calculate a normalized price per standard unit
+3. WHEN normalizing units THEN the system SHALL use standard base units: kg for weight, L for volume, unit for countable items
+4. WHEN a product is measured in grams THEN the system SHALL convert to kilograms (e.g., 500g → 0.5kg, 250g → 0.25kg)
+5. WHEN a product is measured in milliliters THEN the system SHALL convert to liters (e.g., 500ml → 0.5L)
+6. WHEN a product is sold by count (Stk., Stück, Stk) THEN the system SHALL use "unit" as the standard measure and extract the quantity
+7. WHEN a product has multi-pack format (e.g., "2x200g") THEN the system SHALL calculate total quantity (e.g., 400g → 0.4kg)
+8. WHEN a product has decimal quantities with European format (e.g., "1,5kg") THEN the system SHALL parse the comma as decimal separator
+9. WHEN storing normalized data THEN the system SHALL save: original_quantity, original_unit, normalized_quantity, normalized_unit, normalized_price, currency
+10. IF unit extraction fails THEN the system SHALL log a warning and store the product with null normalized values
+
+### Requirement 9: Currency and Unit Data Structure
+
+**User Story:** As a developer querying product data, I want currency and unit information to be explicitly stored in the database schema, so that I can perform accurate price comparisons and handle multi-currency scenarios in the future.
+
+#### Acceptance Criteria
+
+1. WHEN storing a product THEN the system SHALL save the currency code (e.g., "CHF") in a dedicated currency field
+2. WHEN storing normalized data THEN the system SHALL save both original and normalized unit information
+3. WHEN querying products THEN the database schema SHALL support filtering by normalized_unit
+4. WHEN comparing prices THEN the system SHALL ensure all prices include currency information
+5. WHEN storing unit data THEN the system SHALL use an enum or constraint for valid unit types: kg, L, unit, m, m2, m3
+6. WHEN a product has no price THEN the system SHALL allow null values for price fields but still store unit information
+
+### Requirement 10: Logging and Error Reporting
 
 **User Story:** As a data administrator, I want detailed logs of the import process, so that I can troubleshoot issues and verify that data was imported correctly.
 
@@ -105,3 +135,4 @@ This feature provides a TypeScript-based data import system to load grocery prod
 4. WHEN the import completes THEN the system SHALL log summary statistics: total records processed, inserted, updated, and failed
 5. WHEN running in dry-run mode THEN the system SHALL log what would be imported without making database changes
 6. WHEN logging THEN the system SHALL use appropriate log levels (info, warn, error)
+7. WHEN unit normalization fails THEN the system SHALL log the product name and reason for failure
