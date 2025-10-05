@@ -31,12 +31,26 @@ yarn run build
 
 ## Usage
 
-### Basic Import
+### Import Data
 
 Import all CSV files from the data directory:
 
 ```bash
 yarn run import
+```
+
+### Run Tests
+
+Execute the test suite:
+
+```bash
+yarn run test
+```
+
+Run tests in watch mode during development:
+
+```bash
+yarn run test:watch
 ```
 
 ### Environment Variables
