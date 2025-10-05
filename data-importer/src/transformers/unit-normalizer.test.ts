@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { UnitNormalizer } from "./unit-normalizer";
+import { StandardUnit } from "../models/unit.model";
 
 describe("UnitNormalizer", () => {
   const normalizer = new UnitNormalizer();
@@ -214,7 +215,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 500,
         originalUnit: "g",
         normalizedQuantity: 0.5,
-        normalizedUnit: "kg" as const,
+        normalizedUnit: StandardUnit.KILOGRAM,
       };
       const result = normalizer.calculateNormalizedPrice(2.5, normalized);
       expect(result).toBe(5.0);
@@ -225,7 +226,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 250,
         originalUnit: "g",
         normalizedQuantity: 0.25,
-        normalizedUnit: "kg" as const,
+        normalizedUnit: StandardUnit.KILOGRAM,
       };
       const result = normalizer.calculateNormalizedPrice(1.99, normalized);
       expect(result).toBeCloseTo(7.96, 2);
@@ -236,7 +237,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 500,
         originalUnit: "ml",
         normalizedQuantity: 0.5,
-        normalizedUnit: "L" as const,
+        normalizedUnit: StandardUnit.LITER,
       };
       const result = normalizer.calculateNormalizedPrice(3.0, normalized);
       expect(result).toBe(6.0);
@@ -247,7 +248,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 1,
         originalUnit: "Stk",
         normalizedQuantity: 1,
-        normalizedUnit: "unit" as const,
+        normalizedUnit: StandardUnit.UNIT,
       };
       const result = normalizer.calculateNormalizedPrice(0.5, normalized);
       expect(result).toBe(0.5);
@@ -258,7 +259,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 500,
         originalUnit: "g",
         normalizedQuantity: 0.5,
-        normalizedUnit: "kg" as const,
+        normalizedUnit: StandardUnit.KILOGRAM,
       };
       const result = normalizer.calculateNormalizedPrice(null, normalized);
       expect(result).toBeNull();
@@ -269,7 +270,7 @@ describe("UnitNormalizer", () => {
         originalQuantity: 500,
         originalUnit: "g",
         normalizedQuantity: 0.5,
-        normalizedUnit: "kg" as const,
+        normalizedUnit: StandardUnit.KILOGRAM,
       };
       const result = normalizer.calculateNormalizedPrice(undefined, normalized);
       expect(result).toBeNull();
