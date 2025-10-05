@@ -37,9 +37,7 @@ The CSV Data Importer is a TypeScript command-line application that imports groc
 - **Runtime**: Node.js (v18+)
 - **Language**: TypeScript (v5+)
 - **CSV Parsing**: `csv-parse` (from csv package) - Fast, streaming CSV parser
-- **Database**: `pg` (node-postgres) - PostgreSQL client
-- **CLI**: `commander` - Command-line argument parsing
-- **Logging**: `pino` - Fast JSON logger
+- **Database**: `zapatos` - Type-safe PostgreSQL client with automatic TypeScript types
 - **Environment**: `dotenv` - Environment variable management
 
 ### Project Structure
@@ -207,23 +205,24 @@ class ProductTransformer {
 
 ### 5. Product Repository (product.repository.ts)
 
-**Purpose**: Handle all database operations for products.
+**Purpose**: Handle all database operations for products using Zapatos for type-safe queries.
 
 **Interface**:
 
 ```typescript
+import * as db from "zapatos/db";
+import type * as s from "zapatos/schema";
+import { Pool } from "pg";
+
 class ProductRepository {
-  constructor(pool: pg.Pool);
+  constructor(private pool: Pool);
 
   async upsertBatch(products: Product[]): Promise<UpsertResult>;
   async findExisting(
     name: string,
     supermarket: string,
     url: string
-  ): Promise<Product | null>;
-  async beginTransaction(): Promise<pg.PoolClient>;
-  async commitTransaction(client: pg.PoolClient): Promise<void>;
-  async rollbackTransaction(client: pg.PoolClient): Promise<void>;
+  ): Promise<s.products.Selectable | null>;
   async close(): Promise<void>;
 }
 
@@ -236,10 +235,11 @@ interface UpsertResult {
 
 **Implementation Details**:
 
-- Use PostgreSQL `INSERT ... ON CONFLICT` for upsert operations
+- Use Zapatos `db.upsert()` for type-safe upsert operations
 - Conflict detection on: `(name, supermarket, product_url)`
-- Batch inserts using parameterized queries
-- Transaction management for batch consistency
+- Batch inserts using Zapatos batch operations
+- Automatic TypeScript types from database schema
+- Transaction management using Zapatos `db.transaction()`
 - Connection pooling for performance
 
 ### 6. Import Service (import.service.ts)
@@ -454,10 +454,10 @@ try {
 
 3. **Database Repository Tests**
    - Use test database or transaction rollback
-   - Test insert operations
-   - Test update operations (upsert)
+   - Test insert operations using Zapatos
+   - Test update operations (upsert) using Zapatos
    - Test batch operations
-   - Test transaction rollback
+   - Test transaction rollback with Zapatos transactions
 
 ### End-to-End Tests
 
@@ -524,13 +524,15 @@ npm run import -- --supermarket lidl --batch-size 250
 
 2. **Streaming CSV Parsing**: Use async generators to avoid loading entire files into memory
 
-3. **Connection Pooling**: Use pg.Pool for efficient database connection reuse
+3. **Connection Pooling**: Use pg.Pool with Zapatos for efficient database connection reuse
 
-4. **Indexes**: Leverage existing GIN indexes on categories and attributes for fast queries
+4. **Type Safety**: Leverage Zapatos for compile-time type checking of database queries
 
-5. **Transaction Batching**: Group inserts into transactions to reduce commit overhead
+5. **Indexes**: Leverage existing GIN indexes on categories and attributes for fast queries
 
-6. **Parallel Processing**: Initially process files sequentially; can be enhanced later with worker threads if needed
+6. **Transaction Batching**: Group inserts into transactions to reduce commit overhead
+
+7. **Parallel Processing**: Initially process files sequentially; can be enhanced later with worker threads if needed
 
 ## Future Enhancements
 
