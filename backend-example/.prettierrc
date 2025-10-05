@@ -5,7 +5,7 @@
   "semi": true,
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
-  "importOrder": ["^react(.*)$", "^@journee-live(.*)$", "^[^\\.](.*)$", ".*"],
+  "importOrder": ["^react(.*)$", "^[^\\.](.*)$", ".*"],
   "importOrderSeparation": false,
   "trailingComma": "es5",
   "importOrderSortSpecifiers": true
