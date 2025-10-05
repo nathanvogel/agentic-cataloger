@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
 import { Pool } from "pg";
+import { Command } from "commander";
 import { scanDirectory, CsvFileInfo } from "./parsers/file-scanner";
 import { parseFile } from "./parsers/csv-parser";
 import { transform } from "./transformers/product-transformer";
@@ -210,14 +211,57 @@ async function main() {
     process.exit(1);
   }
 
-  // Determine data directory (relative to project root)
-  const dataDir = path.resolve(__dirname, "../../data");
+  // Setup CLI
+  const program = new Command();
+
+  program
+    .name("data-importer")
+    .description(
+      "Import CSV product data from Swiss supermarkets into PostgreSQL"
+    )
+    .version("1.0.0")
+    .option(
+      "-d, --data-dir <path>",
+      "Path to the data directory containing CSV files",
+      path.resolve(__dirname, "../../data")
+    )
+    .option(
+      "-s, --supermarket <name>",
+      "Filter by specific supermarket (migros, lidl, coop, denner)"
+    )
+    .option(
+      "-b, --batch-size <number>",
+      "Number of records to process in each batch",
+      "500"
+    )
+    .parse(process.argv);
+
+  const options = program.opts();
+
+  // Parse batch size to number
+  const batchSize = parseInt(options.batchSize, 10);
+  if (isNaN(batchSize) || batchSize <= 0) {
+    logError("Batch size must be a positive number");
+    process.exit(1);
+  }
+
+  // Validate supermarket if provided
+  const validSupermarkets = ["migros", "lidl", "coop", "denner"];
+  if (options.supermarket && !validSupermarkets.includes(options.supermarket)) {
+    logError(
+      `Invalid supermarket: ${
+        options.supermarket
+      }. Must be one of: ${validSupermarkets.join(", ")}`
+    );
+    process.exit(1);
+  }
 
   // Run import
   try {
-    const stats = await runImport({
-      dataDir,
-      batchSize: 500,
+    await runImport({
+      dataDir: options.dataDir,
+      supermarket: options.supermarket,
+      batchSize,
     });
 
     // Exit with success code

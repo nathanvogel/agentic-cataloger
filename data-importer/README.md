@@ -33,11 +33,51 @@ yarn run build
 
 ### Import Data
 
-Import all CSV files from the data directory:
+The importer provides a CLI with auto-documented options. View all available options:
+
+```bash
+yarn run import -- --help
+```
+
+Import all CSV files from the default data directory:
 
 ```bash
 yarn run import
 ```
+
+Import from a specific directory:
+
+```bash
+yarn run import -- --data-dir /path/to/data
+```
+
+Import only files from a specific supermarket:
+
+```bash
+yarn run import -- --supermarket coop
+```
+
+Adjust batch size for performance tuning:
+
+```bash
+yarn run import -- --batch-size 1000
+```
+
+Combine multiple options:
+
+```bash
+yarn run import -- --supermarket migros --batch-size 250 --data-dir ../data
+```
+
+### CLI Options
+
+| Option                      | Description                                        | Default               |
+| --------------------------- | -------------------------------------------------- | --------------------- |
+| `-d, --data-dir <path>`     | Path to the data directory containing CSV files    | `../data` (from root) |
+| `-s, --supermarket <name>`  | Filter by supermarket (migros, lidl, coop, denner) | All supermarkets      |
+| `-b, --batch-size <number>` | Number of records to process in each batch         | 500                   |
+| `-h, --help`                | Display help information                           | -                     |
+| `-V, --version`             | Output version number                              | -                     |
 
 ### Run Tests
 
@@ -195,8 +235,8 @@ The importer uses several optimizations:
 - **Connection Pooling**: Reuses database connections efficiently
 - **Transaction Management**: Groups operations for better performance
 
-For large datasets, adjust the batch size:
+For large datasets, adjust the batch size using the CLI:
 
 ```bash
-BATCH_SIZE=1000 yarn run import
+yarn run import -- --batch-size 1000
 ```
