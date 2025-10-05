@@ -61,38 +61,58 @@ The importer automatically normalizes product units to enable price comparisons 
 
 ### Supported Units
 
-**Weight:**
+**Weight** (normalized to grams):
 
-- `g` (grams) → converts to `kg`
-- `kg` (kilograms) → standard unit
+- `mg` (milligrams) → converts to `g` (÷ 1000)
+- `g` (grams) → standard unit
+- `kg` (kilograms) → converts to `g` (× 1000)
 
-**Volume:**
+**Volume** (normalized to liters):
 
-- `ml` (milliliters) → converts to `L`
-- `cl` (centiliters) → converts to `L`
+- `ml` (milliliters) → converts to `L` (÷ 1000)
+- `cl` (centiliters) → converts to `L` (÷ 100)
 - `l` or `L` (liters) → standard unit
 
-**Count:**
+**Length** (normalized to meters):
 
-- `Stk`, `Stk.`, `Stück` (German for "piece") → converts to `unit`
+- `m` (meters) → standard unit (for dental floss, string, etc.)
+
+**Area** (normalized to square meters):
+
+- `m2` (square meters) → standard unit (for foil, paper, etc.)
+
+**Count** (normalized to units):
+
+- `Stk`, `Stk.`, `Stück` (pieces) → converts to `unit`
 - `ST` (short form) → converts to `unit`
 - `POR` (portions) → converts to `unit`
+- `Rol` (rolls) → converts to `unit`
+- `PAAR` (pairs) → converts to `unit`
+- `BLT` (sheets) → converts to `unit`
+- `WG` (wash cycles) → converts to `unit`
+- `Bd` (bunches) → converts to `unit`
 
 **Multi-pack:**
 
 - `2x200g` → 400g total
 - `6x50cl` → 300cl total
-- `4x 1kg` → 4kg total (with space)
+- `4x 1kg` → 4000g total (with space)
 
 ### Examples
 
-| Original | Normalized | Calculation    |
-| -------- | ---------- | -------------- |
-| 500g     | 0.5 kg     | 500 ÷ 1000     |
-| 50cl     | 0.5 L      | 50 ÷ 100       |
-| 750ml    | 0.75 L     | 750 ÷ 1000     |
-| 6x50cl   | 3 L        | (6 × 50) ÷ 100 |
-| 10ST     | 10 unit    | count items    |
+| Original | Normalized | Calculation    | Use Case          |
+| -------- | ---------- | -------------- | ----------------- |
+| 500g     | 500 g      | no conversion  | Food items        |
+| 1kg      | 1000 g     | 1 × 1000       | Food items        |
+| 600mg    | 0.6 g      | 600 ÷ 1000     | Spices, saffron   |
+| 50cl     | 0.5 L      | 50 ÷ 100       | Beverages         |
+| 750ml    | 0.75 L     | 750 ÷ 1000     | Beverages         |
+| 6x50cl   | 3 L        | (6 × 50) ÷ 100 | Multi-pack drinks |
+| 50m      | 50 m       | no conversion  | Dental floss      |
+| 9m2      | 9 m2       | no conversion  | Aluminum foil     |
+| 10Rol    | 10 unit    | count items    | Toilet paper      |
+| 8PAAR    | 8 unit     | count items    | Socks, gloves     |
+| 15WG     | 15 unit    | count items    | Detergent pods    |
 
 ### Database Schema
 
@@ -101,14 +121,16 @@ The importer automatically normalizes product units to enable price comparisons 
 - `currency` - Currency code (e.g., "CHF")
 - `original_quantity` - Original quantity from product (e.g., 500)
 - `original_unit` - Original unit (e.g., "g")
-- `normalized_quantity` - Converted quantity (e.g., 0.5)
-- `normalized_unit` - Standard unit (e.g., "kg")
-- `normalized_price` - Price per normalized unit (e.g., 5.00)
+- `normalized_quantity` - Converted quantity (e.g., 500)
+- `normalized_unit` - Standard unit (e.g., "g")
+- `normalized_price` - Price per normalized unit (e.g., 0.01)
 
 **Standard Units:**
 
-- **kg** - Kilograms (for weight)
+- **g** - Grams (for weight)
 - **L** - Liters (for volume)
+- **m** - Meters (for length)
+- **m2** - Square meters (for area)
 - **unit** - Individual items (for count)
 
 ## Testing

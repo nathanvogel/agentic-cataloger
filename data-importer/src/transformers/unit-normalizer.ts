@@ -21,7 +21,7 @@ export class UnitNormalizer {
 
     // Try multi-pack pattern first: 2x200g, 3x1kg, 6x500ml, 2x 50cl
     const multiPackMatch = trimmed.match(
-      /(\d+)x\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|cl|l)/i
+      /(\d+)x\s*(\d+(?:[.,]\d+)?)\s*(g|kg|mg|ml|cl|l|m)/i
     );
     if (multiPackMatch) {
       const packCount = parseInt(multiPackMatch[1], 10);
@@ -31,8 +31,8 @@ export class UnitNormalizer {
       return { quantity: totalQuantity, unit };
     }
 
-    // Try weight pattern: 500g, 1kg, 1,5kg
-    const weightMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(g|kg)/i);
+    // Try weight pattern: 500g, 1kg, 1,5kg, 600mg
+    const weightMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(mg|g|kg)/i);
     if (weightMatch) {
       const quantity = parseFloat(weightMatch[1].replace(",", "."));
       const unit = weightMatch[2];
@@ -47,8 +47,24 @@ export class UnitNormalizer {
       return { quantity, unit };
     }
 
-    // Try count pattern: 1 Stk, 3 Stk., 2 Stück, 10ST, 50ST
-    const countMatch = trimmed.match(/(\d+)\s*(Stk\.?|Stück|ST|POR)/i);
+    // Try length pattern: 50m, 100m (for dental floss, string, etc.)
+    const lengthMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*m(?!g|l|2)/i);
+    if (lengthMatch) {
+      const quantity = parseFloat(lengthMatch[1].replace(",", "."));
+      return { quantity, unit: "m" };
+    }
+
+    // Try area pattern: 9m2, 14.5m2 (for foil, paper)
+    const areaMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*m2/i);
+    if (areaMatch) {
+      const quantity = parseFloat(areaMatch[1].replace(",", "."));
+      return { quantity, unit: "m2" };
+    }
+
+    // Try count pattern: 1 Stk, 3 Stk., 2 Stück, 10ST, 50ST, 4Rol, 8PAAR, 100BLT, 15WG, 1Bd
+    const countMatch = trimmed.match(
+      /(\d+)\s*(Stk\.?|Stück|ST|POR|Rol|PAAR|BLT|WG|Bd)/i
+    );
     if (countMatch) {
       const quantity = parseInt(countMatch[1], 10);
       const unit = countMatch[2];
@@ -66,13 +82,22 @@ export class UnitNormalizer {
   normalize(unitInfo: UnitInfo): NormalizedUnit | null {
     const unitLower = unitInfo.unit.toLowerCase();
 
-    // Weight conversions
-    if (unitLower === "g") {
+    // Weight conversions - normalize to grams
+    if (unitLower === "mg") {
       return {
         originalQuantity: unitInfo.quantity,
         originalUnit: unitInfo.unit,
         normalizedQuantity: unitInfo.quantity / 1000,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedUnit: StandardUnit.GRAM,
+      };
+    }
+
+    if (unitLower === "g") {
+      return {
+        originalQuantity: unitInfo.quantity,
+        originalUnit: unitInfo.unit,
+        normalizedQuantity: unitInfo.quantity,
+        normalizedUnit: StandardUnit.GRAM,
       };
     }
 
@@ -80,12 +105,12 @@ export class UnitNormalizer {
       return {
         originalQuantity: unitInfo.quantity,
         originalUnit: unitInfo.unit,
-        normalizedQuantity: unitInfo.quantity,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedQuantity: unitInfo.quantity * 1000,
+        normalizedUnit: StandardUnit.GRAM,
       };
     }
 
-    // Volume conversions
+    // Volume conversions - normalize to liters
     if (unitLower === "ml") {
       return {
         originalQuantity: unitInfo.quantity,
@@ -113,13 +138,38 @@ export class UnitNormalizer {
       };
     }
 
-    // Count conversions (Stk, Stk., Stück, ST, POR)
+    // Length conversions - normalize to meters
+    if (unitLower === "m") {
+      return {
+        originalQuantity: unitInfo.quantity,
+        originalUnit: unitInfo.unit,
+        normalizedQuantity: unitInfo.quantity,
+        normalizedUnit: StandardUnit.METER,
+      };
+    }
+
+    // Area conversions - normalize to square meters
+    if (unitLower === "m2") {
+      return {
+        originalQuantity: unitInfo.quantity,
+        originalUnit: unitInfo.unit,
+        normalizedQuantity: unitInfo.quantity,
+        normalizedUnit: StandardUnit.SQUARE_METER,
+      };
+    }
+
+    // Count conversions - normalize to units (Stk, ST, POR, Rol, PAAR, BLT, WG, Bd)
     if (
       unitLower === "stk" ||
       unitLower === "stk." ||
       unitLower === "stück" ||
       unitLower === "st" ||
-      unitLower === "por"
+      unitLower === "por" ||
+      unitLower === "rol" ||
+      unitLower === "paar" ||
+      unitLower === "blt" ||
+      unitLower === "wg" ||
+      unitLower === "bd"
     ) {
       return {
         originalQuantity: unitInfo.quantity,

@@ -76,6 +76,56 @@ describe("UnitNormalizer", () => {
       expect(result).toEqual({ quantity: 12, unit: "POR" });
     });
 
+    it("should extract count with Rol (rolls)", () => {
+      const result = normalizer.extractUnit("10Rol");
+      expect(result).toEqual({ quantity: 10, unit: "Rol" });
+    });
+
+    it("should extract count with PAAR (pairs)", () => {
+      const result = normalizer.extractUnit("8PAAR");
+      expect(result).toEqual({ quantity: 8, unit: "PAAR" });
+    });
+
+    it("should extract count with BLT (sheets)", () => {
+      const result = normalizer.extractUnit("500BLT");
+      expect(result).toEqual({ quantity: 500, unit: "BLT" });
+    });
+
+    it("should extract count with WG (washes)", () => {
+      const result = normalizer.extractUnit("15WG");
+      expect(result).toEqual({ quantity: 15, unit: "WG" });
+    });
+
+    it("should extract count with Bd (bunch)", () => {
+      const result = normalizer.extractUnit("1Bd");
+      expect(result).toEqual({ quantity: 1, unit: "Bd" });
+    });
+
+    it("should extract length in meters", () => {
+      const result = normalizer.extractUnit("50m");
+      expect(result).toEqual({ quantity: 50, unit: "m" });
+    });
+
+    it("should extract length in meters with decimal", () => {
+      const result = normalizer.extractUnit("100m");
+      expect(result).toEqual({ quantity: 100, unit: "m" });
+    });
+
+    it("should extract area in square meters", () => {
+      const result = normalizer.extractUnit("9m2");
+      expect(result).toEqual({ quantity: 9, unit: "m2" });
+    });
+
+    it("should extract area in square meters with decimal", () => {
+      const result = normalizer.extractUnit("14.5m2");
+      expect(result).toEqual({ quantity: 14.5, unit: "m2" });
+    });
+
+    it("should extract weight in milligrams", () => {
+      const result = normalizer.extractUnit("600mg");
+      expect(result).toEqual({ quantity: 600, unit: "mg" });
+    });
+
     it("should extract multi-pack weight (grams)", () => {
       const result = normalizer.extractUnit("2x200g");
       expect(result).toEqual({ quantity: 400, unit: "g" });
@@ -138,25 +188,36 @@ describe("UnitNormalizer", () => {
   });
 
   describe("normalize", () => {
-    it("should convert grams to kilograms", () => {
+    it("should keep grams as grams", () => {
       const unitInfo = { quantity: 500, unit: "g" };
       const result = normalizer.normalize(unitInfo);
       expect(result).toEqual({
         originalQuantity: 500,
         originalUnit: "g",
-        normalizedQuantity: 0.5,
-        normalizedUnit: "kg",
+        normalizedQuantity: 500,
+        normalizedUnit: "g",
       });
     });
 
-    it("should keep kilograms as kilograms", () => {
+    it("should convert kilograms to grams", () => {
       const unitInfo = { quantity: 1, unit: "kg" };
       const result = normalizer.normalize(unitInfo);
       expect(result).toEqual({
         originalQuantity: 1,
         originalUnit: "kg",
-        normalizedQuantity: 1,
-        normalizedUnit: "kg",
+        normalizedQuantity: 1000,
+        normalizedUnit: "g",
+      });
+    });
+
+    it("should convert milligrams to grams", () => {
+      const unitInfo = { quantity: 600, unit: "mg" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 600,
+        originalUnit: "mg",
+        normalizedQuantity: 0.6,
+        normalizedUnit: "g",
       });
     });
 
@@ -259,14 +320,91 @@ describe("UnitNormalizer", () => {
       });
     });
 
-    it("should handle case insensitive units (G to kg)", () => {
+    it("should keep meters as meters", () => {
+      const unitInfo = { quantity: 50, unit: "m" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 50,
+        originalUnit: "m",
+        normalizedQuantity: 50,
+        normalizedUnit: "m",
+      });
+    });
+
+    it("should keep square meters as square meters", () => {
+      const unitInfo = { quantity: 9, unit: "m2" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 9,
+        originalUnit: "m2",
+        normalizedQuantity: 9,
+        normalizedUnit: "m2",
+      });
+    });
+
+    it("should convert Rol to unit", () => {
+      const unitInfo = { quantity: 10, unit: "Rol" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 10,
+        originalUnit: "Rol",
+        normalizedQuantity: 10,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert PAAR to unit", () => {
+      const unitInfo = { quantity: 8, unit: "PAAR" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 8,
+        originalUnit: "PAAR",
+        normalizedQuantity: 8,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert BLT to unit", () => {
+      const unitInfo = { quantity: 500, unit: "BLT" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 500,
+        originalUnit: "BLT",
+        normalizedQuantity: 500,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert WG to unit", () => {
+      const unitInfo = { quantity: 15, unit: "WG" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 15,
+        originalUnit: "WG",
+        normalizedQuantity: 15,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert Bd to unit", () => {
+      const unitInfo = { quantity: 1, unit: "Bd" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 1,
+        originalUnit: "Bd",
+        normalizedQuantity: 1,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should handle case insensitive units (G to g)", () => {
       const unitInfo = { quantity: 250, unit: "G" };
       const result = normalizer.normalize(unitInfo);
       expect(result).toEqual({
         originalQuantity: 250,
         originalUnit: "G",
-        normalizedQuantity: 0.25,
-        normalizedUnit: "kg",
+        normalizedQuantity: 250,
+        normalizedUnit: "g",
       });
     });
 
@@ -293,22 +431,22 @@ describe("UnitNormalizer", () => {
       const normalized = {
         originalQuantity: 500,
         originalUnit: "g",
-        normalizedQuantity: 0.5,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedQuantity: 500,
+        normalizedUnit: StandardUnit.GRAM,
       };
       const result = normalizer.calculateNormalizedPrice(2.5, normalized);
-      expect(result).toBe(5.0);
+      expect(result).toBe(0.005);
     });
 
     it("should handle decimal prices", () => {
       const normalized = {
         originalQuantity: 250,
         originalUnit: "g",
-        normalizedQuantity: 0.25,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedQuantity: 250,
+        normalizedUnit: StandardUnit.GRAM,
       };
       const result = normalizer.calculateNormalizedPrice(1.99, normalized);
-      expect(result).toBeCloseTo(7.96, 2);
+      expect(result).toBeCloseTo(0.00796, 5);
     });
 
     it("should handle volume normalization", () => {
@@ -333,12 +471,34 @@ describe("UnitNormalizer", () => {
       expect(result).toBe(0.5);
     });
 
+    it("should handle length normalization", () => {
+      const normalized = {
+        originalQuantity: 50,
+        originalUnit: "m",
+        normalizedQuantity: 50,
+        normalizedUnit: StandardUnit.METER,
+      };
+      const result = normalizer.calculateNormalizedPrice(5.0, normalized);
+      expect(result).toBe(0.1);
+    });
+
+    it("should handle area normalization", () => {
+      const normalized = {
+        originalQuantity: 9,
+        originalUnit: "m2",
+        normalizedQuantity: 9,
+        normalizedUnit: StandardUnit.SQUARE_METER,
+      };
+      const result = normalizer.calculateNormalizedPrice(4.5, normalized);
+      expect(result).toBe(0.5);
+    });
+
     it("should return null for null price", () => {
       const normalized = {
         originalQuantity: 500,
         originalUnit: "g",
-        normalizedQuantity: 0.5,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedQuantity: 500,
+        normalizedUnit: StandardUnit.GRAM,
       };
       const result = normalizer.calculateNormalizedPrice(null, normalized);
       expect(result).toBeNull();
@@ -348,8 +508,8 @@ describe("UnitNormalizer", () => {
       const normalized = {
         originalQuantity: 500,
         originalUnit: "g",
-        normalizedQuantity: 0.5,
-        normalizedUnit: StandardUnit.KILOGRAM,
+        normalizedQuantity: 500,
+        normalizedUnit: StandardUnit.GRAM,
       };
       const result = normalizer.calculateNormalizedPrice(undefined, normalized);
       expect(result).toBeNull();

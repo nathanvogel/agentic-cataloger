@@ -293,9 +293,9 @@ describe("ProductTransformer", () => {
       const product = transform(csvRow, "coop", new Date());
       expect(product.original_quantity).toBe(500);
       expect(product.original_unit).toBe("g");
-      expect(product.normalized_quantity).toBe(0.5);
-      expect(product.normalized_unit).toBe("kg");
-      expect(product.normalized_price).toBe(5.0);
+      expect(product.normalized_quantity).toBe(500);
+      expect(product.normalized_unit).toBe("g");
+      expect(product.normalized_price).toBe(0.005);
     });
 
     it("should extract and normalize unit from CSV unit field (milliliters)", () => {
@@ -344,9 +344,9 @@ describe("ProductTransformer", () => {
       const product = transform(csvRow, "coop", new Date());
       expect(product.original_quantity).toBe(900);
       expect(product.original_unit).toBe("g");
-      expect(product.normalized_quantity).toBe(0.9);
-      expect(product.normalized_unit).toBe("kg");
-      expect(product.normalized_price).toBeCloseTo(4.44, 2);
+      expect(product.normalized_quantity).toBe(900);
+      expect(product.normalized_unit).toBe("g");
+      expect(product.normalized_price).toBeCloseTo(0.00444, 5);
     });
 
     it("should extract currency from price_text", () => {
@@ -411,8 +411,8 @@ describe("ProductTransformer", () => {
       const product = transform(csvRow, "coop", new Date());
       expect(product.original_quantity).toBe(500);
       expect(product.original_unit).toBe("g");
-      expect(product.normalized_quantity).toBe(0.5);
-      expect(product.normalized_unit).toBe("kg");
+      expect(product.normalized_quantity).toBe(500);
+      expect(product.normalized_unit).toBe("g");
       expect(product.normalized_price).toBe(null);
     });
 

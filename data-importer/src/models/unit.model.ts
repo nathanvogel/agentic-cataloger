@@ -2,8 +2,10 @@
  * Standard unit types for normalization
  */
 export enum StandardUnit {
-  KILOGRAM = "kg",
+  GRAM = "g",
   LITER = "L",
+  METER = "m",
+  SQUARE_METER = "m2",
   UNIT = "unit",
 }
 
