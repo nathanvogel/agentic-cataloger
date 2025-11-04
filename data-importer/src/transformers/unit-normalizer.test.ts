@@ -185,6 +185,26 @@ describe("UnitNormalizer", () => {
       const result = normalizer.extractUnit(undefined);
       expect(result).toBeNull();
     });
+
+    it("should extract 'per kg' pattern", () => {
+      const result = normalizer.extractUnit("per kg");
+      expect(result).toEqual({ quantity: 1, unit: "kg" });
+    });
+
+    it("should extract volume in deciliters", () => {
+      const result = normalizer.extractUnit("5dl");
+      expect(result).toEqual({ quantity: 5, unit: "dl" });
+    });
+
+    it("should extract tablets with Tabl.", () => {
+      const result = normalizer.extractUnit("500 Tabl.");
+      expect(result).toEqual({ quantity: 500, unit: "Tabl." });
+    });
+
+    it("should extract tablets with Tabl", () => {
+      const result = normalizer.extractUnit("220 Tabl");
+      expect(result).toEqual({ quantity: 220, unit: "Tabl" });
+    });
   });
 
   describe("normalize", () => {
@@ -423,6 +443,39 @@ describe("UnitNormalizer", () => {
       const unitInfo = { quantity: 100, unit: "unknown" };
       const result = normalizer.normalize(unitInfo);
       expect(result).toBeNull();
+    });
+
+    it("should convert deciliters to liters", () => {
+      const unitInfo = { quantity: 5, unit: "dl" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 5,
+        originalUnit: "dl",
+        normalizedQuantity: 0.5,
+        normalizedUnit: "L",
+      });
+    });
+
+    it("should convert Tabl. to unit", () => {
+      const unitInfo = { quantity: 500, unit: "Tabl." };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 500,
+        originalUnit: "Tabl.",
+        normalizedQuantity: 500,
+        normalizedUnit: "unit",
+      });
+    });
+
+    it("should convert Tabl to unit", () => {
+      const unitInfo = { quantity: 220, unit: "Tabl" };
+      const result = normalizer.normalize(unitInfo);
+      expect(result).toEqual({
+        originalQuantity: 220,
+        originalUnit: "Tabl",
+        normalizedQuantity: 220,
+        normalizedUnit: "unit",
+      });
     });
   });
 

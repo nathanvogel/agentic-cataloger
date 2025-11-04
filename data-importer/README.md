@@ -36,7 +36,7 @@ yarn run build
 The importer provides a CLI with auto-documented options. View all available options:
 
 ```bash
-yarn run import -- --help
+yarn run import --help
 ```
 
 Import all CSV files from the default data directory:

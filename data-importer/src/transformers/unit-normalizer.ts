@@ -19,6 +19,12 @@ export class UnitNormalizer {
       return null;
     }
 
+    // Handle "per kg" pattern - extract just the unit
+    const perUnitMatch = trimmed.match(/^per\s+(kg|g|l|ml|cl|dl)$/i);
+    if (perUnitMatch) {
+      return { quantity: 1, unit: perUnitMatch[1] };
+    }
+
     // Try multi-pack pattern first: 2x200g, 3x1kg, 6x500ml, 2x 50cl
     const multiPackMatch = trimmed.match(
       /(\d+)x\s*(\d+(?:[.,]\d+)?)\s*(g|kg|mg|ml|cl|l|m)/i
@@ -39,8 +45,8 @@ export class UnitNormalizer {
       return { quantity, unit };
     }
 
-    // Try volume pattern: 500ml, 1l, 1,5L, 50cl
-    const volumeMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(ml|cl|l)/i);
+    // Try volume pattern: 500ml, 1l, 1,5L, 50cl, 5dl
+    const volumeMatch = trimmed.match(/(\d+(?:[.,]\d+)?)\s*(ml|cl|dl|l)/i);
     if (volumeMatch) {
       const quantity = parseFloat(volumeMatch[1].replace(",", "."));
       const unit = volumeMatch[2];
@@ -61,9 +67,9 @@ export class UnitNormalizer {
       return { quantity, unit: "m2" };
     }
 
-    // Try count pattern: 1 Stk, 3 Stk., 2 Stück, 10ST, 50ST, 4Rol, 8PAAR, 100BLT, 15WG, 1Bd
+    // Try count pattern: 1 Stk, 3 Stk., 2 Stück, 10ST, 50ST, 4Rol, 8PAAR, 100BLT, 15WG, 1Bd, 500 Tabl.
     const countMatch = trimmed.match(
-      /(\d+)\s*(Stk\.?|Stück|ST|POR|Rol|PAAR|BLT|WG|Bd)/i
+      /(\d+)\s*(Stk\.?|Stück|ST|POR|Rol|PAAR|BLT|WG|Bd|Tabl\.?)/i
     );
     if (countMatch) {
       const quantity = parseInt(countMatch[1], 10);
@@ -129,6 +135,15 @@ export class UnitNormalizer {
       };
     }
 
+    if (unitLower === "dl") {
+      return {
+        originalQuantity: unitInfo.quantity,
+        originalUnit: unitInfo.unit,
+        normalizedQuantity: unitInfo.quantity / 10,
+        normalizedUnit: StandardUnit.LITER,
+      };
+    }
+
     if (unitLower === "l") {
       return {
         originalQuantity: unitInfo.quantity,
@@ -158,7 +173,7 @@ export class UnitNormalizer {
       };
     }
 
-    // Count conversions - normalize to units (Stk, ST, POR, Rol, PAAR, BLT, WG, Bd)
+    // Count conversions - normalize to units (Stk, ST, POR, Rol, PAAR, BLT, WG, Bd, Tabl)
     if (
       unitLower === "stk" ||
       unitLower === "stk." ||
@@ -169,7 +184,9 @@ export class UnitNormalizer {
       unitLower === "paar" ||
       unitLower === "blt" ||
       unitLower === "wg" ||
-      unitLower === "bd"
+      unitLower === "bd" ||
+      unitLower === "tabl" ||
+      unitLower === "tabl."
     ) {
       return {
         originalQuantity: unitInfo.quantity,
