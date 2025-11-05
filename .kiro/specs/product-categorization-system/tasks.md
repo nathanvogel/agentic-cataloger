@@ -70,9 +70,9 @@ This plan converts the product categorization system design into actionable codi
     - Add method to calculate accuracy statistics per model
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 15.3_
 
-- [ ] 4. Implement Category Discovery Agent
+- [x] 4. Implement Category Discovery Agent
 
-  - [ ] 4.1 Create Category Discovery Agent class
+  - [x] 4.1 Create Category Discovery Agent class
 
     - Implement discoverCategories method
     - Design LLM prompt for category discovery
@@ -80,14 +80,14 @@ This plan converts the product categorization system design into actionable codi
     - Handle errors and retries
     - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-  - [ ] 4.2 Implement product data preparation
+  - [x] 4.2 Implement product data preparation
 
     - Query products filtered by "Gemüse" or "Früchte" in categories array
     - Create ProductSummary objects with essential fields
     - Batch products for LLM context window limits
     - _Requirements: 1.1, 10.2_
 
-  - [ ] 4.3 Implement category validation and storage
+  - [x] 4.3 Implement category validation and storage
     - Validate discovered categories against expected schema
     - Store categories in Category Registry
     - Assign products to categories

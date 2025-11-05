@@ -106,7 +106,7 @@ export class CategoryRepository {
   async assignProducts(
     categoryId: number,
     productIds: number[],
-    confidence: number = 1.0,
+    confidence: number = 0.0,
   ): Promise<void> {
     const client = await this.pool.connect();
     try {
