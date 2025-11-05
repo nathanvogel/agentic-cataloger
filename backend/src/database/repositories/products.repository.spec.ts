@@ -13,9 +13,7 @@ describe("ProductsRepository Integration Tests", () => {
 
   beforeAll(() => {
     pool = new Pool({
-      connectionString:
-        process.env.DATABASE_URL ||
-        "postgresql://pricecomp_user:abc@localhost:5532/pricecomp_db",
+      connectionString: process.env.DATABASE_URL,
     });
     repository = new ProductsRepository(pool);
   });
