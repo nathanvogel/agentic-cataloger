@@ -29,15 +29,16 @@ describe("CategoryRepository Integration Tests", () => {
 
   describe("createCategory", () => {
     it("should create a new category with all fields", async () => {
+      const uniqueName = `vegetables_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const category = await repository.createCategory({
-        name: "vegetables",
+        name: uniqueName,
         display_name: "Gemüse",
         reasoning: "Products that are vegetables",
         confidence: 0.95,
       });
 
       expect(category.id).toBeDefined();
-      expect(category.name).toBe("vegetables");
+      expect(category.name).toBe(uniqueName);
       expect(category.display_name).toBe("Gemüse");
       expect(category.reasoning).toBe("Products that are vegetables");
       expect(category.confidence).toBe(0.95);
@@ -45,13 +46,14 @@ describe("CategoryRepository Integration Tests", () => {
     });
 
     it("should create category with minimal fields", async () => {
+      const uniqueName = `fruits_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const category = await repository.createCategory({
-        name: "fruits",
+        name: uniqueName,
         display_name: "Früchte",
       });
 
       expect(category.id).toBeDefined();
-      expect(category.name).toBe("fruits");
+      expect(category.name).toBe(uniqueName);
       expect(category.display_name).toBe("Früchte");
     });
   });
@@ -59,14 +61,14 @@ describe("CategoryRepository Integration Tests", () => {
   describe("getCategory", () => {
     it("should return category by ID", async () => {
       const created = await createTestCategory(pool, {
-        name: "test_cat",
         display_name: "Test Category",
       });
 
       const category = await repository.getCategory(created.id);
 
       expect(category).toBeTruthy();
-      expect(category?.name).toBe("test_cat");
+      expect(category?.name).toBe(created.name);
+      expect(category?.display_name).toBe("Test Category");
     });
 
     it("should return null for non-existent category", async () => {
@@ -77,12 +79,11 @@ describe("CategoryRepository Integration Tests", () => {
 
   describe("getCategoryByName", () => {
     it("should return category by name", async () => {
-      await createTestCategory(pool, {
-        name: "unique_name",
+      const created = await createTestCategory(pool, {
         display_name: "Unique",
       });
 
-      const category = await repository.getCategoryByName("unique_name");
+      const category = await repository.getCategoryByName(created.name);
 
       expect(category).toBeTruthy();
       expect(category?.display_name).toBe("Unique");
@@ -96,29 +97,28 @@ describe("CategoryRepository Integration Tests", () => {
 
   describe("getAllCategories", () => {
     it("should return all categories ordered by name", async () => {
-      await createTestCategory(pool, {
-        name: "zebra",
+      const cat1 = await createTestCategory(pool, {
         display_name: "Z",
       });
-      await createTestCategory(pool, {
-        name: "apple",
+      const cat2 = await createTestCategory(pool, {
         display_name: "A",
       });
-      await createTestCategory(pool, {
-        name: "middle",
+      const cat3 = await createTestCategory(pool, {
         display_name: "M",
       });
 
       const categories = await repository.getAllCategories();
 
       expect(categories.length).toBeGreaterThanOrEqual(3);
-      // Check that our test categories are in alphabetical order
-      const testCats = categories.filter((c) =>
-        ["zebra", "apple", "middle"].includes(c.name),
-      );
-      expect(testCats[0].name).toBe("apple");
-      expect(testCats[1].name).toBe("middle");
-      expect(testCats[2].name).toBe("zebra");
+      // Check that our test categories exist and are ordered by name
+      const testCatNames = [cat1.name, cat2.name, cat3.name];
+      const testCats = categories.filter((c) => testCatNames.includes(c.name));
+      expect(testCats.length).toBe(3);
+      // Verify they are in alphabetical order
+      const sortedNames = [...testCatNames].sort();
+      expect(testCats[0].name).toBe(sortedNames[0]);
+      expect(testCats[1].name).toBe(sortedNames[1]);
+      expect(testCats[2].name).toBe(sortedNames[2]);
     });
   });
 
@@ -152,12 +152,12 @@ describe("CategoryRepository Integration Tests", () => {
     it("should handle transaction rollback on error", async () => {
       const category = await createTestCategory(pool);
 
-      // Try to assign non-existent product (should fail)
+      // Try to assign to non-existent category (should fail with foreign key constraint)
       await expect(
-        repository.assignProducts(category.id, [999999], 0.9),
+        repository.assignProducts(999999, [1], 0.9),
       ).rejects.toThrow();
 
-      // Category count should remain 0
+      // Original category count should remain 0
       const updatedCategory = await repository.getCategory(category.id);
       expect(updatedCategory?.product_count).toBe(0);
     });

@@ -39,7 +39,7 @@ export class CategoryRepository {
   async createCategory(
     input: CreateCategoryInput,
   ): Promise<s.categories.JSONSelectable> {
-    const categories = await db
+    const category = await db
       .insert("categories", {
         name: input.name,
         display_name: input.display_name,
@@ -48,7 +48,7 @@ export class CategoryRepository {
         product_count: 0,
       })
       .run(this.pool);
-    return categories[0] as s.categories.JSONSelectable;
+    return category;
   }
 
   /**

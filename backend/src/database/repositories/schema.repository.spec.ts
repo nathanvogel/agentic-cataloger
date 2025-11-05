@@ -151,8 +151,9 @@ describe("SchemaRepository Integration Tests", () => {
 
   describe("registerAttribute", () => {
     it("should create a new attribute", async () => {
+      const uniqueName = `test_weight_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const attribute = await repository.registerAttribute({
-        name: "test_weight",
+        name: uniqueName,
         display_name: "Weight",
         type: "number",
         unit: "g",
@@ -160,7 +161,7 @@ describe("SchemaRepository Integration Tests", () => {
       });
 
       expect(attribute.id).toBeDefined();
-      expect(attribute.name).toBe("test_weight");
+      expect(attribute.name).toBe(uniqueName);
       expect(attribute.display_name).toBe("Weight");
       expect(attribute.type).toBe("number");
       expect(attribute.unit).toBe("g");
@@ -168,13 +169,14 @@ describe("SchemaRepository Integration Tests", () => {
     });
 
     it("should increment usage count for existing attribute", async () => {
+      const uniqueName = `existing_attr_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const existing = await createTestAttribute(pool, {
-        name: "existing_attr",
+        name: uniqueName,
         usage_count: 5,
       });
 
       const updated = await repository.registerAttribute({
-        name: "existing_attr",
+        name: uniqueName,
         display_name: "Updated",
         type: "string",
       });
@@ -184,8 +186,9 @@ describe("SchemaRepository Integration Tests", () => {
     });
 
     it("should handle enum type with values", async () => {
+      const uniqueName = `color_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const attribute = await repository.registerAttribute({
-        name: "color",
+        name: uniqueName,
         display_name: "Color",
         type: "enum",
         enum_values: ["red", "green", "blue"],

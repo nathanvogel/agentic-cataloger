@@ -30,7 +30,18 @@ export class ProductsRepository {
       .select(
         "products",
         { categories: db.sql`${db.self} && ${db.param(categories)}` },
-        { columns: ["id", "name", "categories", "attributes", "category_id"] },
+        {
+          columns: [
+            "id",
+            "name",
+            "categories",
+            "attributes",
+            "category_id",
+            "supermarket",
+            "unit",
+            "price",
+          ],
+        },
       )
       .run(this.pool);
   }

@@ -82,7 +82,7 @@ export class AgentExecutionRepository {
   async logExecution(
     input: CreateExecutionInput,
   ): Promise<s.agent_executions.JSONSelectable> {
-    const executions = await db
+    const execution = await db
       .insert("agent_executions", {
         phase: input.phase,
         status: input.status,
@@ -100,7 +100,7 @@ export class AgentExecutionRepository {
       })
       .run(this.pool);
 
-    return executions[0] as s.agent_executions.JSONSelectable;
+    return execution;
   }
 
   /**
@@ -191,15 +191,15 @@ export class AgentExecutionRepository {
     }
     if (filters.product_id !== undefined) {
       (whereConditions as Record<string, unknown>).product_ids =
-        db.sql`${db.self} && ARRAY[${db.param(filters.product_id)}]`;
+        db.sql`${db.self} && ARRAY[${db.param(filters.product_id)}]::integer[]`;
     }
     if (filters.category_id !== undefined) {
       (whereConditions as Record<string, unknown>).category_ids =
-        db.sql`${db.self} && ARRAY[${db.param(filters.category_id)}]`;
+        db.sql`${db.self} && ARRAY[${db.param(filters.category_id)}]::integer[]`;
     }
     if (filters.schema_id !== undefined) {
       (whereConditions as Record<string, unknown>).schema_ids =
-        db.sql`${db.self} && ARRAY[${db.param(filters.schema_id)}]`;
+        db.sql`${db.self} && ARRAY[${db.param(filters.schema_id)}]::integer[]`;
     }
 
     return db

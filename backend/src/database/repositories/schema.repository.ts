@@ -55,7 +55,7 @@ export class SchemaRepository {
     const latestVersion = await this.getLatestVersion(input.category_id);
     const newVersion = input.version || latestVersion + 1;
 
-    const schemas = await db
+    const schema = await db
       .insert("category_schemas", {
         category_id: input.category_id,
         schema: input.schema,
@@ -63,7 +63,7 @@ export class SchemaRepository {
       })
       .run(this.pool);
 
-    return schemas[0] as s.category_schemas.JSONSelectable;
+    return schema;
   }
 
   /**
@@ -157,7 +157,7 @@ export class SchemaRepository {
 
     if (existing) {
       // Increment usage count
-      const [updated] = await db
+      const updated = await db
         .update(
           "global_attributes",
           {
@@ -166,11 +166,11 @@ export class SchemaRepository {
           { id: existing.id },
         )
         .run(this.pool);
-      return updated;
+      return updated[0];
     }
 
     // Create new attribute
-    const attributes = await db
+    const attribute = await db
       .insert("global_attributes", {
         name: input.name,
         display_name: input.display_name,
@@ -182,7 +182,7 @@ export class SchemaRepository {
       })
       .run(this.pool);
 
-    return attributes[0] as s.global_attributes.JSONSelectable;
+    return attribute;
   }
 
   /**
