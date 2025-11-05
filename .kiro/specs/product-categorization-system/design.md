@@ -515,21 +515,46 @@ ADD COLUMN attributes_extracted_at TIMESTAMP;
 
 CREATE INDEX idx_products_category ON products(category_id);
 
--- Agent execution log
+-- Agent execution log (stores all LLM interactions for review and debugging)
 CREATE TABLE agent_executions (
     id SERIAL PRIMARY KEY,
-    phase TEXT NOT NULL,
-    status TEXT NOT NULL,
-    input_summary JSONB,
-    output_summary JSONB,
+    phase TEXT NOT NULL, -- 'CATEGORY_DISCOVERY', 'SCHEMA_GENERATION', 'ATTRIBUTE_EXTRACTION'
+    status TEXT NOT NULL, -- 'success', 'error', 'partial'
+
+    -- Full LLM interaction
+    llm_input JSONB NOT NULL, -- Complete prompt and context
+    llm_output JSONB NOT NULL, -- Complete LLM response
+
+    -- Affected entities (for linking and filtering)
+    product_ids INTEGER[], -- Products affected by this execution
+    category_ids INTEGER[], -- Categories affected by this execution
+    schema_ids INTEGER[], -- Schemas affected by this execution
+
+    -- Execution metadata
     error_message TEXT,
     tokens_used INTEGER,
     duration_ms INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    llm_model TEXT NOT NULL,
+    llm_provider TEXT NOT NULL,
+
+    -- Human review (optional)
+    is_reviewed BOOLEAN DEFAULT FALSE,
+    is_correct BOOLEAN,
+    reviewer_notes TEXT,
+    reviewed_at TIMESTAMP,
+
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
 );
 
 CREATE INDEX idx_agent_executions_phase ON agent_executions(phase);
+CREATE INDEX idx_agent_executions_status ON agent_executions(status);
 CREATE INDEX idx_agent_executions_created_at ON agent_executions(created_at);
+CREATE INDEX idx_agent_executions_model ON agent_executions(llm_model);
+CREATE INDEX idx_agent_executions_reviewed ON agent_executions(is_reviewed, reviewed_at);
+CREATE INDEX idx_agent_executions_product_ids ON agent_executions USING GIN(product_ids);
+CREATE INDEX idx_agent_executions_category_ids ON agent_executions USING GIN(category_ids);
 ```
 
 ### TypeScript Models

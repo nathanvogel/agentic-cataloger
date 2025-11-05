@@ -136,15 +136,17 @@ This document marks requirements and acceptance criteria as **[MVP]** (must-have
 
 ### Requirement 8 [MVP]
 
-**User Story:** As a system administrator, I want the system to log all LLM agent executions with input/output summaries and token usage, so that I can monitor costs and debug issues.
+**User Story:** As a system administrator, I want the system to log all LLM agent executions with complete input/output and link to affected entities, so that I can monitor costs, debug issues, and review outputs for quality assurance.
 
 #### Acceptance Criteria
 
-1. THE Agentic System SHALL log each LLM agent execution with phase, status, and timestamp
-2. WHEN an LLM agent executes, THE system SHALL record tokens used
-3. WHEN an LLM agent execution fails, THE system SHALL log the error message and context
-4. **[POST-MVP]** THE Agentic System SHALL provide reporting on total token usage and estimated costs per phase
-5. **[POST-MVP]** THE Agentic System SHALL support querying execution logs by phase, status, or date range
+1. THE Agentic System SHALL log each LLM agent execution with phase, status, complete LLM input, complete LLM output, and timestamps
+2. THE Agentic System SHALL link each execution to affected product IDs, category IDs, and schema IDs
+3. WHEN an LLM agent executes, THE system SHALL record tokens used, duration, model, and provider
+4. WHEN an LLM agent execution fails, THE system SHALL log the error message and context
+5. THE Agentic System SHALL support marking executions as reviewed with correctness flag and optional reviewer notes
+6. THE Agentic System SHALL support querying execution logs by phase, status, model, or affected entities
+7. **[POST-MVP]** THE Agentic System SHALL provide reporting on total token usage and estimated costs per phase
 
 ### Requirement 9 [MVP]
 
