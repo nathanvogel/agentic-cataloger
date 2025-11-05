@@ -30,6 +30,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@ai-sdk/google@npm:^2.0.28":
+  version: 2.0.28
+  resolution: "@ai-sdk/google@npm:2.0.28"
+  dependencies:
+    "@ai-sdk/provider": "npm:2.0.0"
+    "@ai-sdk/provider-utils": "npm:3.0.16"
+  peerDependencies:
+    zod: ^3.25.76 || ^4.1.8
+  checksum: 10c0/eb1aae9e470a414f673c8047c744b6d7214ef134ddb4e29018dd160adc5bfae576464d6fc74c9404b5202852fbcce691f82cd2cd66e0f0fcd772ec7f15b1f1c6
+  languageName: node
+  linkType: hard
+
 "@ai-sdk/openai@npm:2.0.62":
   version: 2.0.62
   resolution: "@ai-sdk/openai@npm:2.0.62"
@@ -1519,6 +1531,20 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nestjs/config@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "@nestjs/config@npm:4.0.2"
+  dependencies:
+    dotenv: "npm:16.4.7"
+    dotenv-expand: "npm:12.0.1"
+    lodash: "npm:4.17.21"
+  peerDependencies:
+    "@nestjs/common": ^10.0.0 || ^11.0.0
+    rxjs: ^7.1.0
+  checksum: 10c0/549bc8d784f68742c8020954be250639cd8d37a0dd233d01ebe511f67268e5fd109ffb1ae546ca9792a8484ef4cbb79374ae7e2a9587f59b13db1e9a16d443d6
+  languageName: node
+  linkType: hard
+
 "@nestjs/core@npm:11.0.1":
   version: 11.0.1
   resolution: "@nestjs/core@npm:11.0.1"
@@ -2846,11 +2872,13 @@ __metadata:
   resolution: "backend@workspace:."
   dependencies:
     "@ai-sdk/anthropic": "npm:2.0.41"
+    "@ai-sdk/google": "npm:^2.0.28"
     "@ai-sdk/openai": "npm:2.0.62"
     "@eslint/eslintrc": "npm:3.2.0"
     "@eslint/js": "npm:9.18.0"
     "@nestjs/cli": "npm:11.0.0"
     "@nestjs/common": "npm:11.0.1"
+    "@nestjs/config": "npm:^4.0.2"
     "@nestjs/core": "npm:11.0.1"
     "@nestjs/platform-express": "npm:11.0.1"
     "@nestjs/schematics": "npm:11.0.0"
@@ -3573,10 +3601,33 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dotenv-expand@npm:12.0.1":
+  version: 12.0.1
+  resolution: "dotenv-expand@npm:12.0.1"
+  dependencies:
+    dotenv: "npm:^16.4.5"
+  checksum: 10c0/51996bfa670073d7a441b8fbed26ac991026fba2c05e9a937a898ce7d2a2e7166f7b6ec4eb8879e576defb5d1ad399ed1300db8f803d6977577fea55b4d82dac
+  languageName: node
+  linkType: hard
+
+"dotenv@npm:16.4.7":
+  version: 16.4.7
+  resolution: "dotenv@npm:16.4.7"
+  checksum: 10c0/be9f597e36a8daf834452daa1f4cc30e5375a5968f98f46d89b16b983c567398a330580c88395069a77473943c06b877d1ca25b4afafcdd6d4adb549e8293462
+  languageName: node
+  linkType: hard
+
 "dotenv@npm:17.2.3":
   version: 17.2.3
   resolution: "dotenv@npm:17.2.3"
   checksum: 10c0/c884403209f713214a1b64d4d1defa4934c2aa5b0002f5a670ae298a51e3c3ad3ba79dfee2f8df49f01ae74290fcd9acdb1ab1d09c7bfb42b539036108bb2ba0
+  languageName: node
+  linkType: hard
+
+"dotenv@npm:^16.4.5":
+  version: 16.6.1
+  resolution: "dotenv@npm:16.6.1"
+  checksum: 10c0/15ce56608326ea0d1d9414a5c8ee6dcf0fffc79d2c16422b4ac2268e7e2d76ff5a572d37ffe747c377de12005f14b3cc22361e79fc7f1061cce81f77d2c973dc
   languageName: node
   linkType: hard
 
@@ -5638,7 +5689,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:^4.17.21":
+"lodash@npm:4.17.21, lodash@npm:^4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10c0/d8cbea072bb08655bb4c989da418994b073a608dffa608b09ac04b43a791b12aeae7cd7ad919aa4c925f33b48490b5cfe6c1f71d827956071dae2e7bb3a6b74c
