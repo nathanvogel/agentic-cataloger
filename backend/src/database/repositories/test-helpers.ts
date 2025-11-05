@@ -17,6 +17,16 @@ const testDataIds = {
 };
 
 /**
+ * Track an attribute ID for cleanup.
+ * Use this when creating attributes through repository methods.
+ *
+ * @param id - Attribute ID to track
+ */
+export function trackAttributeForCleanup(id: number): void {
+  testDataIds.attributes.push(id);
+}
+
+/**
  * Clean up all test data created during tests.
  * Should be called in afterEach hooks.
  *

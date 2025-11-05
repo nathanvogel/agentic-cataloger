@@ -6,6 +6,7 @@ import {
   createTestCategory,
   createTestSchema,
   createTestAttribute,
+  trackAttributeForCleanup,
 } from "./test-helpers";
 
 describe("SchemaRepository Integration Tests", () => {
@@ -159,6 +160,7 @@ describe("SchemaRepository Integration Tests", () => {
         unit: "g",
         description: "Product weight in grams",
       });
+      trackAttributeForCleanup(attribute.id);
 
       expect(attribute.id).toBeDefined();
       expect(attribute.name).toBe(uniqueName);
@@ -193,6 +195,7 @@ describe("SchemaRepository Integration Tests", () => {
         type: "enum",
         enum_values: ["red", "green", "blue"],
       });
+      trackAttributeForCleanup(attribute.id);
 
       expect(attribute.type).toBe("enum");
       expect(attribute.enum_values).toEqual(["red", "green", "blue"]);
