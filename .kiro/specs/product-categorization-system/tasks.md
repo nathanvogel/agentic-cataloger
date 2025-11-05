@@ -16,8 +16,7 @@ This plan converts the product categorization system design into actionable codi
 
   - [ ] 2.1 Choose and install model-agnostic library
 
-    - Evaluate options (Vercel AI SDK, LangChain, LiteLLM)
-    - Install chosen library and dependencies
+    - Install chosen library (Vercel AI SDK) and dependencies
     - Configure API keys for multiple providers (OpenAI, Anthropic)
     - _Requirements: 15.1_
 
