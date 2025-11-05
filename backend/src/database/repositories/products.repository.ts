@@ -136,7 +136,14 @@ export class ProductsRepository {
         "products",
         { category_id: db.conditions.isNull },
         {
-          columns: ["id", "name", "categories", "attributes", "supermarket"],
+          columns: [
+            "id",
+            "name",
+            "categories",
+            "attributes",
+            "supermarket",
+            "category_id",
+          ],
           limit,
         },
       )
