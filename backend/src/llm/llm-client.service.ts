@@ -68,7 +68,7 @@ export class LLMClientService implements ILLMClient {
         return this.google(model);
 
       default:
-        throw new Error(`Unsupported provider: ${provider}`);
+        throw new Error(`Unsupported provider: ${String(provider)}`);
     }
   }
 
@@ -108,7 +108,7 @@ export class LLMClientService implements ILLMClient {
         const startTime = Date.now();
 
         // Create timeout promise
-        const timeoutPromise = new Promise<never>((_, reject) => {
+        const timeoutPromise: Promise<never> = new Promise((_, reject) => {
           setTimeout(() => reject(new Error("Request timeout")), timeout);
         });
 
@@ -146,13 +146,17 @@ export class LLMClientService implements ILLMClient {
         });
 
         // Map AI SDK usage to our interface
-        const usage = result.usage as any;
+        const usage = result.usage as {
+          promptTokens?: number;
+          completionTokens?: number;
+          totalTokens?: number;
+        };
         return {
           data: result.object,
           usage: {
-            promptTokens: usage.promptTokens || 0,
-            completionTokens: usage.completionTokens || 0,
-            totalTokens: usage.totalTokens || 0,
+            promptTokens: usage.promptTokens ?? 0,
+            completionTokens: usage.completionTokens ?? 0,
+            totalTokens: usage.totalTokens ?? 0,
           },
           model,
           finishReason: result.finishReason,
