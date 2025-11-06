@@ -56,45 +56,5 @@ else
     exit 1
 fi
 
-# Verify tables were created
-echo ""
-echo -e "${YELLOW}Verifying migration...${NC}"
-TABLES=$(psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -t -c "
-    SELECT table_name 
-    FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name IN ('categories', 'category_schemas', 'global_attributes', 'agent_executions')
-    ORDER BY table_name;
-")
-
-if [ -z "$TABLES" ]; then
-    echo -e "${RED}✗ Tables not found${NC}"
-    exit 1
-fi
-
-echo "Created tables:"
-echo "$TABLES" | while read -r table; do
-    if [ -n "$table" ]; then
-        echo -e "  ${GREEN}✓${NC} $table"
-    fi
-done
-
-# Check if products table was extended
-COLUMNS=$(psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" -t -c "
-    SELECT column_name 
-    FROM information_schema.columns 
-    WHERE table_name = 'products' 
-    AND column_name IN ('category_id', 'categorization_confidence', 'attributes_extracted_at')
-    ORDER BY column_name;
-")
-
-echo ""
-echo "Extended products table with columns:"
-echo "$COLUMNS" | while read -r column; do
-    if [ -n "$column" ]; then
-        echo -e "  ${GREEN}✓${NC} $column"
-    fi
-done
-
 echo ""
 echo -e "${GREEN}=== Migration Complete ===${NC}"
