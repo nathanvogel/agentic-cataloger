@@ -36,21 +36,24 @@ export interface ModelConfig {
  * - Attribute Extraction: High volume, simpler task (Claude Sonnet or cheaper models)
  */
 const DEFAULT_MODEL_CONFIG: Record<LLMOperation, ModelConfig> = {
+  // requires strong reasoning
   [LLMOperation.CATEGORY_DISCOVERY]: {
     provider: LLMProvider.OPENAI,
-    model: "gpt-4o",
+    model: "gpt-5",
     temperature: 0.7,
-    maxTokens: 4096,
+    maxTokens: 30000,
   },
+  // requires structured thinking
   [LLMOperation.SCHEMA_GENERATION]: {
     provider: LLMProvider.OPENAI,
-    model: "gpt-4o",
+    model: "gpt-4.1-nano",
     temperature: 0.7,
     maxTokens: 4096,
   },
+  // high volume, simpler task
   [LLMOperation.ATTRIBUTE_EXTRACTION]: {
-    provider: LLMProvider.ANTHROPIC,
-    model: "claude-3-5-sonnet-20241022",
+    provider: LLMProvider.OPENAI,
+    model: "gpt-4.1-nano",
     temperature: 0.5,
     maxTokens: 2048,
   },

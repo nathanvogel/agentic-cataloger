@@ -89,11 +89,11 @@ export class LLMClientService implements ILLMClient {
   ): Promise<LLMResponse<T>> {
     const {
       provider = LLMProvider.OPENAI,
-      model = "gpt-4o",
+      model = "gpt-oss-20b", // cheapest model by default
       temperature = 0.7,
       maxTokens = 4096,
       retries = 3,
-      timeout = 60000,
+      timeout = 5 * 60000,
     } = options;
 
     let lastError: Error | null = null;
@@ -112,9 +112,13 @@ export class LLMClientService implements ILLMClient {
           setTimeout(() => reject(new Error("Request timeout")), timeout);
         });
 
+        const llmClient = this.getProviderClient(provider, model);
+        this.logger.log(`LLM client: ${JSON.stringify(llmClient)}`);
+        this.logger.log(`Prompt: ${prompt}`);
+
         // Create completion promise
         const completionPromise = generateObject({
-          model: this.getProviderClient(provider, model),
+          model: llmClient,
           schema,
           prompt,
           temperature,

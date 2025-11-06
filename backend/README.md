@@ -18,7 +18,7 @@ yarn install
 
 ## Configuration
 
-Copy `.env.example` to `.env` and configure it. 
+Copy `.env.example` to `.env` and configure it.
 
 ## Usage
 
@@ -27,8 +27,8 @@ Copy `.env.example` to `.env` and configure it.
 The `LLMClientService` provides a model-agnostic interface for LLM interactions:
 
 ```typescript
-import { LLMClientService, LLMProvider } from './llm';
-import { z } from 'zod';
+import { LLMClientService, LLMProvider } from "./llm";
+import { z } from "zod";
 
 // Define response schema
 const CategorySchema = z.object({
@@ -39,16 +39,16 @@ const CategorySchema = z.object({
 
 // Call LLM with explicit provider
 const response = await llmClient.complete(
-  'Categorize these products...',
+  "Categorize these products...",
   CategorySchema,
   {
     provider: LLMProvider.OPENAI,
-    model: 'gpt-4o',
+    model: "gpt-4o",
     temperature: 0.7,
     maxTokens: 4096,
     retries: 3,
     timeout: 60000,
-  }
+  },
 );
 
 console.log(response.data); // Typed as { name: string, displayName: string, productIds: number[] }
@@ -57,12 +57,6 @@ console.log(response.provider); // 'openai', 'anthropic', or 'google'
 ```
 
 ### Model Configuration
-
-Default models per operation:
-
-- **Category Discovery**: OpenAI `gpt-4o` (requires strong reasoning)
-- **Schema Generation**: OpenAI `gpt-4o` (requires structured thinking)
-- **Attribute Extraction**: Anthropic `claude-3-5-sonnet-20241022` (high volume, simpler task)
 
 Override via environment variables or options:
 

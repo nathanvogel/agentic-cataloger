@@ -4263,6 +4263,7 @@ declare module "zapatos/schema" {
       | categories.UniqueIndex
       | category_price_stats.UniqueIndex
       | category_schemas.UniqueIndex
+      | cheapest_products.UniqueIndex
       | global_attributes.UniqueIndex
       | products.UniqueIndex;
     export type Column =
