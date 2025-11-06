@@ -1,80 +1,71 @@
+---
+inclusion: always
+---
+
 # Project Structure
 
-## Root Layout
+This application is a price comparison tool for groceries with AI-powered analysis. It initially focuses on the Swiss market, with datasets covering `migros`, `lidl`, `coop` and `denner`.
 
-```
-/data/                    # CSV data files organized by supermarket
-/data-importer/           # TypeScript importer application
-/db/                      # Database initialization scripts
-docker-compose.yml        # PostgreSQL container configuration
-```
+Components will ultimately include:
 
-## Data Directory
+- data [DONE]: Copy of https://huggingface.co/datasets/Yelinz/coop-ch-products and related datasets
+- data-scraper [currently omitted as Yelinz's dataset are enough for MVP]
+- data-importer [DONE]
+- backend [IN PROGRESS]
+- db [IN PROGRESS]
+- frontend [TODO]
+- cicd & infra [TODO]
 
-Organized by supermarket and date:
+## Root Directories
 
-```
-/data/{supermarket}-ch-products/
-  /YYYY/MM/DD-HH:MM.csv
-```
+### `/data/`
 
-Supermarkets: `coop`, `denner`, `lidl`, `migros`
+CSV data files organized by supermarket and timestamp:
 
-## Data Importer Structure
+- Pattern: `{supermarket}-ch-products/YYYY/MM/DD-HH:MM.csv`
+- Supermarkets: migros, lidl, coop, denner
 
-```
-/data-importer/
-  /src/
-    /parsers/           # CSV parsing and file scanning logic
-    /transformers/      # Data transformation and validation
-    /repositories/      # Database access layer (Zapatos)
-    /utils/             # Shared utilities (logger, price parser)
-  /dist/                # Compiled JavaScript output
-  package.json
-  tsconfig.json
-  vitest.config.ts
-```
+### `/data-importer/`
 
-## Code Organization Patterns
+Standalone TypeScript application for processing CSV files:
 
-### Utilities (`/utils/`)
+- Parses CSV data and imports to PostgreSQL
+- Built with tsc, run with `yarn run import`
 
-- Pure functions with clear single responsibilities
-- JSDoc comments for all exported functions
-- Co-located test files (`.test.ts`)
+### `/backend/`
 
-### Parsers (`/parsers/`)
+NestJS application with AI-powered categorization:
 
-- File system operations and CSV parsing
-- Extract metadata from file paths (supermarket, timestamp)
-- Return structured data interfaces
+- **Phase 1**: LLM discovers categories based on consumer substitutability
+- **Phase 2**: LLM generates JSONSchema and attribute registry per category
+- **Phase 3**: LLM extracts structured attributes into product JSONB
 
-### Transformers (`/transformers/`)
+### `/db/`
 
-- Data validation and transformation
-- Convert CSV rows to database schema
+Database initialization and migration scripts:
 
-### Repositories (`/repositories/`)
+- PostgreSQL schema definitions
+- Seed data and initial setup
+- Docker Compose configuration
 
-- Database operations using Zapatos
-- Type-safe queries and inserts
+## Data Importer Modules
 
-## Testing Convention
+- `/parsers/` - CSV parsing and file scanning
+- `/transformers/` - Data validation and transformation
+- `/repositories/` - Database operations
 
-- Test files co-located with source: `{module}.test.ts`
-- Use Vitest with Node environment
-- Test utilities and parsers with unit tests
+## Backend Modules
+
+- `/agents/` - Agentic AI data manipulation services
+- `/cli/` - Command-line interfaces
+- `/database/` - Database configuration, connection and operations through Zapatos
+- `/llm/` - LLM client integration
 
 ## Database Schema
 
-Main table: `products`
-
-- Supermarket constraint: must be one of `migros`, `lidl`, `coop`, `denner`
-- JSONB for flexible attributes
-- Text arrays for categories
-- Full-text search indexes on product names (German)
-
-Views:
-
-- `cheapest_products` - Price rankings
-- `category_price_stats` - Materialized view for analytics
+- `products` table with supermarket constraint
+- `agent_executions` for tracking AI operations
+- `categories`: Discovered product categories
+- `category_schemas`: JSONSchema definitions per category
+- `global_attributes`: Centralized attribute registry
+- `agent_executions`: LLM interaction logs

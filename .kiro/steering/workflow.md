@@ -1,37 +1,45 @@
+---
+inclusion: always
+---
+
 # Development Workflow
 
-## Order of operations
+## Development Order
 
-In general, you MUST follow this order:
-
-1. Update requirements.md
-2. Update design.md
-3. Update tasks.md
-4. Write tests
-5. Write code
-6. Run the tests
-7. Run the code, if needed
+1. Write tests
+2. Write code
+3. Build and run tests
+4. Execute if needed
 
 ## Package Manager
 
-Always use `yarn` for all package management and script execution.
+Always use `yarn` for all operations.
 
-## Running Code
-
-Never use `npx tsx` or similar ad-hoc execution tools. Use reliable local workflows:
+## Execution Pattern
 
 ```bash
 # Build first
 yarn run build
 
-# Then run the compiled output
+# Then run compiled output
 yarn run import
 ```
 
 ## Verification
 
-Always run tests after making changes:
+Always run tests after changes:
 
 ```bash
 yarn test
+```
+
+## Code Styling
+
+Directly write Prettier-formatted code. This makes subsequent edits easier, as the IDE autoformats your code. `.prettierrc`:
+
+```
+{
+  "singleQuote": false,
+  "trailingComma": "all"
+}
 ```
