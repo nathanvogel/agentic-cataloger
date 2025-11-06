@@ -89,11 +89,12 @@ export class LLMClientService implements ILLMClient {
   ): Promise<LLMResponse<T>> {
     const {
       provider = LLMProvider.OPENAI,
-      model = "gpt-4o-mini", // reliable and accessible model by default
+      model = "gpt-4o-mini",
       temperature = 0.7,
       maxTokens = 4096,
       retries = 3,
       timeout = 5 * 60000,
+      stream = true, // Default to streaming for better timeout handling
     } = options;
 
     let lastError: Error | null = null;
@@ -106,82 +107,89 @@ export class LLMClientService implements ILLMClient {
         );
 
         const startTime = Date.now();
-
-        // Create timeout promise
-        const timeoutPromise: Promise<never> = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Request timeout")), timeout);
-        });
-
         const llmClient = this.getProviderClient(provider, model);
-        this.logger.log(`LLM client: ${JSON.stringify(llmClient)}`);
-        this.logger.log(`Prompt: ${prompt}`);
-
-        const enableDebugStreaming =
-          this.configService.get<string>("LLM_DEBUG_STREAMING") === "true";
 
         let finalObject: T;
-        let finalUsage: {
-          promptTokens?: number;
-          completionTokens?: number;
-          totalTokens?: number;
-        };
+        let finalUsage: any;
         let finishReason: string;
-        let updateCount = 0;
 
-        try {
-          // Try streaming first for debug output
-          if (enableDebugStreaming) {
-            console.log("🚀 LLM Streaming Progress:");
-          }
+        if (stream) {
+          // Use streaming for better timeout handling
+          try {
+            const result = streamObject({
+              model: llmClient,
+              schema,
+              prompt,
+              temperature,
+              maxTokens,
+            });
 
-          const streamingPromise = streamObject({
-            model: llmClient,
-            schema,
-            prompt,
-            temperature,
-            maxTokens,
-          });
+            // Create a timeout that resets on each streaming update
+            let timeoutHandle: NodeJS.Timeout | null = null;
+            const resetTimeout = () => {
+              if (timeoutHandle) {
+                clearTimeout(timeoutHandle);
+              }
+              timeoutHandle = setTimeout(() => {
+                throw new Error(
+                  "Request timeout - no streaming updates received",
+                );
+              }, timeout);
+            };
 
-          // Race between completion and timeout
-          const result = await Promise.race([streamingPromise, timeoutPromise]);
+            // Start the initial timeout
+            resetTimeout();
 
-          // Stream partial objects to console for debugging
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          for await (const _partialObject of result.partialObjectStream) {
-            updateCount++;
-            if (enableDebugStreaming) {
-              console.log(
-                `📝 Update #${updateCount}:`,
-                // JSON.stringify(partialObject, null, 2),
-              );
+            // Process streaming updates and reset timeout on each one
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            for await (const _partialObject of result.partialObjectStream) {
+              resetTimeout(); // Reset timeout on each update
             }
-          }
 
-          // Get final results
-          finalObject = (await result.object) as T;
-          finalUsage = await result.usage;
-          finishReason = (await result.finishReason) || "unknown";
+            // Clear the timeout once streaming is complete
+            if (timeoutHandle) {
+              clearTimeout(timeoutHandle);
+            }
 
-          if (enableDebugStreaming) {
-            console.log(
-              "✅ Final Result:",
-              JSON.stringify(finalObject, null, 2),
+            // Get final results
+            finalObject = (await result.object) as T;
+            finalUsage = await result.usage;
+            finishReason = (await result.finishReason) || "unknown";
+          } catch (streamingError: unknown) {
+            // If streaming fails, fall back to non-streaming
+            const errorMessage =
+              streamingError instanceof Error
+                ? streamingError.message
+                : String(streamingError);
+            this.logger.warn(
+              `Streaming failed, falling back to non-streaming: ${errorMessage}`,
             );
-            console.log(`📊 Total updates: ${updateCount}`);
-          }
-        } catch (streamingError: unknown) {
-          // If streaming fails (e.g., organization not verified), fall back to non-streaming
-          const errorMessage =
-            streamingError instanceof Error
-              ? streamingError.message
-              : String(streamingError);
-          this.logger.warn(
-            `Streaming failed, falling back to non-streaming: ${errorMessage}`,
-          );
 
-          if (enableDebugStreaming) {
-            console.log("⚠️  Streaming failed, using non-streaming mode...");
+            const timeoutPromise: Promise<never> = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error("Request timeout")), timeout);
+            });
+
+            const nonStreamingPromise = generateObject({
+              model: llmClient,
+              schema,
+              prompt,
+              temperature,
+              maxTokens,
+            });
+
+            const fallbackResult = await Promise.race([
+              nonStreamingPromise,
+              timeoutPromise,
+            ]);
+            finalObject = fallbackResult.object;
+            finalUsage = fallbackResult.usage;
+            finishReason = fallbackResult.finishReason;
           }
+        } else {
+          // Use non-streaming mode
+          const timeoutPromise: Promise<never> = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error("Request timeout")), timeout);
+          });
 
           const nonStreamingPromise = generateObject({
             model: llmClient,
@@ -191,43 +199,16 @@ export class LLMClientService implements ILLMClient {
             maxTokens,
           });
 
-          const fallbackResult = await Promise.race([
+          const result = await Promise.race([
             nonStreamingPromise,
             timeoutPromise,
           ]);
-
-          finalObject = fallbackResult.object;
-          finalUsage = fallbackResult.usage;
-          finishReason = fallbackResult.finishReason;
-
-          if (enableDebugStreaming) {
-            console.log(
-              "✅ Non-streaming result:",
-              JSON.stringify(finalObject, null, 2),
-            );
-          }
+          finalObject = result.object;
+          finalUsage = result.usage;
+          finishReason = result.finishReason;
         }
 
         const duration = Date.now() - startTime;
-
-        // Log request and response
-        this.logger.debug({
-          message: "LLM Request",
-          model,
-          provider,
-          promptLength: prompt.length,
-          temperature,
-          maxTokens,
-        });
-
-        this.logger.debug({
-          message: "LLM Response",
-          model,
-          provider,
-          duration,
-          usage: finalUsage,
-          finishReason,
-        });
 
         // Map AI SDK usage to our interface
         const usage = finalUsage as {
@@ -235,6 +216,7 @@ export class LLMClientService implements ILLMClient {
           completionTokens?: number;
           totalTokens?: number;
         };
+
         return {
           data: finalObject,
           usage: {
@@ -253,7 +235,7 @@ export class LLMClientService implements ILLMClient {
           `Attempt ${attempt + 1}/${retries} failed: ${lastError.message}`,
         );
 
-        // Check if error is retryable (rate limit, timeout, network error)
+        // Check if error is retryable
         const isRetryable =
           lastError.message.includes("rate limit") ||
           lastError.message.includes("timeout") ||
@@ -261,11 +243,10 @@ export class LLMClientService implements ILLMClient {
           lastError.message.includes("ECONNRESET");
 
         if (!isRetryable || attempt === retries - 1) {
-          // Don't retry on non-retryable errors or last attempt
           break;
         }
 
-        // Exponential backoff: 1s, 2s, 4s, 8s...
+        // Exponential backoff
         const backoffMs = Math.pow(2, attempt) * 1000;
         this.logger.log(`Retrying in ${backoffMs}ms...`);
         await this.sleep(backoffMs);

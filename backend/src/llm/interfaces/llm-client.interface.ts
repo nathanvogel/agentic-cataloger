@@ -11,6 +11,7 @@ export interface CompletionOptions {
   maxTokens?: number;
   retries?: number;
   timeout?: number;
+  stream?: boolean; // Default true for better timeout handling
 }
 
 /**
