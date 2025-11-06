@@ -66,6 +66,14 @@ declare module "zapatos/schema" {
        */
       id: number;
       /**
+       * **agent_executions.input_tokens**
+       *
+       * Number of tokens in the input prompt
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      input_tokens: number | null;
+      /**
        * **agent_executions.is_correct**
        * - `bool` in database
        * - Nullable, no default
@@ -101,6 +109,14 @@ declare module "zapatos/schema" {
        * - `NOT NULL`, no default
        */
       llm_provider: string;
+      /**
+       * **agent_executions.output_tokens**
+       *
+       * Number of tokens in the LLM response
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      output_tokens: number | null;
       /**
        * **agent_executions.phase**
        * - `text` in database
@@ -139,6 +155,8 @@ declare module "zapatos/schema" {
       status: string;
       /**
        * **agent_executions.tokens_used**
+       *
+       * Total tokens used (input + output)
        * - `int4` in database
        * - Nullable, no default
        */
@@ -182,6 +200,14 @@ declare module "zapatos/schema" {
        */
       id: number;
       /**
+       * **agent_executions.input_tokens**
+       *
+       * Number of tokens in the input prompt
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      input_tokens: number | null;
+      /**
        * **agent_executions.is_correct**
        * - `bool` in database
        * - Nullable, no default
@@ -217,6 +243,14 @@ declare module "zapatos/schema" {
        * - `NOT NULL`, no default
        */
       llm_provider: string;
+      /**
+       * **agent_executions.output_tokens**
+       *
+       * Number of tokens in the LLM response
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      output_tokens: number | null;
       /**
        * **agent_executions.phase**
        * - `text` in database
@@ -255,6 +289,8 @@ declare module "zapatos/schema" {
       status: string;
       /**
        * **agent_executions.tokens_used**
+       *
+       * Total tokens used (input + output)
        * - `int4` in database
        * - Nullable, no default
        */
@@ -343,6 +379,22 @@ declare module "zapatos/schema" {
        * - `NOT NULL`, default: `nextval('agent_executions_id_seq'::regclass)`
        */
       id?:
+        | number
+        | db.Parameter<number>
+        | db.SQLFragment
+        | db.ParentColumn
+        | db.SQLFragment<
+            any,
+            number | db.Parameter<number> | db.SQLFragment | db.ParentColumn
+          >;
+      /**
+       * **agent_executions.input_tokens**
+       *
+       * Number of tokens in the input prompt
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      input_tokens?:
         | number
         | db.Parameter<number>
         | db.SQLFragment
@@ -442,6 +494,22 @@ declare module "zapatos/schema" {
             string | db.Parameter<string> | db.SQLFragment | db.ParentColumn
           >;
       /**
+       * **agent_executions.output_tokens**
+       *
+       * Number of tokens in the LLM response
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      output_tokens?:
+        | number
+        | db.Parameter<number>
+        | db.SQLFragment
+        | db.ParentColumn
+        | db.SQLFragment<
+            any,
+            number | db.Parameter<number> | db.SQLFragment | db.ParentColumn
+          >;
+      /**
        * **agent_executions.phase**
        * - `text` in database
        * - `NOT NULL`, no default
@@ -530,6 +598,8 @@ declare module "zapatos/schema" {
           >;
       /**
        * **agent_executions.tokens_used**
+       *
+       * Total tokens used (input + output)
        * - `int4` in database
        * - Nullable, no default
        */
@@ -606,6 +676,19 @@ declare module "zapatos/schema" {
        */
       id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
       /**
+       * **agent_executions.input_tokens**
+       *
+       * Number of tokens in the input prompt
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      input_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment;
+      /**
        * **agent_executions.is_correct**
        * - `bool` in database
        * - Nullable, no default
@@ -651,6 +734,19 @@ declare module "zapatos/schema" {
        * - `NOT NULL`, no default
        */
       llm_provider: string | db.Parameter<string> | db.SQLFragment;
+      /**
+       * **agent_executions.output_tokens**
+       *
+       * Number of tokens in the LLM response
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      output_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment;
       /**
        * **agent_executions.phase**
        * - `text` in database
@@ -709,6 +805,8 @@ declare module "zapatos/schema" {
       status: string | db.Parameter<string> | db.SQLFragment;
       /**
        * **agent_executions.tokens_used**
+       *
+       * Total tokens used (input + output)
        * - `int4` in database
        * - Nullable, no default
        */
@@ -830,6 +928,27 @@ declare module "zapatos/schema" {
             number | db.Parameter<number> | db.DefaultType | db.SQLFragment
           >;
       /**
+       * **agent_executions.input_tokens**
+       *
+       * Number of tokens in the input prompt
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      input_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment
+        | db.SQLFragment<
+            any,
+            | number
+            | db.Parameter<number>
+            | null
+            | db.DefaultType
+            | db.SQLFragment
+          >;
+      /**
        * **agent_executions.is_correct**
        * - `bool` in database
        * - Nullable, no default
@@ -913,6 +1032,27 @@ declare module "zapatos/schema" {
         | db.Parameter<string>
         | db.SQLFragment
         | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
+      /**
+       * **agent_executions.output_tokens**
+       *
+       * Number of tokens in the LLM response
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      output_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment
+        | db.SQLFragment<
+            any,
+            | number
+            | db.Parameter<number>
+            | null
+            | db.DefaultType
+            | db.SQLFragment
+          >;
       /**
        * **agent_executions.phase**
        * - `text` in database
@@ -1011,6 +1151,8 @@ declare module "zapatos/schema" {
         | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
       /**
        * **agent_executions.tokens_used**
+       *
+       * Total tokens used (input + output)
        * - `int4` in database
        * - Nullable, no default
        */

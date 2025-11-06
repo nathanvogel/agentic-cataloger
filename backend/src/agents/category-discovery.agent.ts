@@ -193,6 +193,8 @@ export class CategoryDiscoveryAgent {
         llm_output: response.data,
         product_ids: products.map((p) => p.id),
         tokens_used: response.usage.totalTokens,
+        input_tokens: response.usage.inputTokens,
+        output_tokens: response.usage.outputTokens,
         duration_ms: duration,
         llm_model: response.model,
         llm_provider: response.provider,
@@ -408,8 +410,7 @@ Analyze these products and create precise categories based on consumer substitut
 
     // Update execution with category IDs
     if (executionId && categoryIds.length > 0) {
-      // Note: We'd need to add an update method to the repository
-      // For now, the category IDs are logged in subsequent operations
+      await this.updateExecutionWithCategoryIds(executionId, categoryIds);
     }
 
     return {
@@ -417,5 +418,31 @@ Analyze these products and create precise categories based on consumer substitut
       totalProducts,
       executionId,
     };
+  }
+
+  /**
+   * Update the execution log with category IDs after they are created.
+   *
+   * @param executionId - The execution ID to update
+   * @param categoryIds - Array of category IDs that were created
+   */
+  private async updateExecutionWithCategoryIds(
+    executionId: number,
+    categoryIds: number[],
+  ): Promise<void> {
+    try {
+      await this.executionRepository.updateExecutionWithCategoryIds(
+        executionId,
+        categoryIds,
+      );
+      this.logger.log(
+        `Updated execution ${executionId} with ${categoryIds.length} category IDs`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to update execution ${executionId} with category IDs: ${error}`,
+      );
+      // Don't throw - this is just logging, shouldn't fail the main operation
+    }
   }
 }

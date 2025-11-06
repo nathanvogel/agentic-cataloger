@@ -20,6 +20,8 @@ export interface CreateExecutionInput {
   schema_ids?: number[];
   error_message?: string;
   tokens_used?: number;
+  input_tokens?: number;
+  output_tokens?: number;
   duration_ms?: number;
   llm_model: string;
   llm_provider: string;
@@ -73,6 +75,8 @@ export class AgentExecutionRepository {
    *   product_ids: [1, 2, 3],
    *   category_ids: [5],
    *   tokens_used: 1500,
+   *   input_tokens: 1200,
+   *   output_tokens: 300,
    *   duration_ms: 2300,
    *   llm_model: 'gpt-4',
    *   llm_provider: 'openai'
@@ -93,6 +97,8 @@ export class AgentExecutionRepository {
         schema_ids: input.schema_ids || [],
         error_message: input.error_message,
         tokens_used: input.tokens_used,
+        input_tokens: input.input_tokens,
+        output_tokens: input.output_tokens,
         duration_ms: input.duration_ms,
         llm_model: input.llm_model,
         llm_provider: input.llm_provider,
@@ -341,5 +347,32 @@ export class AgentExecutionRepository {
     categoryId: number,
   ): Promise<s.agent_executions.JSONSelectable[]> {
     return this.queryExecutions({ category_id: categoryId });
+  }
+
+  /**
+   * Update an execution with category IDs.
+   * Used to add category IDs after they are created during the execution.
+   *
+   * @param executionId - The execution ID
+   * @param categoryIds - Array of category IDs to add
+   *
+   * @example
+   * ```typescript
+   * await repository.updateExecutionWithCategoryIds(123, [5, 6, 7]);
+   * ```
+   */
+  async updateExecutionWithCategoryIds(
+    executionId: number,
+    categoryIds: number[],
+  ): Promise<void> {
+    await db
+      .update(
+        "agent_executions",
+        {
+          category_ids: categoryIds,
+        },
+        { id: executionId },
+      )
+      .run(this.pool);
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { streamObject, generateObject } from "ai";
+import { streamObject, generateObject, LanguageModelUsage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -110,7 +110,7 @@ export class LLMClientService implements ILLMClient {
         const llmClient = this.getProviderClient(provider, model);
 
         let finalObject: T;
-        let finalUsage: any;
+        let finalUsage: LanguageModelUsage;
         let finishReason: string;
 
         if (stream) {
@@ -210,20 +210,9 @@ export class LLMClientService implements ILLMClient {
 
         const duration = Date.now() - startTime;
 
-        // Map AI SDK usage to our interface
-        const usage = finalUsage as {
-          promptTokens?: number;
-          completionTokens?: number;
-          totalTokens?: number;
-        };
-
         return {
           data: finalObject,
-          usage: {
-            promptTokens: usage.promptTokens ?? 0,
-            completionTokens: usage.completionTokens ?? 0,
-            totalTokens: usage.totalTokens ?? 0,
-          },
+          usage: finalUsage,
           model,
           finishReason: finishReason || "unknown",
           provider,
