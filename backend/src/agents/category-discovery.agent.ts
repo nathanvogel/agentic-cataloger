@@ -151,8 +151,15 @@ export class CategoryDiscoveryAgent {
   ): Promise<DiscoveredCategory[]> {
     this.logger.log(`Analyzing ${products.length} products for categorization`);
 
+    // Get existing categories to avoid duplicates
+    const existingCategories = await this.categoryRepository.getAllCategories();
+    this.logger.log(`Found ${existingCategories.length} existing categories`);
+
     // Build prompt
-    const prompt = this.buildCategoryDiscoveryPrompt(products);
+    const prompt = this.buildCategoryDiscoveryPrompt(
+      products,
+      existingCategories,
+    );
 
     const startTime = Date.now();
 
@@ -218,12 +225,16 @@ export class CategoryDiscoveryAgent {
 
   /**
    * Build the LLM prompt for category discovery.
-   * Includes instructions, rules, and product data.
+   * Includes instructions, rules, product data, and existing categories.
    *
    * @param products - Array of product summaries
+   * @param existingCategories - Array of existing categories to avoid duplicates
    * @returns Formatted prompt string
    */
-  private buildCategoryDiscoveryPrompt(products: ProductSummary[]): string {
+  private buildCategoryDiscoveryPrompt(
+    products: ProductSummary[],
+    existingCategories: categories.JSONSelectable[],
+  ): string {
     const productList = products
       .map(
         (p, idx) =>
@@ -231,7 +242,17 @@ export class CategoryDiscoveryAgent {
       )
       .join("\n");
 
+    const existingCategoryNames = existingCategories
+      .map((c) => c.name)
+      .sort()
+      .join(", ");
+
     return `You are analyzing grocery products to create categories for price comparison.
+
+EXISTING CATEGORIES (DO NOT CREATE DUPLICATES):
+${existingCategoryNames}
+
+IMPORTANT: Only create NEW categories that don't already exist in the list above.
 
 CATEGORIZATION RULES:
 1. GROUP products that consumers would reasonably substitute for each other in everyday shopping
@@ -332,13 +353,28 @@ Analyze these products and create precise categories based on consumer substitut
 
     for (const discovered of discoveredCategories) {
       try {
-        // Create category
-        const category = await this.categoryRepository.createCategory({
-          name: discovered.name,
-          display_name: discovered.displayName,
-          reasoning: discovered.reasoning,
-          confidence: discovered.confidence,
-        });
+        // Check if category already exists
+        let category = await this.categoryRepository.getCategoryByName(
+          discovered.name,
+        );
+
+        if (category) {
+          this.logger.log(
+            `Using existing category "${category.display_name}" (${category.name})`,
+          );
+        } else {
+          // Create new category
+          category = await this.categoryRepository.createCategory({
+            name: discovered.name,
+            display_name: discovered.displayName,
+            reasoning: discovered.reasoning,
+            confidence: discovered.confidence,
+          });
+
+          this.logger.log(
+            `Created new category "${category.display_name}" (${category.name})`,
+          );
+        }
 
         categoryIds.push(category.id);
 
@@ -353,11 +389,11 @@ Analyze these products and create precise categories based on consumer substitut
         storedCategories.push(category);
 
         this.logger.log(
-          `Created category "${category.display_name}" with ${category.product_count} products`,
+          `Assigned ${discovered.productIds.length} products to category "${category.display_name}"`,
         );
       } catch (error) {
         this.logger.error(
-          `Failed to store category "${discovered.name}": ${error}`,
+          `Failed to process category "${discovered.name}": ${error}`,
         );
         throw error;
       }
