@@ -45,7 +45,7 @@ export interface CategoryDiscoveryResult {
  * Zod schema for LLM response validation
  */
 const DiscoveredCategorySchema = z.object({
-  name: z.string().describe("Category name in lowercase-kebab-case"),
+  name: z.string().describe("Category name in lowercase_snake_case"),
   displayName: z.string().describe("Human-readable category name"),
   productIds: z
     .array(z.number())
@@ -238,15 +238,13 @@ export class CategoryDiscoveryAgent {
       )
       .join("\n");
 
-    return `You are analyzing grocery products to create precise categories for price comparison.
+    return `You are analyzing grocery products to create categories for price comparison.
 
 CATEGORIZATION RULES:
-1. Group products that consumers would reasonably substitute for each other in everyday shopping
-2. Create SEPARATE categories for products that consumers would NOT substitute (e.g., lemon vs lime are different categories)
-3. Keep products in the SAME category if they are substitutable despite variations (e.g., organic and non-organic lemons are in the same "lemon" category)
-4. Consider variety, type, and form as category boundaries
-5. Use clear, consistent naming in lowercase-kebab-case (e.g., "cherry-tomato", "gala-apple")
-6. Each product must be assigned to exactly ONE category
+1. GROUP products that consumers would reasonably substitute for each other in everyday shopping
+2. Create SEPARATE categories for products that consumers would NOT substitute in the long-term (e.g., lemon vs lime are different categories)
+3. Keep products in the SAME category if they are substitutable despite variations (e.g., organic and non-organic lemons are in the same "lemon" category, different varieties of apples are in the same "apple" category)
+4. Each product must be assigned to exactly ONE category
 
 CONSUMER SUBSTITUTABILITY PRINCIPLE:
 Ask yourself: "Would a regular shopper switch from product A to product B for their everyday needs?"
@@ -266,10 +264,13 @@ ${productList}
 
 OUTPUT REQUIREMENTS:
 - Return a JSON object with a "categories" array
-- Each category must have: name (kebab-case), displayName (readable), productIds (array of IDs), reasoning (explanation)
-- Optionally include confidence score (0-1)
+- Each category must have: 
+  - name: English ID in lowercase_snake_case, singular.
+  - displayName: readable, English. 
+  - productIds: array of IDs.
+  - reasoning: Clear brief explanation on the substitutability logic.
+  - confidence: 0-1 on confidence.
 - Ensure every product ID appears in exactly one category
-- Provide clear reasoning for each category explaining the substitutability logic
 
 Analyze these products and create precise categories based on consumer substitutability.`;
   }

@@ -172,7 +172,7 @@ Rules:
 1. Group products that consumers would reasonably substitute for each other
 2. Separate products that consumers would NOT substitute (e.g., lemon vs lime)
 3. Consider variety, type, and form as category boundaries
-4. Use clear, consistent naming (lowercase-kebab-case)
+4. Use clear, consistent naming (lowercase_snake_case)
 
 Input: List of {product_count} products.
 Output: JSON array of categories with product IDs and reasoning

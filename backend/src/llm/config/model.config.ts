@@ -39,21 +39,21 @@ const DEFAULT_MODEL_CONFIG: Record<LLMOperation, ModelConfig> = {
   // requires strong reasoning
   [LLMOperation.CATEGORY_DISCOVERY]: {
     provider: LLMProvider.OPENAI,
-    model: "gpt-5",
+    model: "gpt-5", // accessible model with good reasoning
     temperature: 0.7,
     maxTokens: 30000,
   },
   // requires structured thinking
   [LLMOperation.SCHEMA_GENERATION]: {
     provider: LLMProvider.OPENAI,
-    model: "gpt-4.1-nano",
+    model: "gpt-4o-mini", // accessible model for structured tasks
     temperature: 0.7,
     maxTokens: 4096,
   },
   // high volume, simpler task
   [LLMOperation.ATTRIBUTE_EXTRACTION]: {
     provider: LLMProvider.OPENAI,
-    model: "gpt-4.1-nano",
+    model: "gpt-4o-mini", // fast and accessible for high volume
     temperature: 0.5,
     maxTokens: 2048,
   },

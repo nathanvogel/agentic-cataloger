@@ -1,6 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { generateObject } from "ai";
+import { streamObject, generateObject } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -89,7 +89,7 @@ export class LLMClientService implements ILLMClient {
   ): Promise<LLMResponse<T>> {
     const {
       provider = LLMProvider.OPENAI,
-      model = "gpt-oss-20b", // cheapest model by default
+      model = "gpt-4o-mini", // reliable and accessible model by default
       temperature = 0.7,
       maxTokens = 4096,
       retries = 3,
@@ -116,17 +116,97 @@ export class LLMClientService implements ILLMClient {
         this.logger.log(`LLM client: ${JSON.stringify(llmClient)}`);
         this.logger.log(`Prompt: ${prompt}`);
 
-        // Create completion promise
-        const completionPromise = generateObject({
-          model: llmClient,
-          schema,
-          prompt,
-          temperature,
-          maxTokens,
-        });
+        const enableDebugStreaming =
+          this.configService.get<string>("LLM_DEBUG_STREAMING") === "true";
 
-        // Race between completion and timeout
-        const result = await Promise.race([completionPromise, timeoutPromise]);
+        let finalObject: T;
+        let finalUsage: {
+          promptTokens?: number;
+          completionTokens?: number;
+          totalTokens?: number;
+        };
+        let finishReason: string;
+        let updateCount = 0;
+
+        try {
+          // Try streaming first for debug output
+          if (enableDebugStreaming) {
+            console.log("🚀 LLM Streaming Progress:");
+          }
+
+          const streamingPromise = streamObject({
+            model: llmClient,
+            schema,
+            prompt,
+            temperature,
+            maxTokens,
+          });
+
+          // Race between completion and timeout
+          const result = await Promise.race([streamingPromise, timeoutPromise]);
+
+          // Stream partial objects to console for debugging
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          for await (const _partialObject of result.partialObjectStream) {
+            updateCount++;
+            if (enableDebugStreaming) {
+              console.log(
+                `📝 Update #${updateCount}:`,
+                // JSON.stringify(partialObject, null, 2),
+              );
+            }
+          }
+
+          // Get final results
+          finalObject = (await result.object) as T;
+          finalUsage = await result.usage;
+          finishReason = (await result.finishReason) || "unknown";
+
+          if (enableDebugStreaming) {
+            console.log(
+              "✅ Final Result:",
+              JSON.stringify(finalObject, null, 2),
+            );
+            console.log(`📊 Total updates: ${updateCount}`);
+          }
+        } catch (streamingError: unknown) {
+          // If streaming fails (e.g., organization not verified), fall back to non-streaming
+          const errorMessage =
+            streamingError instanceof Error
+              ? streamingError.message
+              : String(streamingError);
+          this.logger.warn(
+            `Streaming failed, falling back to non-streaming: ${errorMessage}`,
+          );
+
+          if (enableDebugStreaming) {
+            console.log("⚠️  Streaming failed, using non-streaming mode...");
+          }
+
+          const nonStreamingPromise = generateObject({
+            model: llmClient,
+            schema,
+            prompt,
+            temperature,
+            maxTokens,
+          });
+
+          const fallbackResult = await Promise.race([
+            nonStreamingPromise,
+            timeoutPromise,
+          ]);
+
+          finalObject = fallbackResult.object;
+          finalUsage = fallbackResult.usage;
+          finishReason = fallbackResult.finishReason;
+
+          if (enableDebugStreaming) {
+            console.log(
+              "✅ Non-streaming result:",
+              JSON.stringify(finalObject, null, 2),
+            );
+          }
+        }
 
         const duration = Date.now() - startTime;
 
@@ -145,25 +225,25 @@ export class LLMClientService implements ILLMClient {
           model,
           provider,
           duration,
-          usage: result.usage,
-          finishReason: result.finishReason,
+          usage: finalUsage,
+          finishReason,
         });
 
         // Map AI SDK usage to our interface
-        const usage = result.usage as {
+        const usage = finalUsage as {
           promptTokens?: number;
           completionTokens?: number;
           totalTokens?: number;
         };
         return {
-          data: result.object,
+          data: finalObject,
           usage: {
             promptTokens: usage.promptTokens ?? 0,
             completionTokens: usage.completionTokens ?? 0,
             totalTokens: usage.totalTokens ?? 0,
           },
           model,
-          finishReason: result.finishReason,
+          finishReason: finishReason || "unknown",
           provider,
           duration,
         };
