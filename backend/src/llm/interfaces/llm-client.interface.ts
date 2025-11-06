@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { LLMProvider } from "../config/model.config";
+
+/**
+ * Supported LLM providers
+ */
+export enum LLMProvider {
+  OPENAI = "openai",
+  ANTHROPIC = "anthropic",
+  GOOGLE = "google",
+}
 
 /**
  * Options for LLM completion requests

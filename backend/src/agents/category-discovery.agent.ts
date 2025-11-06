@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { z } from "zod";
 import { LLMClientService } from "../llm/llm-client.service";
-import { ModelConfigService, LLMOperation } from "../llm/config/model.config";
+import { LLMProvider } from "../llm/interfaces/llm-client.interface";
 import { ProductsRepository } from "../database/repositories/products.repository";
 import { CategoryRepository } from "../database/repositories/category.repository";
 import {
@@ -76,7 +76,6 @@ export class CategoryDiscoveryAgent {
 
   constructor(
     private llmClient: LLMClientService,
-    private modelConfig: ModelConfigService,
     private productsRepository: ProductsRepository,
     private categoryRepository: CategoryRepository,
     private executionRepository: AgentExecutionRepository,
@@ -152,26 +151,20 @@ export class CategoryDiscoveryAgent {
   ): Promise<DiscoveredCategory[]> {
     this.logger.log(`Analyzing ${products.length} products for categorization`);
 
-    // Get model configuration
-    const config = this.modelConfig.getModelConfig(
-      LLMOperation.CATEGORY_DISCOVERY,
-    );
-
     // Build prompt
     const prompt = this.buildCategoryDiscoveryPrompt(products);
 
     const startTime = Date.now();
 
     try {
-      // Call LLM with structured output
+      // Call LLM with structured output - requires strong reasoning
       const response = await this.llmClient.complete(
         prompt,
         CategoryDiscoveryResponseSchema,
         {
-          provider: config.provider,
-          model: config.model,
-          temperature: config.temperature,
-          maxTokens: config.maxTokens,
+          provider: LLMProvider.OPENAI,
+          model: "gpt-5-mini", // Good reasoning capabilities for categorization
+          temperature: 0.7,
         },
       );
 
@@ -214,8 +207,8 @@ export class CategoryDiscoveryAgent {
         product_ids: products.map((p) => p.id),
         error_message: error instanceof Error ? error.message : String(error),
         duration_ms: duration,
-        llm_model: config.model,
-        llm_provider: config.provider,
+        llm_model: "gpt-4o-mini",
+        llm_provider: "openai",
       });
 
       this.logger.error(`Category discovery failed: ${error}`);

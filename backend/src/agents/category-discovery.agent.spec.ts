@@ -4,11 +4,6 @@ import {
   ProductSummary,
 } from "./category-discovery.agent";
 import { LLMClientService } from "../llm/llm-client.service";
-import {
-  ModelConfigService,
-  LLMOperation,
-  LLMProvider,
-} from "../llm/config/model.config";
 import { ProductsRepository } from "../database/repositories/products.repository";
 import { CategoryRepository } from "../database/repositories/category.repository";
 import { AgentExecutionRepository } from "../database/repositories/agent-execution.repository";
@@ -17,7 +12,6 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 describe("CategoryDiscoveryAgent", () => {
   let agent: CategoryDiscoveryAgent;
   let llmClient: LLMClientService;
-  let modelConfig: ModelConfigService;
   let productsRepository: ProductsRepository;
   let categoryRepository: CategoryRepository;
   let executionRepository: AgentExecutionRepository;
@@ -32,17 +26,7 @@ describe("CategoryDiscoveryAgent", () => {
             complete: vi.fn(),
           },
         },
-        {
-          provide: ModelConfigService,
-          useValue: {
-            getModelConfig: vi.fn().mockReturnValue({
-              provider: LLMProvider.OPENAI,
-              model: "gpt-4o",
-              temperature: 0.7,
-              maxTokens: 4096,
-            }),
-          },
-        },
+
         {
           provide: ProductsRepository,
           useValue: {
@@ -68,7 +52,6 @@ describe("CategoryDiscoveryAgent", () => {
 
     agent = module.get<CategoryDiscoveryAgent>(CategoryDiscoveryAgent);
     llmClient = module.get<LLMClientService>(LLMClientService);
-    modelConfig = module.get<ModelConfigService>(ModelConfigService);
     productsRepository = module.get<ProductsRepository>(ProductsRepository);
     categoryRepository = module.get<CategoryRepository>(CategoryRepository);
     executionRepository = module.get<AgentExecutionRepository>(

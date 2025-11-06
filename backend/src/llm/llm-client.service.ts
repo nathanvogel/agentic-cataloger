@@ -9,8 +9,8 @@ import {
   ILLMClient,
   CompletionOptions,
   LLMResponse,
+  LLMProvider,
 } from "./interfaces/llm-client.interface";
-import { LLMProvider } from "./config/model.config";
 
 /**
  * LLM Client Service
@@ -90,8 +90,8 @@ export class LLMClientService implements ILLMClient {
     const {
       provider = LLMProvider.OPENAI,
       model = "gpt-4o-mini",
-      temperature = 0.7,
-      maxTokens = 4096,
+      temperature,
+      maxTokens,
       retries = 3,
       timeout = 5 * 60000,
       stream = true, // Default to streaming for better timeout handling

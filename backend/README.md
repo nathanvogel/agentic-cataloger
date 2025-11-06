@@ -103,8 +103,7 @@ yarn test:watch
 src/llm/
 ├── interfaces/
 │   └── llm-client.interface.ts    # TypeScript interfaces
-├── config/
-│   └── model.config.ts            # Model configuration per phase
+
 ├── llm-client.service.ts          # Main LLM client implementation
 ├── llm.module.ts                  # NestJS module
 └── index.ts                       # Exports

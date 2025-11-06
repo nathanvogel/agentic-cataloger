@@ -8,7 +8,6 @@ import { ProductsRepository } from "../database/repositories/products.repository
 import { CategoryRepository } from "../database/repositories/category.repository";
 import { AgentExecutionRepository } from "../database/repositories/agent-execution.repository";
 import { LLMClientService } from "../llm/llm-client.service";
-import { ModelConfigService } from "../llm/config/model.config";
 
 /**
  * Simple ConfigService implementation for standalone CLI
@@ -69,13 +68,11 @@ async function main() {
 
     // Create services
     const configService = new SimpleConfigService();
-    const modelConfigService = new ModelConfigService(configService);
     const llmClientService = new LLMClientService(configService);
 
     // Create agent
     const categoryDiscoveryAgent = new CategoryDiscoveryAgent(
       llmClientService,
-      modelConfigService,
       productsRepository,
       categoryRepository,
       agentExecutionRepository,
