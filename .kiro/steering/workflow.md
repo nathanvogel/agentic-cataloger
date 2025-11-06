@@ -6,16 +6,20 @@ inclusion: always
 
 ## Development Order
 
-1. Write tests
-2. Write code
-3. Build and run tests
-4. Execute if needed
+1. Update `requirements.md`, if needed.
+2. Update `design.md`, if needed.
+3. Write tests
+4. Write code
+5. Build and run tests
+6. Execute, if needed
 
 ## Package Manager
 
 Always use `yarn` for all operations.
 
 ## Execution Pattern
+
+### `data-importer`
 
 ```bash
 # Build first
