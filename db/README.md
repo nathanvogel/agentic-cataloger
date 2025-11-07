@@ -1,6 +1,10 @@
 # Database Migrations
 
-This directory contains database migration scripts for the Product Categorization System.
+This directory contains database setup and migration scripts for the Product Categorization System.
+
+## Useful SQL queries
+
+See the `./queries` subfolder.
 
 ## Migration Files
 

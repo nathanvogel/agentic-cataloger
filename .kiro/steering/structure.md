@@ -90,3 +90,12 @@ Database initialization and migration scripts:
 - `category_schemas`: JSONSchema definitions per category
 - `global_attributes`: Centralized attribute registry
 - `agent_executions`: LLM interaction logs
+
+## Data Sources
+
+- Migros CH Products
+- Lidl CH Products
+- Coop CH Products
+- Denner CH Products
+
+All datasets from Hugging Face (Yelinz).
