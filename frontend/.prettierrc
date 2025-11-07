@@ -1,0 +1,9 @@
+{
+  "singleQuote": false,
+  "trailingComma": "es5",
+  "plugins": ["@trivago/prettier-plugin-sort-imports"],
+  "importOrderParserPlugins": ["typescript", "jsx", "decorators"],
+  "importOrder": ["^react(.*)$", "^[^\\.](.*)$", ".*"],
+  "importOrderSeparation": false,
+  "importOrderSortSpecifiers": true
+}
