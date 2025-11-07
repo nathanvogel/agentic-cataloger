@@ -169,8 +169,8 @@ export class CategoryDiscoveryAgent {
         prompt,
         CategoryDiscoveryResponseSchema,
         {
-          provider: LLMProvider.OPENAI,
-          model: "gpt-5-mini", // Good reasoning capabilities for categorization
+          provider: LLMProvider.GOOGLE,
+          model: "gemini-2.5-flash",
           temperature: 0.7,
         },
       );
