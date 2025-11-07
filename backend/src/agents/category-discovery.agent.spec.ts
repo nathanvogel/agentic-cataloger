@@ -120,7 +120,7 @@ describe("CategoryDiscoveryAgent", () => {
       };
 
       vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
-      vi.mocked(llmClient.generateObject).mockResolvedValue(mockResponse);
+      vi.mocked(llmClient.generateArray).mockResolvedValue(mockResponse);
       vi.mocked(executionRepository.logExecution).mockResolvedValue({
         id: 1,
       } as any);
@@ -133,7 +133,7 @@ describe("CategoryDiscoveryAgent", () => {
       expect(result[1].name).toBe("lime");
       expect(result[1].productIds).toEqual([3]);
 
-      expect(llmClient.generateObject).toHaveBeenCalledOnce();
+      expect(llmClient.generateArray).toHaveBeenCalledOnce();
       expect(executionRepository.logExecution).toHaveBeenCalledWith(
         expect.objectContaining({
           phase: "CATEGORY_DISCOVERY",
@@ -158,7 +158,7 @@ describe("CategoryDiscoveryAgent", () => {
 
       const error = new Error("LLM API error");
       vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
-      vi.mocked(llmClient.generateObject).mockRejectedValue(error);
+      vi.mocked(llmClient.generateArray).mockRejectedValue(error);
       vi.mocked(executionRepository.logExecution).mockResolvedValue({
         id: 1,
       } as any);
@@ -230,7 +230,7 @@ describe("CategoryDiscoveryAgent", () => {
         mockProducts,
       );
       vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
-      vi.mocked(llmClient.generateObject).mockResolvedValue(mockLLMResponse);
+      vi.mocked(llmClient.generateArray).mockResolvedValue(mockLLMResponse);
       vi.mocked(categoryRepository.getCategoryByName).mockResolvedValue(null);
       vi.mocked(categoryRepository.createCategory).mockResolvedValue({
         id: 1,

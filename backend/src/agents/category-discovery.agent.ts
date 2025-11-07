@@ -7,6 +7,7 @@ import { CategoryRepository } from "../database/repositories/category.repository
 import {
   AgentExecutionRepository,
   AgentPhase,
+  CreateExecutionInput,
 } from "../database/repositories/agent-execution.repository";
 import { categories } from "zapatos/schema";
 
@@ -60,8 +61,6 @@ const DiscoveredCategorySchema = z.object({
     .optional()
     .describe("Confidence score 0-1"),
 });
-
-const CategoryDiscoveryResponseSchema = z.array(DiscoveredCategorySchema);
 
 /**
  * Category Discovery Agent
@@ -163,9 +162,9 @@ export class CategoryDiscoveryAgent {
 
     try {
       // Call LLM with structured output - requires strong reasoning
-      const response = await this.llmClient.generateObject(
+      const response = await this.llmClient.generateArray(
         prompt,
-        CategoryDiscoveryResponseSchema,
+        DiscoveredCategorySchema,
         {
           provider: LLMProvider.GOOGLE,
           model: "gemini-2.5-flash",
@@ -178,9 +177,15 @@ export class CategoryDiscoveryAgent {
       this.logger.log(
         `LLM returned ${response.data.length} categories in ${duration}ms`,
       );
+      this.logger.log(
+        `Categories: ${response.data.map((c) => c.name).join(", ")}.`,
+      );
+      if (response.isPartial) {
+        this.logger.warn(`LLM returned partial results only.`);
+      }
 
       // Log execution
-      await this.executionRepository.logExecution({
+      const input: CreateExecutionInput = {
         phase: "CATEGORY_DISCOVERY" as AgentPhase,
         status: response.isPartial ? "partial" : "success",
         llm_input: {
@@ -188,7 +193,7 @@ export class CategoryDiscoveryAgent {
           productCount: products.length,
           products: products.slice(0, 10), // Sample for logging
         },
-        llm_output: response.data,
+        llm_output: { array: response.data },
         product_ids: products.map((p) => p.id),
         tokens_used: response.usage.totalTokens,
         input_tokens: response.usage.inputTokens,
@@ -201,13 +206,9 @@ export class CategoryDiscoveryAgent {
         error_message: response.isPartial
           ? "Partial results - response was incomplete"
           : undefined,
-      });
-
-      if (response.isPartial) {
-        this.logger.warn(
-          `LLM returned partial results with ${response.data.length} categories`,
-        );
-      }
+      };
+      const execution = await this.executionRepository.logExecution(input);
+      this.logger.debug("Saved execution: " + execution.id);
 
       return response.data;
     } catch (error) {
@@ -229,7 +230,9 @@ export class CategoryDiscoveryAgent {
         llm_provider: "?",
       });
 
-      this.logger.error(`Category discovery failed: ${error}`);
+      this.logger.error(
+        `Category discovery failed: ${JSON.stringify(error, null, 2)}`,
+      );
       throw error;
     }
   }

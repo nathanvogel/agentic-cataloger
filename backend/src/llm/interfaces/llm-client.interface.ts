@@ -59,9 +59,9 @@ export interface ILLMClient {
    * @param schema Zod schema for response validation
    * @param options Optional completion parameters
    */
-  generateObject<T>(
+  generateArray<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
     options?: CompletionOptions,
-  ): Promise<LLMResponse<T>>;
+  ): Promise<LLMResponse<T[]>>;
 }
