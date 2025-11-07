@@ -195,6 +195,8 @@ export class CategoryDiscoveryAgent {
         tokens_used: response.usage.totalTokens,
         input_tokens: response.usage.inputTokens,
         output_tokens: response.usage.outputTokens,
+        reasoning_tokens: response.usage.reasoningTokens,
+        cached_input_tokens: response.usage.cachedInputTokens,
         duration_ms: duration,
         llm_model: response.model,
         llm_provider: response.provider,

@@ -30,6 +30,14 @@ declare module "zapatos/schema" {
     export type Table = "agent_executions";
     export interface Selectable {
       /**
+       * **agent_executions.cached_input_tokens**
+       *
+       * Number of cached input tokens (for prompt caching)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      cached_input_tokens: number | null;
+      /**
        * **agent_executions.category_ids**
        * - `_int4` in database
        * - Nullable, no default
@@ -130,6 +138,14 @@ declare module "zapatos/schema" {
        */
       product_ids: number[] | null;
       /**
+       * **agent_executions.reasoning_tokens**
+       *
+       * Number of reasoning tokens used (e.g., for o1 models)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      reasoning_tokens: number | null;
+      /**
        * **agent_executions.reviewed_at**
        * - `timestamp` in database
        * - Nullable, no default
@@ -163,6 +179,14 @@ declare module "zapatos/schema" {
       tokens_used: number | null;
     }
     export interface JSONSelectable {
+      /**
+       * **agent_executions.cached_input_tokens**
+       *
+       * Number of cached input tokens (for prompt caching)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      cached_input_tokens: number | null;
       /**
        * **agent_executions.category_ids**
        * - `_int4` in database
@@ -264,6 +288,14 @@ declare module "zapatos/schema" {
        */
       product_ids: number[] | null;
       /**
+       * **agent_executions.reasoning_tokens**
+       *
+       * Number of reasoning tokens used (e.g., for o1 models)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      reasoning_tokens: number | null;
+      /**
        * **agent_executions.reviewed_at**
        * - `timestamp` in database
        * - Nullable, no default
@@ -297,6 +329,22 @@ declare module "zapatos/schema" {
       tokens_used: number | null;
     }
     export interface Whereable {
+      /**
+       * **agent_executions.cached_input_tokens**
+       *
+       * Number of cached input tokens (for prompt caching)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      cached_input_tokens?:
+        | number
+        | db.Parameter<number>
+        | db.SQLFragment
+        | db.ParentColumn
+        | db.SQLFragment<
+            any,
+            number | db.Parameter<number> | db.SQLFragment | db.ParentColumn
+          >;
       /**
        * **agent_executions.category_ids**
        * - `_int4` in database
@@ -538,6 +586,22 @@ declare module "zapatos/schema" {
             number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn
           >;
       /**
+       * **agent_executions.reasoning_tokens**
+       *
+       * Number of reasoning tokens used (e.g., for o1 models)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      reasoning_tokens?:
+        | number
+        | db.Parameter<number>
+        | db.SQLFragment
+        | db.ParentColumn
+        | db.SQLFragment<
+            any,
+            number | db.Parameter<number> | db.SQLFragment | db.ParentColumn
+          >;
+      /**
        * **agent_executions.reviewed_at**
        * - `timestamp` in database
        * - Nullable, no default
@@ -614,6 +678,19 @@ declare module "zapatos/schema" {
           >;
     }
     export interface Insertable {
+      /**
+       * **agent_executions.cached_input_tokens**
+       *
+       * Number of cached input tokens (for prompt caching)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      cached_input_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment;
       /**
        * **agent_executions.category_ids**
        * - `_int4` in database
@@ -765,6 +842,19 @@ declare module "zapatos/schema" {
         | db.DefaultType
         | db.SQLFragment;
       /**
+       * **agent_executions.reasoning_tokens**
+       *
+       * Number of reasoning tokens used (e.g., for o1 models)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      reasoning_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment;
+      /**
        * **agent_executions.reviewed_at**
        * - `timestamp` in database
        * - Nullable, no default
@@ -818,6 +908,27 @@ declare module "zapatos/schema" {
         | db.SQLFragment;
     }
     export interface Updatable {
+      /**
+       * **agent_executions.cached_input_tokens**
+       *
+       * Number of cached input tokens (for prompt caching)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      cached_input_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment
+        | db.SQLFragment<
+            any,
+            | number
+            | db.Parameter<number>
+            | null
+            | db.DefaultType
+            | db.SQLFragment
+          >;
       /**
        * **agent_executions.category_ids**
        * - `_int4` in database
@@ -1078,6 +1189,27 @@ declare module "zapatos/schema" {
             any,
             | number[]
             | db.Parameter<number[]>
+            | null
+            | db.DefaultType
+            | db.SQLFragment
+          >;
+      /**
+       * **agent_executions.reasoning_tokens**
+       *
+       * Number of reasoning tokens used (e.g., for o1 models)
+       * - `int4` in database
+       * - Nullable, no default
+       */
+      reasoning_tokens?:
+        | number
+        | db.Parameter<number>
+        | null
+        | db.DefaultType
+        | db.SQLFragment
+        | db.SQLFragment<
+            any,
+            | number
+            | db.Parameter<number>
             | null
             | db.DefaultType
             | db.SQLFragment

@@ -22,6 +22,8 @@ export interface CreateExecutionInput {
   tokens_used?: number;
   input_tokens?: number;
   output_tokens?: number;
+  reasoning_tokens?: number;
+  cached_input_tokens?: number;
   duration_ms?: number;
   llm_model: string;
   llm_provider: string;
@@ -77,6 +79,8 @@ export class AgentExecutionRepository {
    *   tokens_used: 1500,
    *   input_tokens: 1200,
    *   output_tokens: 300,
+   *   reasoning_tokens: 50,
+   *   cached_input_tokens: 200,
    *   duration_ms: 2300,
    *   llm_model: 'gpt-4',
    *   llm_provider: 'openai'
@@ -99,6 +103,8 @@ export class AgentExecutionRepository {
         tokens_used: input.tokens_used,
         input_tokens: input.input_tokens,
         output_tokens: input.output_tokens,
+        reasoning_tokens: input.reasoning_tokens,
+        cached_input_tokens: input.cached_input_tokens,
         duration_ms: input.duration_ms,
         llm_model: input.llm_model,
         llm_provider: input.llm_provider,
