@@ -13,8 +13,8 @@ export enum LLMProvider {
  * Options for LLM completion requests
  */
 export interface CompletionOptions {
-  provider?: LLMProvider;
-  model?: string;
+  provider: LLMProvider;
+  model: string;
   temperature?: number;
   maxTokens?: number;
   retries?: number;
@@ -59,7 +59,7 @@ export interface ILLMClient {
    * @param schema Zod schema for response validation
    * @param options Optional completion parameters
    */
-  complete<T>(
+  generateObject<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
     options?: CompletionOptions,

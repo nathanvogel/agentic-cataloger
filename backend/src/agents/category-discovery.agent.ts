@@ -165,13 +165,12 @@ export class CategoryDiscoveryAgent {
 
     try {
       // Call LLM with structured output - requires strong reasoning
-      const response = await this.llmClient.complete(
+      const response = await this.llmClient.generateObject(
         prompt,
         CategoryDiscoveryResponseSchema,
         {
           provider: LLMProvider.GOOGLE,
           model: "gemini-2.5-flash",
-          temperature: 0.7,
         },
       );
 
@@ -218,8 +217,8 @@ export class CategoryDiscoveryAgent {
         product_ids: products.map((p) => p.id),
         error_message: error instanceof Error ? error.message : String(error),
         duration_ms: duration,
-        llm_model: "gpt-4o-mini",
-        llm_provider: "openai",
+        llm_model: "?",
+        llm_provider: "?",
       });
 
       this.logger.error(`Category discovery failed: ${error}`);

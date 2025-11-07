@@ -82,20 +82,24 @@ export class LLMClientService implements ILLMClient {
   /**
    * Send prompt to LLM and get structured response with retry logic
    */
-  async complete<T>(
+  async generateObject<T>(
     prompt: string,
     schema: z.ZodSchema<T>,
-    options: CompletionOptions = {},
+    options: CompletionOptions,
   ): Promise<LLMResponse<T>> {
     const {
-      provider = LLMProvider.OPENAI,
-      model = "gpt-4o-mini",
+      provider,
+      model,
       temperature,
       maxTokens,
       retries = 3,
       timeout = 5 * 60000,
       stream = true, // Default to streaming for better timeout handling
     } = options;
+
+    this.logger.log(
+      `Prompt is ${prompt.length.toLocaleString("en")} chars, so ~${Math.round(prompt.length * 0.3).toLocaleString("en")} tokens.`,
+    );
 
     let lastError: Error | null = null;
 

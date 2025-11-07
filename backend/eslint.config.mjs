@@ -27,10 +27,17 @@ export default tseslint.config(
   {
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
+      "@/no-console": "warn",
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-unsafe-argument": "warn",
       "@typescript-eslint/await-thenable": "error",
       "prettier/prettier": ["error", { endOfLine: "auto" }],
+    },
+  },
+  {
+    files: ["src/cli/**/*.ts"],
+    rules: {
+      "@/no-console": "off",
     },
   },
 );
