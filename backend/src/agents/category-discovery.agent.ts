@@ -171,6 +171,7 @@ export class CategoryDiscoveryAgent {
         {
           provider: LLMProvider.GOOGLE,
           model: "gemini-2.5-flash",
+          maxTokens: 100000,
         },
       );
 
@@ -282,12 +283,13 @@ ${productList}
 OUTPUT REQUIREMENTS:
 - Return a JSON object with a "categories" array
 - Each category must have: 
-  - name: English ID in lowercase_snake_case, singular.
-  - displayName: readable, English. 
+  - name: ID in lowercase_snake_case, singular, in ENGLISH. 
+  - displayName: readable, in ENGLISH. 
   - productIds: array of IDs.
   - reasoning: Clear brief explanation on the substitutability logic.
   - confidence: 0-1 on confidence.
 - Ensure every product ID appears in exactly one category
+- NEVER use German language.
 
 Analyze these products and create precise categories based on consumer substitutability.`;
   }

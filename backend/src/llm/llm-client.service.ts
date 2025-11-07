@@ -1,6 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { streamObject, generateObject, LanguageModelUsage } from "ai";
+import {
+  streamObject,
+  generateObject,
+  LanguageModelUsage,
+  NoObjectGeneratedError,
+} from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -224,6 +229,30 @@ export class LLMClientService implements ILLMClient {
         };
       } catch (error) {
         lastError = error as Error;
+
+        // Handle NoObjectGeneratedError specifically
+        if (error instanceof NoObjectGeneratedError) {
+          this.logger.error({
+            message: "LLM failed to generate a valid object",
+            attempt: attempt + 1,
+            retries,
+            text: error.text,
+            cause: error.cause,
+            finishReason: error.finishReason,
+            usage: error.usage,
+          });
+
+          // NoObjectGeneratedError is typically not retryable - it means the model
+          // couldn't generate valid JSON or the response was filtered/blocked
+          // Log detailed info and fail fast
+          throw new Error(
+            `LLM failed to generate valid object. Finish reason: ${error.finishReason}. ` +
+              `Response text: ${error.text?.substring(0, 500) || "none"}. ` +
+              `This usually indicates the model failed to generate a response, or it generated a response that could not be parsed or not be validated against the schema.
+`,
+          );
+        }
+
         this.logger.warn(
           `Attempt ${attempt + 1}/${retries} failed: ${lastError.message}`,
         );
