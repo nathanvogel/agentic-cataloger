@@ -1,11 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import {
-  streamObject,
-  generateObject,
-  LanguageModelUsage,
-  NoObjectGeneratedError,
-} from "ai";
+import { streamObject, NoObjectGeneratedError, LanguageModelUsage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -85,7 +80,16 @@ export class LLMClientService implements ILLMClient {
   }
 
   /**
-   * Send prompt to LLM and get structured response with retry logic
+   * Send prompt to LLM and get structured response with streaming and array support.
+   * Uses streamObject to handle partial results, which is crucial for avoiding
+   * "SyntaxError: Unexpected end of JSON input" errors that occur when the LLM
+   * response is truncated or incomplete. With array streaming, we can process
+   * valid array elements even if the JSON is incomplete.
+   *
+   * @param prompt - The prompt to send to the LLM
+   * @param schema - Zod schema for response validation (should have an array field)
+   * @param options - Completion options
+   * @returns LLMResponse with data and metadata, isPartial=true if incomplete
    */
   async generateObject<T>(
     prompt: string,
@@ -98,8 +102,7 @@ export class LLMClientService implements ILLMClient {
       temperature,
       maxTokens,
       retries = 3,
-      timeout = 5 * 60000,
-      stream = true, // Default to streaming for better timeout handling
+      timeout = 10 * 60000,
     } = options;
 
     this.logger.log(
@@ -110,152 +113,262 @@ export class LLMClientService implements ILLMClient {
 
     // Retry loop with exponential backoff
     for (let attempt = 0; attempt < retries; attempt++) {
+      // Track collected elements and timing at attempt level for error handlers
+      const collectedElements: unknown[] = [];
+      let elementCount = 0;
+      const startTime = Date.now();
+
       try {
         this.logger.log(
           `Attempt ${attempt + 1}/${retries} - Calling ${provider} model ${model}`,
         );
 
-        const startTime = Date.now();
         const llmClient = this.getProviderClient(provider, model);
 
-        let finalObject: T;
-        let finalUsage: LanguageModelUsage;
-        let finishReason: string;
+        // Use streamObject with elementStream for array streaming
+        // According to AI SDK docs: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-object#streamobject
+        // elementStream allows processing array elements as they arrive, even if JSON is incomplete
+        const result = streamObject({
+          model: llmClient,
+          schema,
+          prompt,
+          temperature,
+          output: "array",
+          maxOutputTokens: maxTokens,
+        });
 
-        if (stream) {
-          // Use streaming for better timeout handling
-          try {
-            const result = streamObject({
-              model: llmClient,
-              schema,
-              prompt,
-              temperature,
-              maxTokens,
-            });
+        // Track timeout with reset on each streaming update
+        let timeoutHandle: NodeJS.Timeout | null = null;
+        let streamTimeoutError: Error | null = null;
 
-            // Create a timeout that resets on each streaming update
-            let timeoutHandle: NodeJS.Timeout | null = null;
-            const resetTimeout = () => {
-              if (timeoutHandle) {
-                clearTimeout(timeoutHandle);
-              }
-              timeoutHandle = setTimeout(() => {
-                throw new Error(
-                  "Request timeout - no streaming updates received",
-                );
-              }, timeout);
-            };
-
-            // Start the initial timeout
-            resetTimeout();
-
-            // Process streaming updates and reset timeout on each one
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            for await (const _partialObject of result.partialObjectStream) {
-              resetTimeout(); // Reset timeout on each update
-            }
-
-            // Clear the timeout once streaming is complete
-            if (timeoutHandle) {
-              clearTimeout(timeoutHandle);
-            }
-
-            // Get final results
-            finalObject = (await result.object) as T;
-            finalUsage = await result.usage;
-            finishReason = (await result.finishReason) || "unknown";
-          } catch (streamingError: unknown) {
-            // If streaming fails, fall back to non-streaming
-            const errorMessage =
-              streamingError instanceof Error
-                ? streamingError.message
-                : String(streamingError);
-            this.logger.warn(
-              `Streaming failed, falling back to non-streaming: ${errorMessage}`,
-            );
-
-            const timeoutPromise: Promise<never> = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error("Request timeout")), timeout);
-            });
-
-            const nonStreamingPromise = generateObject({
-              model: llmClient,
-              schema,
-              prompt,
-              temperature,
-              maxTokens,
-            });
-
-            const fallbackResult = await Promise.race([
-              nonStreamingPromise,
-              timeoutPromise,
-            ]);
-            finalObject = fallbackResult.object;
-            finalUsage = fallbackResult.usage;
-            finishReason = fallbackResult.finishReason;
+        const resetTimeout = () => {
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
           }
-        } else {
-          // Use non-streaming mode
-          const timeoutPromise: Promise<never> = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Request timeout")), timeout);
-          });
-
-          const nonStreamingPromise = generateObject({
-            model: llmClient,
-            schema,
-            prompt,
-            temperature,
-            maxTokens,
-          });
-
-          const result = await Promise.race([
-            nonStreamingPromise,
-            timeoutPromise,
-          ]);
-          finalObject = result.object;
-          finalUsage = result.usage;
-          finishReason = result.finishReason;
-        }
-
-        const duration = Date.now() - startTime;
-
-        return {
-          data: finalObject,
-          usage: finalUsage,
-          model,
-          finishReason: finishReason || "unknown",
-          provider,
-          duration,
+          timeoutHandle = setTimeout(() => {
+            streamTimeoutError = new Error(
+              "Request timeout - no streaming updates",
+            );
+          }, timeout);
         };
+
+        resetTimeout();
+
+        try {
+          // Use elementStream to collect array elements as they arrive
+          // This is the key feature for handling incomplete JSON - we get valid
+          // elements even if the response is truncated mid-array
+          this.logger.debug("Starting to consume elementStream");
+
+          for await (const element of result.elementStream) {
+            collectedElements.push(element);
+            elementCount++;
+            this.logger.debug(
+              `Received element ${elementCount}: ${JSON.stringify(element).substring(0, 100)}`,
+            );
+            resetTimeout();
+          }
+
+          this.logger.debug(
+            `Finished consuming elementStream, collected ${elementCount} elements`,
+          );
+
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+          }
+
+          // Check if timeout occurred during streaming
+          // TODO: Fix. This doesn't make sense.
+          if (streamTimeoutError) {
+            // throw streamTimeoutError;
+            this.logger.error("Stream timeout error");
+          }
+
+          // Get final results
+          const finalObject = (await result.object) as T;
+          const finalUsage = await result.usage;
+          const finishReason = (await result.finishReason) || "unknown";
+          const duration = Date.now() - startTime;
+
+          this.logger.log(
+            `LLM completed successfully in ${duration}ms (finish: ${finishReason}, elements: ${elementCount})`,
+          );
+
+          return {
+            data: finalObject,
+            usage: finalUsage,
+            model,
+            finishReason,
+            provider,
+            duration,
+            isPartial: false,
+          };
+        } catch (streamingError: unknown) {
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+          }
+
+          const duration = Date.now() - startTime;
+          const errorMessage =
+            streamingError instanceof Error
+              ? streamingError.message
+              : String(streamingError);
+          const errorName =
+            streamingError instanceof Error
+              ? streamingError.constructor.name
+              : "Unknown";
+          const errorStack =
+            streamingError instanceof Error ? streamingError.stack : undefined;
+
+          // Log detailed streaming error information
+          this.logger.error({
+            message: "Streaming error occurred",
+            errorType: errorName,
+            errorMessage,
+            stack: errorStack,
+            elementsCollected: collectedElements.length,
+            duration,
+            model,
+            provider,
+            attempt: attempt + 1,
+            retries,
+          });
+
+          // Check if we have partial array elements we can salvage
+          // This handles cases like "SyntaxError: Unexpected end of JSON input"
+          // where the JSON is incomplete but we collected valid array elements via elementStream
+          if (collectedElements.length > 0) {
+            this.logger.warn({
+              message: "Returning partial results despite streaming error",
+              errorType: errorName,
+              errorMessage,
+              elementsCollected: collectedElements.length,
+              duration,
+            });
+
+            // Get whatever usage info we can
+            let partialUsage: LanguageModelUsage | undefined;
+            let partialFinishReason = "error";
+            try {
+              partialUsage = await result.usage;
+              partialFinishReason = (await result.finishReason) || "error";
+            } catch (usageError) {
+              this.logger.debug(
+                `Could not retrieve usage info: ${usageError instanceof Error ? usageError.message : String(usageError)}`,
+              );
+              partialUsage = {
+                inputTokens: undefined,
+                outputTokens: undefined,
+                totalTokens: undefined,
+              };
+            }
+
+            // Return collected elements directly as the schema is an array
+            const partialObject = collectedElements as T;
+
+            return {
+              data: partialObject,
+              usage: partialUsage,
+              model,
+              finishReason: partialFinishReason,
+              provider,
+              duration,
+              isPartial: true, // Signal to caller that results are incomplete
+            };
+          }
+
+          // No partial results available, log and throw the error
+          this.logger.error({
+            message:
+              "No partial results available, streaming failed completely",
+            errorType: errorName,
+            errorMessage,
+            duration,
+          });
+
+          throw streamingError;
+        }
       } catch (error) {
         lastError = error as Error;
 
         // Handle NoObjectGeneratedError specifically
+        // This occurs when the model fails to generate valid structured output
         if (error instanceof NoObjectGeneratedError) {
+          const hasPartialElements = collectedElements.length > 0;
+
           this.logger.error({
-            message: "LLM failed to generate a valid object",
+            message:
+              "NoObjectGeneratedError - LLM failed to generate a valid object",
+            errorType: "NoObjectGeneratedError",
             attempt: attempt + 1,
             retries,
-            text: error.text,
-            cause: error.cause,
+            model,
+            provider,
             finishReason: error.finishReason,
+            responseText: error.text?.substring(0, 1000) || "none",
+            responseTextLength: error.text?.length || 0,
+            cause: error.cause,
             usage: error.usage,
+            stack: error.stack,
+            elementsCollectedViaStream: collectedElements.length,
+            hasPartialElements,
           });
 
-          // NoObjectGeneratedError is typically not retryable - it means the model
-          // couldn't generate valid JSON or the response was filtered/blocked
-          // Log detailed info and fail fast
-          throw new Error(
-            `LLM failed to generate valid object. Finish reason: ${error.finishReason}. ` +
-              `Response text: ${error.text?.substring(0, 500) || "none"}. ` +
-              `This usually indicates the model failed to generate a response, or it generated a response that could not be parsed or not be validated against the schema.
-`,
-          );
+          // If we collected elements via elementStream, return them as partial results
+          if (hasPartialElements) {
+            this.logger.warn({
+              message:
+                "Returning partial results from elementStream despite NoObjectGeneratedError",
+              elementsCollected: collectedElements.length,
+              finishReason: error.finishReason,
+            });
+
+            const duration = Date.now() - startTime;
+            return {
+              data: collectedElements as T,
+              usage: error.usage || {
+                inputTokens: undefined,
+                outputTokens: undefined,
+                totalTokens: undefined,
+              },
+              model,
+              finishReason: error.finishReason || "error",
+              provider,
+              duration,
+              isPartial: true,
+            };
+          }
+
+          // Provide detailed error message
+          const detailedMessage = [
+            `NoObjectGeneratedError: LLM failed to generate valid structured output.`,
+            `Finish reason: ${error.finishReason}`,
+            `Response text length: ${error.text?.length || 0} chars`,
+            `Response preview: ${error.text?.substring(0, 500) || "none"}`,
+            `Cause: ${error.cause ? JSON.stringify(error.cause) : "unknown"}`,
+            `Elements collected via stream: ${collectedElements.length}`,
+            `This usually indicates:`,
+            `  - Content filtering/safety blocks (finish: stop, content_filter)`,
+            `  - Token limit reached (finish: length) - increase maxTokens`,
+            `  - Model failed to follow schema constraints`,
+            `  - Response was empty or malformed`,
+            `  - Schema validation failed`,
+          ].join("\n");
+
+          throw new Error(detailedMessage);
         }
 
-        this.logger.warn(
-          `Attempt ${attempt + 1}/${retries} failed: ${lastError.message}`,
-        );
+        // Log general error with full context
+        this.logger.warn({
+          message: "LLM request attempt failed",
+          errorType: lastError.constructor.name,
+          errorMessage: lastError.message,
+          stack: lastError.stack,
+          attempt: attempt + 1,
+          retries,
+          model,
+          provider,
+        });
 
         // Check if error is retryable
         const isRetryable =
@@ -275,16 +388,26 @@ export class LLMClientService implements ILLMClient {
       }
     }
 
-    // All retries exhausted
+    // All retries exhausted - provide comprehensive error information
     this.logger.error({
       message: "LLM request failed after all retries",
+      errorType: lastError?.constructor.name || "Unknown",
+      errorMessage: lastError?.message || "Unknown error",
+      stack: lastError?.stack,
       model,
       provider,
-      error: lastError?.message,
+      temperature,
+      maxTokens,
+      retries,
+      promptLength: prompt.length,
+      promptPreview: prompt.substring(0, 200),
     });
 
     throw new Error(
-      `LLM request failed after ${retries} attempts: ${lastError?.message}`,
+      `LLM request failed after ${retries} attempts.\n` +
+        `Error: ${lastError?.message || "Unknown error"}\n` +
+        `Model: ${provider}/${model}\n` +
+        `Prompt length: ${prompt.length} chars`,
     );
   }
 }

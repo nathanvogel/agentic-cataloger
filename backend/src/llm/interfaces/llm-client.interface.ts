@@ -19,7 +19,6 @@ export interface CompletionOptions {
   maxTokens?: number;
   retries?: number;
   timeout?: number;
-  stream?: boolean; // Default true for better timeout handling
 }
 
 /**
@@ -47,6 +46,7 @@ export interface LLMResponse<T> {
   finishReason: string;
   provider: string;
   duration: number;
+  isPartial?: boolean; // Indicates if response is incomplete due to errors
 }
 
 /**

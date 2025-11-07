@@ -61,9 +61,7 @@ const DiscoveredCategorySchema = z.object({
     .describe("Confidence score 0-1"),
 });
 
-const CategoryDiscoveryResponseSchema = z.object({
-  categories: z.array(DiscoveredCategorySchema),
-});
+const CategoryDiscoveryResponseSchema = z.array(DiscoveredCategorySchema);
 
 /**
  * Category Discovery Agent
@@ -171,20 +169,20 @@ export class CategoryDiscoveryAgent {
         {
           provider: LLMProvider.GOOGLE,
           model: "gemini-2.5-flash",
-          maxTokens: 100000,
+          maxTokens: 1000000,
         },
       );
 
       const duration = Date.now() - startTime;
 
       this.logger.log(
-        `LLM returned ${response.data.categories.length} categories in ${duration}ms`,
+        `LLM returned ${response.data.length} categories in ${duration}ms`,
       );
 
       // Log execution
       await this.executionRepository.logExecution({
         phase: "CATEGORY_DISCOVERY" as AgentPhase,
-        status: "success",
+        status: response.isPartial ? "partial" : "success",
         llm_input: {
           prompt,
           productCount: products.length,
@@ -200,9 +198,18 @@ export class CategoryDiscoveryAgent {
         duration_ms: duration,
         llm_model: response.model,
         llm_provider: response.provider,
+        error_message: response.isPartial
+          ? "Partial results - response was incomplete"
+          : undefined,
       });
 
-      return response.data.categories;
+      if (response.isPartial) {
+        this.logger.warn(
+          `LLM returned partial results with ${response.data.length} categories`,
+        );
+      }
+
+      return response.data;
     } catch (error) {
       const duration = Date.now() - startTime;
 
@@ -259,9 +266,9 @@ ${existingCategoryNames}
 IMPORTANT: Only create NEW categories that don't already exist in the list above.
 
 CATEGORIZATION RULES:
-1. GROUP products that consumers would reasonably substitute for each other in everyday shopping
-2. Create SEPARATE categories for products that consumers would NOT substitute in the long-term (e.g., lemon vs lime are different categories)
-3. Keep products in the SAME category if they are substitutable despite variations (e.g., organic and non-organic lemons are in the same "lemon" category, different varieties of apples are in the same "apple" category)
+1. GROUP products that consumers would reasonably substitute for each other in everyday shopping in the SAME category.
+2. Create SEPARATE categories for products that consumers would NOT substitute in the long-term 
+3. Create SEPARATE categories for products whose price can not be reasonnably compared by weight/quantity computations.
 4. Each product must be assigned to exactly ONE category
 
 CONSUMER SUBSTITUTABILITY PRINCIPLE:
@@ -281,8 +288,8 @@ PRODUCTS:
 ${productList}
 
 OUTPUT REQUIREMENTS:
-- Return a JSON object with a "categories" array
-- Each category must have: 
+- Return a JSON array (NOT an object with an array field, just the array directly: [...])
+- Each array element is a category object with: 
   - name: ID in lowercase_snake_case, singular, in ENGLISH. 
   - displayName: readable, in ENGLISH. 
   - productIds: array of IDs.
@@ -290,6 +297,7 @@ OUTPUT REQUIREMENTS:
   - confidence: 0-1 on confidence.
 - Ensure every product ID appears in exactly one category
 - NEVER use German language.
+- Start your response with [ and end with ]
 
 Analyze these products and create precise categories based on consumer substitutability.`;
   }

@@ -23,7 +23,7 @@ describe("CategoryDiscoveryAgent", () => {
         {
           provide: LLMClientService,
           useValue: {
-            complete: vi.fn(),
+            generateObject: vi.fn(),
           },
         },
 
@@ -38,6 +38,8 @@ describe("CategoryDiscoveryAgent", () => {
           useValue: {
             createCategory: vi.fn(),
             assignProducts: vi.fn(),
+            getAllCategories: vi.fn(),
+            getCategoryByName: vi.fn(),
           },
         },
         {
@@ -86,36 +88,38 @@ describe("CategoryDiscoveryAgent", () => {
       ];
 
       const mockResponse = {
-        data: {
-          categories: [
-            {
-              name: "lemon",
-              displayName: "Lemon",
-              productIds: [1, 2],
-              reasoning:
-                "Both products are lemons, organic and non-organic are substitutable",
-              confidence: 0.95,
-            },
-            {
-              name: "lime",
-              displayName: "Lime",
-              productIds: [3],
-              reasoning: "Limes are not substitutable with lemons",
-              confidence: 0.98,
-            },
-          ],
-        },
+        data: [
+          {
+            name: "lemon",
+            displayName: "Lemon",
+            productIds: [1, 2],
+            reasoning:
+              "Both products are lemons, organic and non-organic are substitutable",
+            confidence: 0.95,
+          },
+          {
+            name: "lime",
+            displayName: "Lime",
+            productIds: [3],
+            reasoning: "Limes are not substitutable with lemons",
+            confidence: 0.98,
+          },
+        ],
         usage: {
-          promptTokens: 500,
-          completionTokens: 200,
+          inputTokens: 500,
+          outputTokens: 200,
           totalTokens: 700,
+          reasoningTokens: undefined,
+          cachedInputTokens: undefined,
         },
         model: "gpt-4o",
         finishReason: "stop",
         provider: "openai",
         duration: 1500,
+        isPartial: false,
       };
 
+      vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
       vi.mocked(llmClient.generateObject).mockResolvedValue(mockResponse);
       vi.mocked(executionRepository.logExecution).mockResolvedValue({
         id: 1,
@@ -153,6 +157,7 @@ describe("CategoryDiscoveryAgent", () => {
       ];
 
       const error = new Error("LLM API error");
+      vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
       vi.mocked(llmClient.generateObject).mockRejectedValue(error);
       vi.mocked(executionRepository.logExecution).mockResolvedValue({
         id: 1,
@@ -198,28 +203,35 @@ describe("CategoryDiscoveryAgent", () => {
       ];
 
       const mockLLMResponse = {
-        data: {
-          categories: [
-            {
-              name: "lemon",
-              displayName: "Lemon",
-              productIds: [1, 2],
-              reasoning: "Both are lemons",
-              confidence: 0.95,
-            },
-          ],
+        data: [
+          {
+            name: "lemon",
+            displayName: "Lemon",
+            productIds: [1, 2],
+            reasoning: "Both are lemons",
+            confidence: 0.95,
+          },
+        ],
+        usage: {
+          inputTokens: 500,
+          outputTokens: 200,
+          totalTokens: 700,
+          reasoningTokens: undefined,
+          cachedInputTokens: undefined,
         },
-        usage: { promptTokens: 500, completionTokens: 200, totalTokens: 700 },
         model: "gpt-4o",
         finishReason: "stop",
         provider: "openai",
         duration: 1500,
+        isPartial: false,
       };
 
       vi.mocked(productsRepository.getProductsByCategories).mockResolvedValue(
         mockProducts,
       );
+      vi.mocked(categoryRepository.getAllCategories).mockResolvedValue([]);
       vi.mocked(llmClient.generateObject).mockResolvedValue(mockLLMResponse);
+      vi.mocked(categoryRepository.getCategoryByName).mockResolvedValue(null);
       vi.mocked(categoryRepository.createCategory).mockResolvedValue({
         id: 1,
         name: "lemon",
