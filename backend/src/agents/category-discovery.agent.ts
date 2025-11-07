@@ -270,10 +270,10 @@ Ask yourself: "Would a regular shopper switch from product A to product B for th
 - If NO → different categories
 
 Examples:
-- "Zitronen Bio" and "Zitronen" → SAME category ("lemon") - organic vs non-organic are substitutable
-- "Zitronen" and "Limetten" → DIFFERENT categories ("lemon" vs "lime") - not substitutable
-- "Cherry Tomaten" and "Tomaten" → SAME categories ("cherry-tomato" vs "tomato") - most recipe can accomodate either
-- "Gala Äpfel" and "Braeburn Äpfel" → SAME categories ("gala-apple" vs "braeburn-apple") - different varieties of the same fruit
+- "Zitronen Bio" and "Zitronen" → SAME category ("lemon") - organic vs non-organic are substitutable.
+- "Zitronen" and "Limetten" → DIFFERENT categories ("lemon" vs "lime") - not substitutable.
+- "Cherry Tomaten" and "Tomaten" → SAME categorie ("tomato") - most recipe can accomodate either.
+- "Gala Äpfel" and "Braeburn Äpfel" → SAME categories ("apple") - differentiation can happen downstream via attributes, if desirable for the specific customer.
 
 INPUT: ${products.length} products from supermarkets (Migros, Lidl, Coop, Denner)
 
