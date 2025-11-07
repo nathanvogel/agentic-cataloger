@@ -17,6 +17,7 @@ import {
   LLMResponse,
   LLMProvider,
 } from "./interfaces/llm-client.interface";
+import { withTimeout } from "src/utils/asyncIterableWithTimeout";
 
 /**
  * LLM Client Service
@@ -108,7 +109,7 @@ export class LLMClientService implements ILLMClient {
       temperature,
       maxTokens,
       retries = 3,
-      // timeout = 10 * 60000,
+      timeout = 10 * 60000,
     } = options;
 
     this.logger.log(
@@ -147,9 +148,12 @@ export class LLMClientService implements ILLMClient {
         // Use elementStream to collect array elements as they arrive
         // This is the key feature for handling incomplete JSON - we get valid
         // elements even if the response is truncated mid-array
+        // Apply timeout to the elementStream itself
         this.logger.debug("Starting to consume elementStream");
 
-        for await (const element of result.elementStream) {
+        const timeoutStream = withTimeout(result.elementStream, timeout);
+
+        for await (const element of timeoutStream) {
           collectedElements.push(element);
           this.logger.debug(
             `Received element ${collectedElements.length}: ${JSON.stringify(element).substring(0, 100)}`,

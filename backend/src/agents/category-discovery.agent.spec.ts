@@ -23,7 +23,7 @@ describe("CategoryDiscoveryAgent", () => {
         {
           provide: LLMClientService,
           useValue: {
-            generateObject: vi.fn(),
+            generateArray: vi.fn(),
           },
         },
 

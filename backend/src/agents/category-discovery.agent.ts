@@ -208,7 +208,7 @@ export class CategoryDiscoveryAgent {
           : undefined,
       };
       const execution = await this.executionRepository.logExecution(input);
-      this.logger.debug("Saved execution: " + execution.id);
+      this.logger.log("Saved execution: " + execution.id);
 
       return response.data;
     } catch (error) {
