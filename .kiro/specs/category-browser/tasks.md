@@ -6,7 +6,7 @@
   - Verify OpenAPI spec is accessible at /api/docs and /api/docs-json
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 2. Create backend DTOs with OpenAPI decorators
+- [x] 2. Create backend DTOs with OpenAPI decorators
   - Create CategoryResponseDto with all database fields and @ApiProperty decorators
   - Create ProductResponseDto with all database fields and @ApiProperty decorators
   - Add proper TypeScript types and nullable annotations
