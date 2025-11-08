@@ -1,5 +1,4 @@
 import { Module, Global } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { Pool } from "pg";
 import {
   ProductsRepository,
@@ -7,21 +6,19 @@ import {
   SchemaRepository,
   AgentExecutionRepository,
 } from "./repositories";
-
-export const DATABASE_POOL = "DATABASE_POOL";
+import { DATABASE_POOL } from "./database.constants";
 
 @Global()
 @Module({
   providers: [
     {
       provide: DATABASE_POOL,
-      useFactory: (configService: ConfigService) => {
+      useFactory: () => {
         const pool = new Pool({
-          connectionString: configService.get<string>("DATABASE_URL"),
+          connectionString: process.env.DATABASE_URL,
         });
         return pool;
       },
-      inject: [ConfigService],
     },
     ProductsRepository,
     CategoryRepository,

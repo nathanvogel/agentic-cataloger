@@ -2,7 +2,7 @@ import { Injectable, Inject } from "@nestjs/common";
 import { Pool } from "pg";
 import * as db from "zapatos/db";
 import type * as s from "zapatos/schema";
-import { DATABASE_POOL } from "../database.module";
+import { DATABASE_POOL } from "../database.constants";
 
 export interface CreateSchemaInput {
   category_id: number;

@@ -253,7 +253,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: process.env.FRONTEND_URL || "http://localhost:3011",
     credentials: true,
   });
 
@@ -762,7 +762,7 @@ docker-compose up -d
 
 ```
 DATABASE_URL=postgresql://pricecomp_user:abc@localhost:5532/pricecomp_db
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3011
 ```
 
 **Frontend `.env`:**

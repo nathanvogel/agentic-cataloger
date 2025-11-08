@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Set up backend API infrastructure
+- [x] 1. Set up backend API infrastructure
   - Install required NestJS packages (@nestjs/swagger, class-validator, class-transformer)
   - Configure Swagger/OpenAPI in main.ts with document builder and CORS
   - Verify OpenAPI spec is accessible at /api/docs and /api/docs-json
