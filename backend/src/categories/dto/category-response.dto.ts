@@ -14,6 +14,7 @@ export class CategoryResponseDto {
   displayName: string;
 
   @ApiProperty({
+    type: Number,
     description: "Number of products in category",
     example: 45,
     nullable: true,
@@ -21,6 +22,7 @@ export class CategoryResponseDto {
   productCount: number | null;
 
   @ApiProperty({
+    type: String,
     description: "LLM reasoning for category",
     example: "Products that are lemons based on consumer substitutability",
     nullable: true,
@@ -28,6 +30,7 @@ export class CategoryResponseDto {
   reasoning: string | null;
 
   @ApiProperty({
+    type: Number,
     description: "Confidence score (0-1)",
     example: 0.95,
     nullable: true,
@@ -35,6 +38,7 @@ export class CategoryResponseDto {
   confidence: number | null;
 
   @ApiProperty({
+    type: Number,
     description: "Linked schema ID",
     example: 3,
     nullable: true,
@@ -42,6 +46,7 @@ export class CategoryResponseDto {
   schemaId: number | null;
 
   @ApiProperty({
+    type: Date,
     description: "Creation timestamp",
     example: "2025-11-08T10:00:00Z",
     nullable: true,
@@ -49,6 +54,7 @@ export class CategoryResponseDto {
   createdAt: Date | null;
 
   @ApiProperty({
+    type: Date,
     description: "Last update timestamp",
     example: "2025-11-08T10:00:00Z",
     nullable: true,

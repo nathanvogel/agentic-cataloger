@@ -118,28 +118,21 @@ const LandingPage: React.FC = () => {
                       sx={{ mb: 1 }}
                     />
                     <Typography variant="body2" color="text.secondary">
-                      Price:{" "}
-                      {product.price && typeof product.price === "number"
-                        ? `CHF ${product.price}`
-                        : "N/A"}
+                      Price: {product.price ? `CHF ${product.price}` : "N/A"}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Unit:{" "}
-                      {product.unit && typeof product.unit === "string"
-                        ? product.unit
-                        : "N/A"}
+                      Unit: {product.unit || "N/A"}
                     </Typography>
-                    {product.categorizationConfidence &&
-                      typeof product.categorizationConfidence === "number" && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", mt: 1 }}
-                        >
-                          Confidence:{" "}
-                          {(product.categorizationConfidence * 100).toFixed(0)}%
-                        </Typography>
-                      )}
+                    {product.categorizationConfidence && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 1 }}
+                      >
+                        Confidence:{" "}
+                        {(product.categorizationConfidence * 100).toFixed(0)}%
+                      </Typography>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -204,21 +197,19 @@ const LandingPage: React.FC = () => {
                       {category.displayName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {category.productCount &&
-                      typeof category.productCount === "number"
+                      {category.productCount
                         ? `${category.productCount} products`
                         : "No products"}
                     </Typography>
-                    {category.confidence &&
-                      typeof category.confidence === "number" && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", mt: 1 }}
-                        >
-                          Confidence: {(category.confidence * 100).toFixed(0)}%
-                        </Typography>
-                      )}
+                    {category.confidence && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", mt: 1 }}
+                      >
+                        Confidence: {(category.confidence * 100).toFixed(0)}%
+                      </Typography>
+                    )}
                   </CardContent>
                 </CardActionArea>
               </Card>

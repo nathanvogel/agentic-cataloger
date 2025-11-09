@@ -11,6 +11,7 @@ export class ProductResponseDto {
   supermarket: string;
 
   @ApiProperty({
+    type: Number,
     description: "Price in CHF",
     example: 2.95,
     nullable: true,
@@ -18,6 +19,7 @@ export class ProductResponseDto {
   price: number | null;
 
   @ApiProperty({
+    type: String,
     description: "Price text from source",
     example: "CHF 2.95",
     nullable: true,
@@ -25,6 +27,7 @@ export class ProductResponseDto {
   priceText: string | null;
 
   @ApiProperty({
+    type: String,
     description: "Currency code",
     example: "CHF",
     nullable: true,
@@ -32,6 +35,7 @@ export class ProductResponseDto {
   currency: string | null;
 
   @ApiProperty({
+    type: String,
     description: 'Unit (e.g., "500g", "1L")',
     example: "500g",
     nullable: true,
@@ -39,6 +43,7 @@ export class ProductResponseDto {
   unit: string | null;
 
   @ApiProperty({
+    type: String,
     description: "Unit price text",
     example: "CHF 5.90/kg",
     nullable: true,
@@ -46,6 +51,7 @@ export class ProductResponseDto {
   unitPrice: string | null;
 
   @ApiProperty({
+    type: Number,
     description: "Original quantity from source",
     example: 500,
     nullable: true,
@@ -53,6 +59,7 @@ export class ProductResponseDto {
   originalQuantity: number | null;
 
   @ApiProperty({
+    type: String,
     description: "Original unit from source",
     example: "g",
     nullable: true,
@@ -60,6 +67,7 @@ export class ProductResponseDto {
   originalUnit: string | null;
 
   @ApiProperty({
+    type: Number,
     description: "Normalized quantity",
     example: 500,
     nullable: true,
@@ -67,6 +75,7 @@ export class ProductResponseDto {
   normalizedQuantity: number | null;
 
   @ApiProperty({
+    type: String,
     description: "Normalized unit",
     example: "g",
     nullable: true,
@@ -74,6 +83,7 @@ export class ProductResponseDto {
   normalizedUnit: string | null;
 
   @ApiProperty({
+    type: Number,
     description: "Normalized price per unit",
     example: 5.9,
     nullable: true,
@@ -81,6 +91,7 @@ export class ProductResponseDto {
   normalizedPrice: number | null;
 
   @ApiProperty({
+    type: Boolean,
     description: "Has discount flag",
     example: false,
     nullable: true,
@@ -88,6 +99,7 @@ export class ProductResponseDto {
   isDiscounted: boolean | null;
 
   @ApiProperty({
+    type: String,
     description: "Discount information",
     example: "20% off",
     nullable: true,
@@ -95,6 +107,7 @@ export class ProductResponseDto {
   discountInfo: string | null;
 
   @ApiProperty({
+    type: String,
     description: "Product image URL",
     example: "https://example.com/image.jpg",
     nullable: true,
@@ -102,6 +115,7 @@ export class ProductResponseDto {
   imageUrl: string | null;
 
   @ApiProperty({
+    type: String,
     description: "Product page URL",
     example: "https://example.com/product",
     nullable: true,
@@ -124,6 +138,7 @@ export class ProductResponseDto {
   attributes: Record<string, any> | null;
 
   @ApiProperty({
+    type: Number,
     description: "Assigned category ID",
     example: 1,
     nullable: true,
@@ -131,6 +146,7 @@ export class ProductResponseDto {
   categoryId: number | null;
 
   @ApiProperty({
+    type: Number,
     description: "Categorization confidence (0-1)",
     example: 0.95,
     nullable: true,
@@ -138,6 +154,7 @@ export class ProductResponseDto {
   categorizationConfidence: number | null;
 
   @ApiProperty({
+    type: Date,
     description: "Attributes extraction timestamp",
     example: "2025-11-08T11:00:00Z",
     nullable: true,
@@ -145,6 +162,7 @@ export class ProductResponseDto {
   attributesExtractedAt: Date | null;
 
   @ApiProperty({
+    type: Date,
     description: "Scraping timestamp",
     example: "2025-11-08T09:00:00Z",
     nullable: true,
