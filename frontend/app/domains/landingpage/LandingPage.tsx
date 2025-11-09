@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowBack } from "@mui/icons-material";
+import { ArrowBack, OpenInNew } from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -7,9 +7,11 @@ import {
   Card,
   CardActionArea,
   CardContent,
+  CardMedia,
   Chip,
   CircularProgress,
   Container,
+  IconButton,
   Typography,
 } from "@mui/material";
 import { $api } from "../../schema/api";
@@ -99,30 +101,171 @@ const LandingPage: React.FC = () => {
                 display: "grid",
                 gridTemplateColumns: {
                   xs: "1fr",
-                  sm: "repeat(2, 1fr)",
-                  md: "repeat(3, 1fr)",
+                  sm: "repeat(3, 1fr)",
+                  md: "repeat(4, 1fr)",
                 },
                 gap: 3,
               }}
             >
               {products.map((product: ProductDto) => (
                 <Card key={product.id}>
+                  {product.imageUrl && (
+                    <Box sx={{ position: "relative" }}>
+                      <CardMedia
+                        component="img"
+                        height="200"
+                        image={product.imageUrl}
+                        alt={product.name}
+                        sx={{ objectFit: "contain", bgcolor: "grey.100" }}
+                      />
+                      {product.productUrl && (
+                        <IconButton
+                          component="a"
+                          href={product.productUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{
+                            position: "absolute",
+                            top: 8,
+                            right: 8,
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              bgcolor: "primary.main",
+                              color: "white",
+                            },
+                          }}
+                          size="small"
+                        >
+                          <OpenInNew fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  )}
                   <CardContent>
                     <Typography variant="h6" component="h3" gutterBottom>
                       {product.name}
                     </Typography>
-                    <Chip
-                      label={product.supermarket}
-                      size="small"
-                      color="primary"
-                      sx={{ mb: 1 }}
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      Price: {product.price ? `${product.price} CHF` : "N/A"}
+
+                    <Box
+                      sx={{
+                        mb: 2,
+                        display: "flex",
+                        gap: 0.5,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Chip
+                        label={product.supermarket}
+                        size="small"
+                        color="primary"
+                      />
+                      {product.isDiscounted && (
+                        <Chip label="Discounted" size="small" color="error" />
+                      )}
+                    </Box>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      <strong>Price:</strong>{" "}
+                      {product.priceText ||
+                        (product.price
+                          ? `${product.price} ${product.currency || "CHF"}`
+                          : "N/A")}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Unit: {product.unit || "N/A"}
+
+                    {product.discountInfo && (
+                      <Typography variant="body2" color="error" gutterBottom>
+                        <strong>Discount:</strong> {product.discountInfo}
+                      </Typography>
+                    )}
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      <strong>Unit:</strong> {product.unit || "N/A"}
                     </Typography>
+
+                    {product.unitPrice && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <strong>Unit Price:</strong> {product.unitPrice}
+                      </Typography>
+                    )}
+
+                    {(product.originalQuantity || product.originalUnit) && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <strong>Original:</strong> {product.originalQuantity}{" "}
+                        {product.originalUnit}
+                      </Typography>
+                    )}
+
+                    {(product.normalizedQuantity || product.normalizedUnit) && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <strong>Normalized:</strong>{" "}
+                        {product.normalizedQuantity} {product.normalizedUnit}
+                        {product.normalizedPrice &&
+                          ` (${product.normalizedPrice} ${product.currency || "CHF"}/${product.normalizedUnit})`}
+                      </Typography>
+                    )}
+
+                    {product.categoryId && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <strong>Category ID:</strong> {product.categoryId}
+                        {product.categorizationConfidence &&
+                          ` (${(product.categorizationConfidence * 100).toFixed(0)}%)`}
+                      </Typography>
+                    )}
+
+                    {product.attributes &&
+                      Object.keys(product.attributes).length > 0 && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
+                            <strong>Attributes:</strong>
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 0.5,
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {Object.entries(product.attributes).map(
+                              ([key, value]) => (
+                                <Chip
+                                  key={key}
+                                  label={`${key}: ${JSON.stringify(value)}`}
+                                  size="small"
+                                  variant="outlined"
+                                />
+                              )
+                            )}
+                          </Box>
+                        </Box>
+                      )}
                   </CardContent>
                 </Card>
               ))}
