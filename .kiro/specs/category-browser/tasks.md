@@ -26,7 +26,7 @@
   - Add ordering by name for consistent results
   - _Requirements: 2.2_
 
-- [ ] 5. Implement Categories Controller
+- [x] 5. Implement Categories Controller
   - Create CategoriesController with @ApiTags decorator
   - Implement GET /api/categories endpoint with Swagger decorators
   - Implement GET /api/categories/:id/products endpoint with Swagger decorators
