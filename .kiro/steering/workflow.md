@@ -19,6 +19,14 @@ Always use `yarn` for all operations.
 
 ## Execution Pattern
 
+## `backend`
+
+The user is responsible for ensuring the backend is running through `yarn dev`, usually on port 3010.
+
+## `frontend`
+
+The user is responsible for ensuring the backend is running through `yarn dev`, usually on port 3011.
+
 ### `data-importer`
 
 ```bash
