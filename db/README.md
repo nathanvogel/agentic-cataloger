@@ -6,6 +6,12 @@ This directory contains database setup and migration scripts for the Product Cat
 
 See the `./queries` subfolder.
 
+## Useful SQL tools
+
+Recommended:
+
+- Beekeeper Studio: https://www.beekeeperstudio.io/
+
 ## Migration Files
 
 - `001_add_categorization_system.sql`: Adds the core tables and schema for the LLM-powered product categorization system.
@@ -49,7 +55,8 @@ docker exec -i pricecomp-db psql -U pricecomp_user -d pricecomp_db -f /docker-en
 docker exec -it pricecomp-db /bin/sh
 
 # Create compressed backup with timestamp
-pg_dump -U pricecomp_user -Fc pricecomp_db | gzip > /docker-entrypoint-initdb.d/backups/$(date +%Y-%m-%d-%H-%M)-backup.dump
+# Using the default plain format (`-Fp`) didn't work for me when restoring.
+pg_dump -U pricecomp_user -Fc pricecomp_db > /docker-entrypoint-initdb.d/backups/$(date +%Y-%m-%d-%H-%M)-backup.dump
 
 # Check backup size
 ls -lah /docker-entrypoint-initdb.d/backups/
@@ -58,15 +65,12 @@ ls -lah /docker-entrypoint-initdb.d/backups/
 ### Restoring from Backup
 
 ```bash
-# Decompress backup
-gzip -dk /docker-entrypoint-initdb.d/backups/backup-file.sql.gz
-
-# Restore to existing database (will show errors for existing objects)
-psql -U pricecomp_user -d pricecomp_db < /docker-entrypoint-initdb.d/backups/backup-file.sql
-
-# Restore to new database (clean restore)
-createdb -U pricecomp_user pricecomp_db_restore
-psql -U pricecomp_user -d pricecomp_db_restore < /docker-entrypoint-initdb.d/backups/backup-file.sql
+# Drop the previous DB (WARNING: This will delete all data)
+dropdb -U pricecomp_user pricecomp_db
+# Create the new DB from PostgreSQL empty template.
+createdb -U pricecomp_user -T template0 pricecomp_db
+# Restore to new database
+pg_restore -U pricecomp_user -d pricecomp_db -1 /docker-entrypoint-initdb.d/backups/backup.dump
 ```
 
 ## Database Connection Tips
