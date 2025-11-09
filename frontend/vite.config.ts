@@ -27,6 +27,11 @@ export default defineConfig(() => {
     },
     server: {
       port: 3011,
+      allowedHosts: [
+        "petittonnerrelinux",
+        "petittonnerrelinux.opossum-climb.ts.net",
+        "fd7a:115c:a1e0::d033:5776",
+      ],
     },
   };
 });
