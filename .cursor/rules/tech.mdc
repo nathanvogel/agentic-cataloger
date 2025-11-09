@@ -1,0 +1,40 @@
+---
+alwaysApply: true
+---
+
+# Technology Stack
+
+## Core Technologies
+
+- PostgreSQL 18 (Docker)
+- TypeScript (strict mode)
+- NestJS backend & CLI
+- Zapatos for type-safe database operations
+- Yarn package manager
+- vitest for tests
+
+## Database Connection
+
+- Host: localhost:5532
+- Database: pricecomp_db
+- User: pricecomp_user
+- Password: abc (dev only)
+
+## Essential Commands
+
+```bash
+# Database
+docker-compose up -d
+
+# Build (standardized across subfolders)
+yarn build
+
+# Testing (standardized across subfolders)
+yarn test
+```
+
+## Code Standards
+
+- Use Zapatos for type-safe database operations
+- Structured logging with context
+- Prettier & lint pre-commit hooks
