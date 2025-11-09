@@ -118,21 +118,11 @@ const LandingPage: React.FC = () => {
                       sx={{ mb: 1 }}
                     />
                     <Typography variant="body2" color="text.secondary">
-                      Price: {product.price ? `CHF ${product.price}` : "N/A"}
+                      Price: {product.price ? `${product.price} CHF` : "N/A"}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Unit: {product.unit || "N/A"}
                     </Typography>
-                    {product.categorizationConfidence && (
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ display: "block", mt: 1 }}
-                      >
-                        Confidence:{" "}
-                        {(product.categorizationConfidence * 100).toFixed(0)}%
-                      </Typography>
-                    )}
                   </CardContent>
                 </Card>
               ))}
