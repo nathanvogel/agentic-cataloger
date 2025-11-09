@@ -57,7 +57,7 @@ domains/
 
 2. Create a .env file in the app root directory with the following variables:
    ```bash
-   VITE_BACKEND_URL=http://localhost:3000
+   VITE_BACKEND_URL=http://localhost:3010
    ```
 3. Start the development server:
 

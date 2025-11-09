@@ -257,7 +257,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  await app.listen(3000);
+  await app.listen(3010);
 }
 ```
 
@@ -272,7 +272,7 @@ Add script:
 ```json
 {
   "scripts": {
-    "generate:api": "openapi-typescript http://localhost:3000/api/docs-json -o app/schema/backend-schema.d.ts"
+    "generate:api": "openapi-typescript http://localhost:3010/api/docs-json -o app/schema/backend-schema.d.ts"
   }
 }
 ```
@@ -287,7 +287,7 @@ import createClient from "openapi-react-query";
 import { paths } from "./backend-schema";
 
 const fetchClient = createFetchClient<paths>({
-  baseUrl: import.meta.env.VITE_BACKEND_URL || "http://localhost:3000",
+  baseUrl: import.meta.env.VITE_BACKEND_URL || "http://localhost:3010",
   credentials: "include",
 });
 
@@ -768,7 +768,7 @@ FRONTEND_URL=http://localhost:3011
 **Frontend `.env`:**
 
 ```
-VITE_BACKEND_URL=http://localhost:3000
+VITE_BACKEND_URL=http://localhost:3010
 ```
 
 ## Design Decisions and Rationale

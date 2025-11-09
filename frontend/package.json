@@ -14,7 +14,7 @@
     "prettier:check": "prettier --check \"app/**/*.{ts,tsx,yml}\" \"*.{js,json,yml}\"",
     "lint-staged": "lint-staged",
     "prepare": "cd .. && husky",
-    "schema:generate": "openapi-typescript ../docs/specs/backend-api.yaml -o ./app/schema/backend-schema.d.ts"
+    "generate:api": "openapi-typescript http://localhost:3010/api/docs-json -o ./app/schema/backend-schema.d.ts"
   },
   "lint-staged": {
     "*.ts": [
