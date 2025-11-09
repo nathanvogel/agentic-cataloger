@@ -34,14 +34,14 @@
   - Wire service dependency
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 6. Create and wire Categories Module
+- [x] 6. Create and wire Categories Module
   - Create CategoriesModule with imports, controllers, and providers
   - Import DatabaseModule for repository access
   - Export CategoriesService if needed
   - Update AppModule to import CategoriesModule
   - _Requirements: 1.1, 2.1_
 
-- [ ] 7. Set up frontend type generation
+- [-] 7. Set up frontend type generation
   - Install openapi-typescript as dev dependency
   - Add generate:api script to package.json
   - Start backend server
