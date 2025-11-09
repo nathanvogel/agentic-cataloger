@@ -4,366 +4,366 @@
  */
 
 export interface paths {
-    "/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["AppController_getHello"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Health check endpoint */
-        get: operations["HealthController_check"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations["AppController_getHello"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/health": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/categories": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get all categories
-         * @description Retrieve all product categories with metadata including product counts, confidence scores, and reasoning. Categories are ordered by product count in descending order.
-         */
-        get: operations["CategoriesController_getAllCategories"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** Health check endpoint */
+    get: operations["HealthController_check"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/categories": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/api/categories/{id}/products": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get products for a category
-         * @description Retrieve all products assigned to a specific category. Products are ordered alphabetically by name. Returns 404 if the category does not exist.
-         */
-        get: operations["CategoriesController_getCategoryProducts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * Get all categories
+     * @description Retrieve all product categories with metadata including product counts, confidence scores, and reasoning. Categories are ordered by product count in descending order.
+     */
+    get: operations["CategoriesController_getAllCategories"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/categories/{id}/products": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    /**
+     * Get products for a category
+     * @description Retrieve all products assigned to a specific category. Products are ordered alphabetically by name. Returns 404 if the category does not exist.
+     */
+    get: operations["CategoriesController_getCategoryProducts"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        CategoryResponseDto: {
-            /**
-             * @description Category ID
-             * @example 1
-             */
-            id: number;
-            /**
-             * @description Internal category name (kebab-case)
-             * @example lemon
-             */
-            name: string;
-            /**
-             * @description Display name for UI
-             * @example Lemon
-             */
-            displayName: string;
-            /**
-             * @description Number of products in category
-             * @example 45
-             */
-            productCount: Record<string, never> | null;
-            /**
-             * @description LLM reasoning for category
-             * @example Products that are lemons based on consumer substitutability
-             */
-            reasoning: Record<string, never> | null;
-            /**
-             * @description Confidence score (0-1)
-             * @example 0.95
-             */
-            confidence: Record<string, never> | null;
-            /**
-             * @description Linked schema ID
-             * @example 3
-             */
-            schemaId: Record<string, never> | null;
-            /**
-             * @description Creation timestamp
-             * @example 2025-11-08T10:00:00Z
-             */
-            createdAt: Record<string, never> | null;
-            /**
-             * @description Last update timestamp
-             * @example 2025-11-08T10:00:00Z
-             */
-            updatedAt: Record<string, never> | null;
-        };
-        ProductResponseDto: {
-            /**
-             * @description Product ID
-             * @example 101
-             */
-            id: number;
-            /**
-             * @description Product name
-             * @example Bio Zitronen
-             */
-            name: string;
-            /**
-             * @description Supermarket name
-             * @example coop
-             */
-            supermarket: string;
-            /**
-             * @description Price in CHF
-             * @example 2.95
-             */
-            price: Record<string, never> | null;
-            /**
-             * @description Price text from source
-             * @example CHF 2.95
-             */
-            priceText: Record<string, never> | null;
-            /**
-             * @description Currency code
-             * @example CHF
-             */
-            currency: Record<string, never> | null;
-            /**
-             * @description Unit (e.g., "500g", "1L")
-             * @example 500g
-             */
-            unit: Record<string, never> | null;
-            /**
-             * @description Unit price text
-             * @example CHF 5.90/kg
-             */
-            unitPrice: Record<string, never> | null;
-            /**
-             * @description Original quantity from source
-             * @example 500
-             */
-            originalQuantity: Record<string, never> | null;
-            /**
-             * @description Original unit from source
-             * @example g
-             */
-            originalUnit: Record<string, never> | null;
-            /**
-             * @description Normalized quantity
-             * @example 500
-             */
-            normalizedQuantity: Record<string, never> | null;
-            /**
-             * @description Normalized unit
-             * @example g
-             */
-            normalizedUnit: Record<string, never> | null;
-            /**
-             * @description Normalized price per unit
-             * @example 5.9
-             */
-            normalizedPrice: Record<string, never> | null;
-            /**
-             * @description Has discount flag
-             * @example false
-             */
-            isDiscounted: Record<string, never> | null;
-            /**
-             * @description Discount information
-             * @example 20% off
-             */
-            discountInfo: Record<string, never> | null;
-            /**
-             * @description Product image URL
-             * @example https://example.com/image.jpg
-             */
-            imageUrl: Record<string, never> | null;
-            /**
-             * @description Product page URL
-             * @example https://example.com/product
-             */
-            productUrl: Record<string, never> | null;
-            /**
-             * @description Original categories from CSV
-             * @example [
-             *       "Früchte",
-             *       "Bio"
-             *     ]
-             */
-            categories: string[] | null;
-            /**
-             * @description Extracted attributes (JSONB)
-             * @example {
-             *       "organic": true,
-             *       "variety": "eureka"
-             *     }
-             */
-            attributes: Record<string, never> | null;
-            /**
-             * @description Assigned category ID
-             * @example 1
-             */
-            categoryId: Record<string, never> | null;
-            /**
-             * @description Categorization confidence (0-1)
-             * @example 0.95
-             */
-            categorizationConfidence: Record<string, never> | null;
-            /**
-             * @description Attributes extraction timestamp
-             * @example 2025-11-08T11:00:00Z
-             */
-            attributesExtractedAt: Record<string, never> | null;
-            /**
-             * @description Scraping timestamp
-             * @example 2025-11-08T09:00:00Z
-             */
-            scrapedAt: Record<string, never> | null;
-        };
+  schemas: {
+    CategoryResponseDto: {
+      /**
+       * @description Category ID
+       * @example 1
+       */
+      id: number;
+      /**
+       * @description Internal category name (kebab-case)
+       * @example lemon
+       */
+      name: string;
+      /**
+       * @description Display name for UI
+       * @example Lemon
+       */
+      displayName: string;
+      /**
+       * @description Number of products in category
+       * @example 45
+       */
+      productCount: Record<string, never> | null;
+      /**
+       * @description LLM reasoning for category
+       * @example Products that are lemons based on consumer substitutability
+       */
+      reasoning: Record<string, never> | null;
+      /**
+       * @description Confidence score (0-1)
+       * @example 0.95
+       */
+      confidence: Record<string, never> | null;
+      /**
+       * @description Linked schema ID
+       * @example 3
+       */
+      schemaId: Record<string, never> | null;
+      /**
+       * @description Creation timestamp
+       * @example 2025-11-08T10:00:00Z
+       */
+      createdAt: Record<string, never> | null;
+      /**
+       * @description Last update timestamp
+       * @example 2025-11-08T10:00:00Z
+       */
+      updatedAt: Record<string, never> | null;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    ProductResponseDto: {
+      /**
+       * @description Product ID
+       * @example 101
+       */
+      id: number;
+      /**
+       * @description Product name
+       * @example Bio Zitronen
+       */
+      name: string;
+      /**
+       * @description Supermarket name
+       * @example coop
+       */
+      supermarket: string;
+      /**
+       * @description Price in CHF
+       * @example 2.95
+       */
+      price: Record<string, never> | null;
+      /**
+       * @description Price text from source
+       * @example CHF 2.95
+       */
+      priceText: Record<string, never> | null;
+      /**
+       * @description Currency code
+       * @example CHF
+       */
+      currency: Record<string, never> | null;
+      /**
+       * @description Unit (e.g., "500g", "1L")
+       * @example 500g
+       */
+      unit: Record<string, never> | null;
+      /**
+       * @description Unit price text
+       * @example CHF 5.90/kg
+       */
+      unitPrice: Record<string, never> | null;
+      /**
+       * @description Original quantity from source
+       * @example 500
+       */
+      originalQuantity: Record<string, never> | null;
+      /**
+       * @description Original unit from source
+       * @example g
+       */
+      originalUnit: Record<string, never> | null;
+      /**
+       * @description Normalized quantity
+       * @example 500
+       */
+      normalizedQuantity: Record<string, never> | null;
+      /**
+       * @description Normalized unit
+       * @example g
+       */
+      normalizedUnit: Record<string, never> | null;
+      /**
+       * @description Normalized price per unit
+       * @example 5.9
+       */
+      normalizedPrice: Record<string, never> | null;
+      /**
+       * @description Has discount flag
+       * @example false
+       */
+      isDiscounted: Record<string, never> | null;
+      /**
+       * @description Discount information
+       * @example 20% off
+       */
+      discountInfo: Record<string, never> | null;
+      /**
+       * @description Product image URL
+       * @example https://example.com/image.jpg
+       */
+      imageUrl: Record<string, never> | null;
+      /**
+       * @description Product page URL
+       * @example https://example.com/product
+       */
+      productUrl: Record<string, never> | null;
+      /**
+       * @description Original categories from CSV
+       * @example [
+       *       "Früchte",
+       *       "Bio"
+       *     ]
+       */
+      categories: string[] | null;
+      /**
+       * @description Extracted attributes (JSONB)
+       * @example {
+       *       "organic": true,
+       *       "variety": "eureka"
+       *     }
+       */
+      attributes: Record<string, never> | null;
+      /**
+       * @description Assigned category ID
+       * @example 1
+       */
+      categoryId: Record<string, never> | null;
+      /**
+       * @description Categorization confidence (0-1)
+       * @example 0.95
+       */
+      categorizationConfidence: Record<string, never> | null;
+      /**
+       * @description Attributes extraction timestamp
+       * @example 2025-11-08T11:00:00Z
+       */
+      attributesExtractedAt: Record<string, never> | null;
+      /**
+       * @description Scraping timestamp
+       * @example 2025-11-08T09:00:00Z
+       */
+      scrapedAt: Record<string, never> | null;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    AppController_getHello: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  AppController_getHello: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    HealthController_check: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Service is healthy */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
-    CategoriesController_getAllCategories: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successfully retrieved all categories */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CategoryResponseDto"][];
-                };
-            };
-            /** @description Failed to fetch categories from database */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+  };
+  HealthController_check: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    CategoriesController_getCategoryProducts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The category ID */
-                id: number;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description Service is healthy */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successfully retrieved products for the category */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProductResponseDto"][];
-                };
-            };
-            /** @description Invalid category ID format */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Category with the specified ID not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Failed to fetch products from database */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+        content?: never;
+      };
     };
+  };
+  CategoriesController_getAllCategories: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved all categories */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["CategoryResponseDto"][];
+        };
+      };
+      /** @description Failed to fetch categories from database */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CategoriesController_getCategoryProducts: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description The category ID */
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successfully retrieved products for the category */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProductResponseDto"][];
+        };
+      };
+      /** @description Invalid category ID format */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Category with the specified ID not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Failed to fetch products from database */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
 }

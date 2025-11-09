@@ -1,87 +1,226 @@
-import React from "react";
+import React, { useState } from "react";
+import { ArrowBack } from "@mui/icons-material";
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardActionArea,
+  CardContent,
+  Chip,
+  CircularProgress,
+  Container,
+  Typography,
+} from "@mui/material";
+import { $api } from "../../schema/api";
+import type { components } from "../../schema/backend-schema";
+
+type CategoryDto = components["schemas"]["CategoryResponseDto"];
+type ProductDto = components["schemas"]["ProductResponseDto"];
 
 const LandingPage: React.FC = () => {
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(
+    null
+  );
+
+  // Fetch categories
+  const {
+    data: categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+  } = $api.useQuery("get", "/api/categories");
+
+  // Fetch products for selected category
+  const {
+    data: products,
+    isLoading: productsLoading,
+    error: productsError,
+  } = $api.useQuery("get", "/api/categories/{id}/products", {
+    params: {
+      path: { id: selectedCategoryId ?? 0 },
+    },
+    enabled: selectedCategoryId !== null,
+  });
+
+  const selectedCategory = categories?.find(
+    (cat) => cat.id === selectedCategoryId
+  );
+
+  const handleCategoryClick = (categoryId: number) => {
+    setSelectedCategoryId(categoryId);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategoryId(null);
+  };
+
+  // Show products view if a category is selected
+  if (selectedCategoryId !== null) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ py: 4 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={handleBackToCategories}
+            sx={{ mb: 3 }}
+          >
+            Back to Categories
+          </Button>
+
+          <Typography variant="h4" component="h1" gutterBottom>
+            {selectedCategory?.displayName || "Category"}
+          </Typography>
+
+          {productsLoading && (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+              <CircularProgress />
+            </Box>
+          )}
+
+          {productsError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Failed to load products. Please try again.
+            </Alert>
+          )}
+
+          {products && products.length === 0 && (
+            <Alert severity="info">No products found in this category.</Alert>
+          )}
+
+          {products && products.length > 0 && (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "repeat(2, 1fr)",
+                  md: "repeat(3, 1fr)",
+                },
+                gap: 3,
+              }}
+            >
+              {products.map((product: ProductDto) => (
+                <Card key={product.id}>
+                  <CardContent>
+                    <Typography variant="h6" component="h3" gutterBottom>
+                      {product.name}
+                    </Typography>
+                    <Chip
+                      label={product.supermarket}
+                      size="small"
+                      color="primary"
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Price:{" "}
+                      {product.price && typeof product.price === "number"
+                        ? `CHF ${product.price}`
+                        : "N/A"}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Unit:{" "}
+                      {product.unit && typeof product.unit === "string"
+                        ? product.unit
+                        : "N/A"}
+                    </Typography>
+                    {product.categorizationConfidence &&
+                      typeof product.categorizationConfidence === "number" && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mt: 1 }}
+                        >
+                          Confidence:{" "}
+                          {(product.categorizationConfidence * 100).toFixed(0)}%
+                        </Typography>
+                      )}
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
+        </Box>
+      </Container>
+    );
+  }
+
+  // Show categories view
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <div className="bg-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Welcome to Our Platform
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-              Discover amazing features and transform your workflow with our
-              innovative solution
-            </p>
-            <div className="space-x-4">
-              <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Get Started
-              </button>
-              <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
-                Learn More
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <Container maxWidth="lg">
+      <Box sx={{ py: 4 }}>
+        <Typography variant="h3" component="h1" gutterBottom align="center">
+          Product Categories
+        </Typography>
+        <Typography
+          variant="body1"
+          color="text.secondary"
+          align="center"
+          sx={{ mb: 4 }}
+        >
+          Browse our product categories to explore available items
+        </Typography>
 
-      {/* Features Section */}
-      <div className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose Us?
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Our platform offers cutting-edge features designed to streamline
-              your experience
-            </p>
-          </div>
+        {categoriesLoading && (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
+            <CircularProgress />
+          </Box>
+        )}
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <h3 className="text-xl font-semibold mb-2">Lightning Fast</h3>
-              <p className="text-gray-600">
-                Experience blazing fast performance with our optimized
-                infrastructure
-              </p>
-            </div>
+        {categoriesError && (
+          <Alert severity="error">
+            Failed to load categories. Please try again.
+          </Alert>
+        )}
 
-            <div className="text-center p-6">
-              <h3 className="text-xl font-semibold mb-2">Reliable</h3>
-              <p className="text-gray-600">
-                99.9% uptime guarantee with enterprise-grade security and
-                reliability
-              </p>
-            </div>
+        {categories && categories.length === 0 && (
+          <Alert severity="info">No categories available.</Alert>
+        )}
 
-            <div className="text-center p-6">
-              <h3 className="text-xl font-semibold mb-2">User Friendly</h3>
-              <p className="text-gray-600">
-                Intuitive design that makes complex tasks simple and enjoyable
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Section */}
-      <div className="bg-gray-900 text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Get Started?
-          </h2>
-          <p className="text-xl mb-8">
-            Join thousands of satisfied customers who have transformed their
-            workflow
-          </p>
-          <button className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors">
-            Start Your Free Trial
-          </button>
-        </div>
-      </div>
-    </div>
+        {categories && categories.length > 0 && (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)",
+              },
+              gap: 3,
+            }}
+          >
+            {categories.map((category: CategoryDto) => (
+              <Card key={category.id}>
+                <CardActionArea
+                  onClick={() => handleCategoryClick(category.id)}
+                >
+                  <CardContent>
+                    <Typography variant="h5" component="h2" gutterBottom>
+                      {category.displayName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {category.productCount &&
+                      typeof category.productCount === "number"
+                        ? `${category.productCount} products`
+                        : "No products"}
+                    </Typography>
+                    {category.confidence &&
+                      typeof category.confidence === "number" && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mt: 1 }}
+                        >
+                          Confidence: {(category.confidence * 100).toFixed(0)}%
+                        </Typography>
+                      )}
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            ))}
+          </Box>
+        )}
+      </Box>
+    </Container>
   );
 };
 

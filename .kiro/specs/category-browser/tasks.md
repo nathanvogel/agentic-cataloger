@@ -55,7 +55,7 @@
   - Export configured $api client with type safety
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 9. Create basic category browser UI on landing page
+- [x] 9. Create basic category browser UI on landing page
   - Update app/routes/landingpage.tsx to show category browser
   - Use $api.useQuery hook to fetch categories
   - Display categories as simple list or cards with displayName and productCount
