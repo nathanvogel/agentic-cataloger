@@ -41,7 +41,7 @@
   - Update AppModule to import CategoriesModule
   - _Requirements: 1.1, 2.1_
 
-- [-] 7. Set up frontend type generation
+- [x] 7. Set up frontend type generation
   - Install openapi-typescript as dev dependency
   - Add generate:api script to package.json
   - Start backend server
