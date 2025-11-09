@@ -35,12 +35,18 @@ const LandingPage: React.FC = () => {
     data: products,
     isLoading: productsLoading,
     error: productsError,
-  } = $api.useQuery("get", "/api/categories/{id}/products", {
-    params: {
-      path: { id: selectedCategoryId ?? 0 },
+  } = $api.useQuery(
+    "get",
+    "/api/categories/{id}/products",
+    {
+      params: {
+        path: { id: selectedCategoryId ?? 0 },
+      },
     },
-    enabled: selectedCategoryId !== null,
-  });
+    {
+      enabled: selectedCategoryId !== null,
+    }
+  );
 
   const selectedCategory = categories?.find(
     (cat) => cat.id === selectedCategoryId
