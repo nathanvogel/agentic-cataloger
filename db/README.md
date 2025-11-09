@@ -49,7 +49,7 @@ docker exec -i pricecomp-db psql -U pricecomp_user -d pricecomp_db -f /docker-en
 docker exec -it pricecomp-db /bin/sh
 
 # Create compressed backup with timestamp
-pg_dump -U pricecomp_user pricecomp_db | gzip > /docker-entrypoint-initdb.d/backups/$(date +%Y-%m-%d-%H-%M)-backup.sql.gz
+pg_dump -U pricecomp_user -Fc pricecomp_db | gzip > /docker-entrypoint-initdb.d/backups/$(date +%Y-%m-%d-%H-%M)-backup.dump
 
 # Check backup size
 ls -lah /docker-entrypoint-initdb.d/backups/
