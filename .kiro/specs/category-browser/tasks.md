@@ -21,7 +21,7 @@
   - Add error handling and logging
   - _Requirements: 1.1, 1.2, 2.1, 2.2, 8.1, 8.2, 8.5_
 
-- [ ] 4. Update ProductsRepository to return all fields
+- [x] 4. Update ProductsRepository to return all fields
   - Modify getProductsByCategory() to select all columns instead of specific ones
   - Add ordering by name for consistent results
   - _Requirements: 2.2_

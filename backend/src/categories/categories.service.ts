@@ -110,41 +110,32 @@ export class CategoriesService {
 
   /**
    * Map database product to DTO format.
-   * Note: Currently the repository only returns a subset of columns.
-   * Task 4 will update the repository to return all fields.
+   * Maps all product fields from the database to the response DTO.
    *
-   * @param product - Database product object (partial)
+   * @param product - Database product object
    * @returns ProductResponseDto
    */
   private mapProductToDto(
-    product: Pick<
-      s.products.JSONSelectable,
-      | "id"
-      | "name"
-      | "categories"
-      | "attributes"
-      | "category_id"
-      | "categorization_confidence"
-    >,
+    product: s.products.JSONSelectable,
   ): ProductResponseDto {
     return {
       id: product.id,
       name: product.name,
-      supermarket: "", // Not returned by current repository - will be fixed in task 4
-      price: null,
-      priceText: null,
-      currency: null,
-      unit: null,
-      unitPrice: null,
-      originalQuantity: null,
-      originalUnit: null,
-      normalizedQuantity: null,
-      normalizedUnit: null,
-      normalizedPrice: null,
-      isDiscounted: null,
-      discountInfo: null,
-      imageUrl: null,
-      productUrl: null,
+      supermarket: product.supermarket,
+      price: product.price,
+      priceText: product.price_text,
+      currency: product.currency,
+      unit: product.unit,
+      unitPrice: product.unit_price,
+      originalQuantity: product.original_quantity,
+      originalUnit: product.original_unit,
+      normalizedQuantity: product.normalized_quantity,
+      normalizedUnit: product.normalized_unit,
+      normalizedPrice: product.normalized_price,
+      isDiscounted: product.is_discounted,
+      discountInfo: product.discount_info,
+      imageUrl: product.image_url,
+      productUrl: product.product_url,
       categories: product.categories,
       attributes:
         product.attributes && typeof product.attributes === "object"
@@ -152,8 +143,10 @@ export class CategoriesService {
           : null,
       categoryId: product.category_id,
       categorizationConfidence: product.categorization_confidence,
-      attributesExtractedAt: null,
-      scrapedAt: null,
+      attributesExtractedAt: product.attributes_extracted_at
+        ? new Date(product.attributes_extracted_at)
+        : null,
+      scrapedAt: product.scraped_at ? new Date(product.scraped_at) : null,
     };
   }
 }

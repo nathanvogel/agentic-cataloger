@@ -50,7 +50,7 @@ export class ProductsRepository {
    * Get all products assigned to a specific discovered category.
    *
    * @param categoryId - The category ID to filter by
-   * @returns Array of products in the specified category
+   * @returns Array of products in the specified category, ordered by name
    */
   async getProductsByCategory(categoryId: number) {
     return db
@@ -61,11 +61,29 @@ export class ProductsRepository {
           columns: [
             "id",
             "name",
+            "price",
+            "price_text",
+            "currency",
+            "unit",
+            "unit_price",
+            "original_quantity",
+            "original_unit",
+            "normalized_quantity",
+            "normalized_unit",
+            "normalized_price",
+            "is_discounted",
+            "discount_info",
+            "supermarket",
             "categories",
             "attributes",
+            "image_url",
+            "product_url",
+            "scraped_at",
             "category_id",
             "categorization_confidence",
+            "attributes_extracted_at",
           ],
+          order: { by: "name", direction: "ASC" },
         },
       )
       .run(this.pool);
