@@ -2,9 +2,24 @@
 
 Compare prices across Swiss supermarkets: Migros, Lidl, Coop, and Denner.
 
-## Quick Start
+## Prerequisites
 
-### 1. Start the Database
+- Docker & Docker Compose
+- Node.js v25+ (via nvm recommended)
+- Corepack enabled (for Yarn 4.11.0+)
+
+## Setup
+
+### 1. Enable Corepack
+
+Corepack manages the correct Yarn version automatically:
+
+```bash
+npm install -g corepack
+corepack enable
+```
+
+### 2. Start the Database
 
 ```bash
 docker-compose up -d
@@ -37,3 +52,7 @@ Or use any PostgreSQL client:
 ```bash
 docker-compose down
 ```
+
+## Project Structure
+
+See [.kiro/steering/structure.md](.kiro/steering/structure.md)
