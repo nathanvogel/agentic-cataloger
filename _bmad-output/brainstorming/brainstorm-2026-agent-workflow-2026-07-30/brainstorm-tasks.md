@@ -8,23 +8,23 @@ Actionable checklist from brainstorm `2026-07-30` (`.memlog.md` + `morphological
 
 Write concrete bullets from session decisions (not architecture essays).
 
-- [ ] State the **product**: comparison-ready rows = substitutability category + traits + shelf price + normalized comparable price
-- [ ] State **near-term goal**: structured product DB (categories + traits), not shopper-facing features
-- [ ] Lock stack constraints: **Python monolith** + **DDD**; single backend for agent flow, REST, and data import
-- [ ] Describe **staged pipeline** (I9): discover/create → assign → extract (separate prompts / eval slices)
-- [ ] Document **ingest modes** (U1–U4): bulk / single upsert / filtered subset — **same pipeline** for all three
-- [ ] Document category context: agent **search** (C2); note mature lean **C4** (embed shortlist + search)
-- [ ] Document substitutability definition: **prose rubric + few-shot pairs** (S1+S2); comparison primitive = consumer substitutability (not retailer taxonomy)
-- [ ] Document trait policy: mandatory **`evidence_span`** (I3); allow **`unknown` / `defer`** → DLQ (H2)
-- [ ] Document persist rule: upsert **merges** LLM attributes — never wipe on re-import (D6)
-- [ ] Document create/merge: **eager create** during discovery (N1); **periodic hygiene agent** (M2) + **post-bulk reconciliation** (M5)
-- [ ] Document human loop: **non-blocking only** — async low-confidence dashboard (H1) + unknown→DLQ (H2)
-- [ ] Document eval/observability MVP: golden assign set (E1), separate evals per stage (E2), token-cost-per-item (E3), model/context bakeoff (E5)
-- [ ] Note portfolio showcase: inspectable agent runs + shareable bakeoff metrics (O+P under same harness)
-- [ ] Clarify terminology: **import/source category** = filter only; **substitutability category** = comparison primitive
-- [ ] Keep existing “Current issues” / bug notes aligned; mark D6 wipe bug as **hard requirement**, not just a known issue
-- [ ] Leave orchestration (O) and product supply (P) as **explore-under-eval**, not fixed choices
-- [ ] Add one-line architecture sketch (ingest → staged prompts → C2 context → explore O/P → validators → merge upsert → hygiene → non-blocking HITL)
+- [x] State the **product**: comparison-ready rows = substitutability category + traits + shelf price + normalized comparable price
+- [x] State **near-term goal**: structured product DB (categories + traits), not shopper-facing features
+- [x] Lock stack constraints: **Python monolith** + **DDD**; single backend for agent flow, REST, and data import
+- [x] Describe **staged pipeline** (I9): discover/create → assign → extract (separate prompts / eval slices)
+- [x] Document **ingest modes** (U1–U4): bulk / single upsert / filtered subset — **same pipeline** for all three
+- [x] Document category context: agent **search** (C2); note mature lean **C4** (embed shortlist + search)
+- [x] Document substitutability definition: **prose rubric + few-shot pairs** (S1+S2); comparison primitive = consumer substitutability (not retailer taxonomy)
+- [x] Document trait policy: mandatory **`evidence_span`** (I3); allow **`unknown` / `defer`** → DLQ (H2)
+- [x] Document persist rule: upsert **merges** LLM attributes — never wipe on re-import (D6)
+- [x] Document create/merge: **eager create** during discovery (N1); **periodic hygiene agent** (M2) + **post-bulk reconciliation** (M5)
+- [x] Document human loop: **non-blocking only** — async low-confidence dashboard (H1) + unknown→DLQ (H2)
+- [x] Document eval/observability MVP: golden assign set (E1), separate evals per stage (E2), token-cost-per-item (E3), model/context bakeoff (E5)
+- [x] Note portfolio showcase: inspectable agent runs + shareable bakeoff metrics (O+P under same harness)
+- [x] Clarify terminology: **import/source category** = filter only; **substitutability category** = comparison primitive
+- [x] Keep existing “Current issues” / bug notes aligned; mark D6 wipe bug as **hard requirement**, not just a known issue
+- [x] Leave orchestration (O) and product supply (P) as **explore-under-eval**, not fixed choices
+- [x] Add one-line architecture sketch (ingest → staged prompts → C2 context → explore O/P → validators → merge upsert → hygiene → non-blocking HITL)
 
 ---
 
@@ -111,16 +111,16 @@ Add a short **Won’t do (MVP)** section in scope or the first spec.
 
 Capture in `2026-scope.md` Open questions (and resolve in `bmad-spec` / design).
 
-- [ ] Hierarchy: can a **product** live in multiple places? (many-to-many vs many-to-one)
-- [ ] Hierarchy: are **categories** a **tree or a graph**? (G6 viable but unsettled)
-- [ ] Category granularity default: consumer-fine (G2) vs category+facets hybrid (G5) vs hierarchy (G6) — which is MVP default?
-- [ ] Unit protocol: reliability of category-level preferred unit (T4) vs earlier “primary comparable unit required” lean; what overrides are allowed?
-- [ ] Secondary comparable units and per-product overrides — UX / data model impact
-- [ ] Runtime unknown-vs-inferred handling beyond eval + evidence_span (user open; no approach chosen)
-- [ ] How strong is prefer-match-existing (I7) vs eager create (N1) in practice — thresholds for hygiene?
-- [ ] Agent run UI depth at MVP (E4 viable) vs logs + eval only until later
-- [ ] Trait extraction path: deterministic+LLM verify (T1) vs LLM-only+evidence_span (T2)
-- [ ] Draft/propose categories until N products (N2) — keep as fallback or drop from near-term design?
+- [x] Hierarchy: can a **product** live in multiple places? (many-to-many vs many-to-one)
+- [x] Hierarchy: are **categories** a **tree or a graph**? (G6 viable but unsettled)
+- [x] Category granularity default: consumer-fine (G2) vs category+facets hybrid (G5) vs hierarchy (G6) — which is MVP default?
+- [x] Unit protocol: reliability of category-level preferred unit (T4) vs earlier “primary comparable unit required” lean; what overrides are allowed?
+- [x] Secondary comparable units and per-product overrides — UX / data model impact
+- [x] Runtime unknown-vs-inferred handling beyond eval + evidence_span (user open; no approach chosen)
+- [x] How strong is prefer-match-existing (I7) vs eager create (N1) in practice — thresholds for hygiene?
+- [x] Agent run UI depth at MVP (E4 viable) vs logs + eval only until later
+- [x] Trait extraction path: deterministic+LLM verify (T1) vs LLM-only+evidence_span (T2)
+- [x] Draft/propose categories until N products (N2) — keep as fallback or drop from near-term design?
 
 ---
 
