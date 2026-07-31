@@ -46,11 +46,11 @@ sources:
   - **intent:** System prefers matching an existing category before creating, creates for real when no good match (no drafts), and runs periodic plus post-bulk hygiene that can merge, rename, edit, reparent, reassign, flag for HITL, and fix leaf coherence.
   - **success:** Hygiene run demonstrates at least merge/reassign/coherence fix; no provisional/draft category state in MVP; agents consider existing membership, not only search hits.
 - **CAP-9**
-  - **intent:** Humans review low-confidence and deferred decisions asynchronously without blocking the pipeline.
-  - **success:** Pipeline completes without waiting on a human; low-confidence items appear on an async dashboard (H1) and unknown/defer on DLQ (H2).
+  - **intent:** Humans review low-confidence and deferred decisions asynchronously without blocking the pipeline, and can take domain actions on them — not only attach labels.
+  - **success:** Pipeline completes without waiting on a human; low-confidence items appear on a first-party async dashboard (H1) and unknown/defer on DLQ (H2); a reviewer can reassign a leaf, edit a trait, accept/reject an evidence span, and re-drive an item from that surface.
 - **CAP-10**
-  - **intent:** Operator can compare orchestration and product-supply strategies on a shared eval harness with golden assign accuracy, per-stage scores, token-cost-per-item, and model/context bakeoff metrics.
-  - **success:** Same eval set + ingest slice runs for candidate O\* and P\* shapes; shareable metrics exist before any O/P winner is locked in writing.
+  - **intent:** Operator can compare control-flow and product-supply strategies on a shared eval harness with golden assign accuracy, per-stage scores, average cost per item, and model/context bakeoff metrics.
+  - **success:** Same eval set + ingest slice runs for candidate control-flow (O4/O5) and P\* shapes; shareable metrics exist before either is locked in writing. Capability surface is not bakeoff-gated (see Constraints).
 
 ## Constraints
 
@@ -61,7 +61,13 @@ sources:
 - Import/source categories filter ingest only; they are not comparison primitives (see `glossary.md`).
 - Unit/trait extract is deterministic-first (sources: `unit` → `price_text` → name); high-confidence deterministic success skips LLM; LLM extract only for residuals/low-conf/empty with `evidence_span` (T1). T2 is not MVP default.
 - Category has `preferred_comparable_unit` + optional `secondary_comparable_units[]`; product stores `shelf_price` + `quantities[]` (qty, unit, source labeled|inferred, evidence_span; optional cached `normalized_price` on that row). Secondary normalized prices are not stored separately — use other quantity rows or derive on read. Rare `comparable_unit_override` is HITL-worthy only.
-- Orchestration (O1–O5) and product supply (P2/P3/P4/P9/P10) stay in the explore set — do not pre-pick a stack in architecture or code until bakeoff metrics exist (`explore-bakeoffs.md`).
+- **Capability surface (O1 first):** in-product agent tools (`category search`, `category create`, `product assign`, `traits extract`) are exposed as MCP / tool calls. Implement them as one command layer with the MCP surface as a thin adapter over it, so an AXI-style CLI (O2) or Code Mode (O3) adapter can be added when a concrete limit is hit — token blowup on tool definitions, or intermediate data that should never enter context. Surface choice is deferred, not killed; O2/O3 stay in `explore-bakeoffs.md` as later arms.
+- **Control flow (O4/O5) and product supply (P2/P3/P4/P9/P10)** stay in the explore set — do not pre-pick in architecture or code until bakeoff metrics exist (`explore-bakeoffs.md`). Durability belongs to the substrate, not to one arm, so every candidate inherits resumability equally.
+- **Observability + eval platform: Arize Phoenix, self-hosted** — one container (ELv2, not OSI open source), pointed at a dedicated database inside the existing Postgres 18 instance via `PHOENIX_SQL_DATABASE_URL`. It is the single trace store, dataset/experiment home, and run UI. Set per-project retention from day one; trace payloads carry verbatim catalogue text and `evidence_span` values.
+- **Instrumentation:** `opentelemetry-api` only in the domain, behind a thin port; SDK, exporter and span-kind attributes live in one infrastructure adapter. Phoenix ≥ 15.10.0 converts `gen_ai.*` to OpenInference at ingest (including `gen_ai.usage.*` → `llm.token_count.*`), so a native OTel emitter needs no attribute-mapping adapter; OpenInference attributes still win where both are present. Cost additionally requires `llm.provider` plus a matching Settings → Models entry — a regex miss yields a silent $0, so cost visibility is a setup check, not an assumption.
+- **E3 granularity:** average cost per item per stage (total stage cost ÷ items processed) is sufficient. Exact per-product cost attribution and arbitrary cost group-by are **not** requirements. Aggregate leaf `span_kind = 'LLM'` spans only — parent-span token propagation double-counts. Reconcile Phoenix's price-table estimate against provider billing at least once per model introduced by E5.
+- **H1 is first-party, deliberately.** Vendor annotation queues capture labels over recorded traces; H1 needs domain actions and domain display (leaf reassign, trait edit, evidence accept/reject, re-drive). Phoenix annotations remain available for span-level labels and for promoting corrected items into the golden set; Phoenix labeling queues are Arize AX–only and are not adopted.
+- **H2 DLQ is a first-party Postgres table** (`deferred_items`: product ref, stage, reason code, attempt count, payload snapshot, `trace_id`, status) with a repository and a re-drive command. The Phoenix trace deep link is stored on the row; H1 reads from this table.
 - Kill-pile options must not be built toward (`kill-pile.md`).
 - Formal specs for this work live under `_bmad-output/specs/`, not `.kiro`.
 
@@ -69,13 +75,15 @@ sources:
 
 - Shopper-facing features (receipt upload, basket optimizer, nutrition Q&A, etc.) in this initiative.
 - Security hardening / threat modeling for this initiative.
-- Pre-selecting a single orchestration or product-supply stack before eval bakeoff.
+- Pre-selecting a control-flow (O4/O5) or product-supply stack before eval bakeoff. (Capability surface is intentionally pre-picked as MCP — see Constraints.)
+- A custom agent-run trace UI (E4) — Phoenix's run UI covers inspectability; building one is redundant.
+- Arize AX, or any paid observability tier, in this initiative.
 - Provisional/draft categories (N2); graph / lateral “also-comparable” edges (deferred unless tree+facets fail).
 - Everything listed in `kill-pile.md` (full taxonomy dumps, blocking HITL, same-call assign+create, T3 force-unit, etc.).
 
 ## Success signal
 
-A filtered ingest slice yields comparison-ready rows (leaf category + cited traits + shelf + normalized comparable price where convertible); re-import does not wipe LLM attributes; golden assign + per-stage + cost/item metrics exist; at least two O\* and two P\* candidates have been run on the same harness with shareable numbers — with no O/P winner declared until then.
+A filtered ingest slice yields comparison-ready rows (leaf category + cited traits + shelf + normalized comparable price where convertible); re-import does not wipe LLM attributes; every run is inspectable end to end in Phoenix (prompts, tool calls, writes); golden assign + per-stage + average-cost-per-item metrics exist; at least two control-flow and two P\* candidates have been run on the same harness with shareable numbers — with no winner declared until then.
 
 ## Assumptions
 
@@ -87,4 +95,8 @@ A filtered ingest slice yields comparison-ready rows (leaf category + cited trai
 
 - **Category coherence timing:** Prefer-reuse (I7) is locked and agents must consider existing membership. Should coherence run per assign (every new product vs members) or only as batched reconciliation (e.g. recent + sample members)? Lean in sources: reconciliation required; per-assign full check optional/heuristic.
 - **Reconciliation dirty set:** How to trigger coherence/hygiene without scanning the whole DB (category/`updated_at`, member-changed dirty flags, event queue on assign/create/reassign, audit-derived workset)?
-- **Inspectability at MVP:** Custom agent-run UI (prompts, tools, writes — E4) vs structured logs + eval metrics only until later — preferring frameworks that ship inspectability before investing in a custom UI?
+
+## Resolved questions
+
+- **Inspectability at MVP (resolved 2026-07-31):** self-hosted Phoenix provides the run/trace UI, versioned datasets and experiments; no custom agent-run UI (E4) is built. Selection rationale and the rejected alternatives (Logfire + Opik pairing, Langfuse, Opik alone) are in `../../planning-artifacts/research/technical-vendor-selection-eval-orchestration-observability-research-2026-07-31.md`.
+- **Vendor shape (resolved 2026-07-31):** single self-hosted platform rather than a best-of-breed pairing. Two relaxations made it viable — average cost per item is enough (no need for Logfire's arbitrary SQL over spans) and the reviewer queue is wanted in-house anyway (no need for Opik's annotation queues).

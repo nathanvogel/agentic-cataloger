@@ -74,19 +74,25 @@
 - **Units (T4+T5):** category has `preferred_comparable_unit` (required on compare leaves) + optional `secondary_comparable_units[]`. Product stores `shelf_price` + `quantities[]` (each: qty, unit, source labeled|inferred, evidence_span; optional cached `normalized_price` = shelf/qty nested on that row). Default basket math picks the row matching preferred (leaf, or parent when widening). Missing/unconvertible → null + defer/DLQ — no silent fake normalize. Rare `comparable_unit_override` only when preferred is nonsense for that SKU (HITL-worthy). T3 (force all into category unit) killed. Secondary normalized prices are not stored separately — use other quantity rows / derive on read.
 - **Unit/trait extract (T1):** deterministic first (extend sources: `unit` → `price_text` → name); **on high-conf success skip LLM** (no always-verify — that would not beat T2 on tokens). LLM extract stage only for residuals / low-conf / empty, with `evidence_span`; unknown → DLQ. Fixable parser gaps (bare unit words, alt count vocab, Denner `(qty unit)` in price_text) are deterministic work. T2 (LLM-only) not MVP default.
 - **Human loop:** non-blocking only — async low-confidence dashboard (H1) + unknown→DLQ (H2)
-- **Eval / observability MVP:** golden assign set (E1), per-stage evals (E2), token-cost-per-item (E3), model/context bakeoff (E5)
-- **Portfolio showcase:** inspectable agent runs + shareable bakeoff metrics (O+P under the same harness)
+- **Eval / observability MVP:** golden assign set (E1), per-stage evals (E2), average cost per item (E3), model/context bakeoff (E5) — on **self-hosted Arize Phoenix** (single platform; no custom run UI)
+- **Human loop surfaces:** H1 reviewer dashboard and H2 DLQ are first-party (domain actions, not vendor label queues)
+- **Capability surface:** start at MCP / tool calls (O1) over one command layer; O2/O3 only if a concrete limit appears
+- **Portfolio showcase:** inspectable agent runs in Phoenix + shareable bakeoff metrics (control-flow + P under the same harness)
 
 ### Explore under eval (not fixed yet)
 
-- **Orchestration (O1–O5):** tool-calling, CLI-like, Code Mode, LangGraph/state-machine, hybrid — bake off; do not pre-pick
+- **Control flow (O4/O5):** LangGraph/state-machine, hybrid — bake off; do not pre-pick
 - **Product supply (P2/P3/P4/P9/P10):** one-at-a-time, embedding neighbors, agent search, hybrids, cluster-then-call — bake off
+- **Capability surface (O2/O3):** deferred arms only; O1 adopted first
 
 ## Open questions
 
 - **Category coherence timing:** Prefer-reuse (I7) is locked; agents must consider existing category membership, not only category search hits. Open: run coherence **per assign** (every new product checks against members) vs **batched reconciliation** (e.g. 5 recent + sample of existing members, holistic pass — likely cheaper). Lean: reconciliation agent required; per-assign full check optional/heuristic.
 - **Reconciliation dirty set:** How to trigger coherence / hygiene without scanning the whole DB? Candidates: category/`updated_at` timestamps, “members changed” dirty flags, event queue on assign/create/reassign, audit-log derived workset. Unsettled — pick in design/spec.
-- **Inspectability at MVP:** Still pending. Build our own agent-run UI (prompts, tool calls, writes — E4) vs structured logs + eval metrics only until later. Factor: some agent vendors already ship run/trace UIs — prefer frameworks that give inspectability “for free” before investing in a custom UI.
+
+## Resolved questions
+
+- **Inspectability at MVP (resolved 2026-07-31):** self-hosted Arize Phoenix is the run/trace UI, dataset/experiment home, and eval harness. No custom agent-run UI (E4). Chosen for essential coverage + popularity + simplest self-host path (one container on existing Postgres). Canonical write-up: `_bmad-output/planning-artifacts/research/technical-vendor-selection-eval-orchestration-observability-research-2026-07-31.md`; contract: `_bmad-output/specs/spec-2026-agent-workflow/SPEC.md`.
 
 ## References
 
