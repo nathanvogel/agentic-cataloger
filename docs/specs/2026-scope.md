@@ -65,10 +65,10 @@
 - **Stages (I9):** separate prompts / eval slices for discover/create, assign, extract
 - **Category context (C2):** agent search (MCP/CLI-like); no full taxonomy dump. Mature: C4
 - **Substitutability (S1+S2):** prose rubric + few-shot pairs; comparison primitive = consumer substitutability
-- **Traits (I3):** mandatory `evidence_span` on non-null traits; allow `unknown` / `defer` → DLQ (H2)
+- **Traits (I3):** mandatory `evidence_span` on non-null traits; allow `unknown` / `defer` → DLQ (H2). Runtime faithfulness beyond span-in-source left to eval for now (no extra confidence/second-pass MVP requirement).
 - **Persist (D6):** upsert **merges** LLM attributes — never wipe on re-import
-- **Create/merge:** eager create during discovery (N1); periodic hygiene agent (M2) + post-bulk reconciliation (M5)
-- **Hygiene ops (M2/M5):** not merge/delete only — also rename, edit, reparent/move (incl. create parent), reassign products, and flag products for re-triage / HITL
+- **Create/merge:** prefer match-existing before create (I7); eager create only when no good match (N1); periodic hygiene agent (M2) + post-bulk reconciliation (M5). **No provisional/draft categories (N2)** in MVP — create for real or not at all; anti-fragmentation via I7 + hygiene.
+- **Hygiene ops (M2/M5):** not merge/delete only — also rename, edit, reparent/move (incl. create parent), reassign products, and flag products for re-triage / HITL. Includes **category coherence**: review a leaf’s member products and fix bad assigns / splits / merges — not only cross-category duplicate detection.
 - **Taxonomy shape:** product ↔ substitutability category is **many-to-one at the leaf** (not many-to-many). Categories form a **tree** for MVP (not a graph). Graph / lateral “also-comparable” edges deferred unless tree+facets cannot express recurring cross-branch cases.
 - **Granularity (G2+G5+G6):** consumer-fine **leaves** for default compare; **facets** for within-leaf filters (organic, fat%, …); **parents** for widen-scope compare (e.g. fresh vs UHT via parent `cow milk`). Rule of thumb: separate leaf if shoppers would not silently swap; facet if same class / preference filter; parent if useful only to widen.
 - **Units (T4+T5):** category has `preferred_comparable_unit` (required on compare leaves) + optional `secondary_comparable_units[]`. Product stores `shelf_price` + `quantities[]` (each: qty, unit, source labeled|inferred, evidence_span; optional cached `normalized_price` = shelf/qty nested on that row). Default basket math picks the row matching preferred (leaf, or parent when widening). Missing/unconvertible → null + defer/DLQ — no silent fake normalize. Rare `comparable_unit_override` only when preferred is nonsense for that SKU (HITL-worthy). T3 (force all into category unit) killed. Secondary normalized prices are not stored separately — use other quantity rows / derive on read.
@@ -84,10 +84,9 @@
 
 ## Open questions
 
-- Runtime unknown-vs-inferred handling beyond eval + evidence_span
-- How strong is prefer-match-existing vs eager create in practice — hygiene thresholds?
-- Agent run UI depth at MVP vs logs + eval only until later
-- Draft/propose categories until N products — keep as fallback or drop near-term?
+- **Category coherence timing:** Prefer-reuse (I7) is locked; agents must consider existing category membership, not only category search hits. Open: run coherence **per assign** (every new product checks against members) vs **batched reconciliation** (e.g. 5 recent + sample of existing members, holistic pass — likely cheaper). Lean: reconciliation agent required; per-assign full check optional/heuristic.
+- **Reconciliation dirty set:** How to trigger coherence / hygiene without scanning the whole DB? Candidates: category/`updated_at` timestamps, “members changed” dirty flags, event queue on assign/create/reassign, audit-log derived workset. Unsettled — pick in design/spec.
+- **Inspectability at MVP:** Still pending. Build our own agent-run UI (prompts, tool calls, writes — E4) vs structured logs + eval metrics only until later. Factor: some agent vendors already ship run/trace UIs — prefer frameworks that give inspectability “for free” before investing in a custom UI.
 
 ## References
 
