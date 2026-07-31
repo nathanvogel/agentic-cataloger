@@ -68,6 +68,9 @@
 - **Traits (I3):** mandatory `evidence_span` on non-null traits; allow `unknown` / `defer` → DLQ (H2)
 - **Persist (D6):** upsert **merges** LLM attributes — never wipe on re-import
 - **Create/merge:** eager create during discovery (N1); periodic hygiene agent (M2) + post-bulk reconciliation (M5)
+- **Hygiene ops (M2/M5):** not merge/delete only — also rename, reparent/move (incl. create parent), reassign products, and flag products for re-triage / HITL
+- **Taxonomy shape:** product ↔ substitutability category is **many-to-one at the leaf** (not many-to-many). Categories form a **tree** for MVP (not a graph). Graph / lateral “also-comparable” edges deferred unless tree+facets cannot express recurring cross-branch cases.
+- **Granularity (G2+G5+G6):** consumer-fine **leaves** for default compare; **facets** for within-leaf filters (organic, fat%, …); **parents** for widen-scope compare (e.g. fresh vs UHT via parent `cow milk`). Rule of thumb: separate leaf if shoppers would not silently swap; facet if same class / preference filter; parent if useful only to widen.
 - **Human loop:** non-blocking only — async low-confidence dashboard (H1) + unknown→DLQ (H2)
 - **Eval / observability MVP:** golden assign set (E1), per-stage evals (E2), token-cost-per-item (E3), model/context bakeoff (E5)
 - **Portfolio showcase:** inspectable agent runs + shareable bakeoff metrics (O+P under the same harness)
@@ -79,9 +82,6 @@
 
 ## Open questions
 
-- Can a **product** live in multiple places? (many-to-many vs many-to-one)
-- Are **categories** a **tree or a graph**?
-- Category granularity default: consumer-fine vs category+facets hybrid vs hierarchy
 - Unit protocol: reliability of category-level preferred unit; what overrides are allowed?
 - Secondary comparable units and per-product overrides — data model impact
 - Runtime unknown-vs-inferred handling beyond eval + evidence_span
