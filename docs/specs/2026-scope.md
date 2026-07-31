@@ -68,9 +68,11 @@
 - **Traits (I3):** mandatory `evidence_span` on non-null traits; allow `unknown` / `defer` → DLQ (H2)
 - **Persist (D6):** upsert **merges** LLM attributes — never wipe on re-import
 - **Create/merge:** eager create during discovery (N1); periodic hygiene agent (M2) + post-bulk reconciliation (M5)
-- **Hygiene ops (M2/M5):** not merge/delete only — also rename, reparent/move (incl. create parent), reassign products, and flag products for re-triage / HITL
+- **Hygiene ops (M2/M5):** not merge/delete only — also rename, edit, reparent/move (incl. create parent), reassign products, and flag products for re-triage / HITL
 - **Taxonomy shape:** product ↔ substitutability category is **many-to-one at the leaf** (not many-to-many). Categories form a **tree** for MVP (not a graph). Graph / lateral “also-comparable” edges deferred unless tree+facets cannot express recurring cross-branch cases.
 - **Granularity (G2+G5+G6):** consumer-fine **leaves** for default compare; **facets** for within-leaf filters (organic, fat%, …); **parents** for widen-scope compare (e.g. fresh vs UHT via parent `cow milk`). Rule of thumb: separate leaf if shoppers would not silently swap; facet if same class / preference filter; parent if useful only to widen.
+- **Units (T4+T5):** category has `preferred_comparable_unit` (required on compare leaves) + optional `secondary_comparable_units[]`. Product stores `shelf_price` + `quantities[]` (each: qty, unit, source labeled|inferred, evidence_span; optional cached `normalized_price` = shelf/qty nested on that row). Default basket math picks the row matching preferred (leaf, or parent when widening). Missing/unconvertible → null + defer/DLQ — no silent fake normalize. Rare `comparable_unit_override` only when preferred is nonsense for that SKU (HITL-worthy). T3 (force all into category unit) killed. Secondary normalized prices are not stored separately — use other quantity rows / derive on read.
+- **Unit/trait extract (T1):** deterministic first (extend sources: `unit` → `price_text` → name); **on high-conf success skip LLM** (no always-verify — that would not beat T2 on tokens). LLM extract stage only for residuals / low-conf / empty, with `evidence_span`; unknown → DLQ. Fixable parser gaps (bare unit words, alt count vocab, Denner `(qty unit)` in price_text) are deterministic work. T2 (LLM-only) not MVP default.
 - **Human loop:** non-blocking only — async low-confidence dashboard (H1) + unknown→DLQ (H2)
 - **Eval / observability MVP:** golden assign set (E1), per-stage evals (E2), token-cost-per-item (E3), model/context bakeoff (E5)
 - **Portfolio showcase:** inspectable agent runs + shareable bakeoff metrics (O+P under the same harness)
@@ -82,12 +84,9 @@
 
 ## Open questions
 
-- Unit protocol: reliability of category-level preferred unit; what overrides are allowed?
-- Secondary comparable units and per-product overrides — data model impact
 - Runtime unknown-vs-inferred handling beyond eval + evidence_span
 - How strong is prefer-match-existing vs eager create in practice — hygiene thresholds?
 - Agent run UI depth at MVP vs logs + eval only until later
-- Trait extraction path: deterministic+LLM verify vs LLM-only+evidence_span
 - Draft/propose categories until N products — keep as fallback or drop near-term?
 
 ## References
