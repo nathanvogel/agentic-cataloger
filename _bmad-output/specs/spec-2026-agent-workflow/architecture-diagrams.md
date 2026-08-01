@@ -1,26 +1,35 @@
 # Architecture diagrams — 2026 agent workflow
 
-Pipeline sketch from MVP commitments only. Orchestration (O\*) and product supply (P\*) remain explore-under-eval.
+Pipeline sketch from MVP commitments only. LangGraph is selected; control-flow workflow shapes (O4/O5) and product supply (P\*) remain explore-under-eval.
 
 ```text
-ingest (U1–U4, same pipeline)
-  → staged prompts (I9): discover/create (I7 then N1) | assign | extract
-  → category context via agent search (C2); mature adds embed shortlist (C4)
-  → product context: EXPLORE (P2/P3/P4/P9/P10) under eval (E1/E2/E5)
-  → orchestration: EXPLORE (O1–O5) under same eval harness
-  → traits/units: evidence_span (I3) + validators; T1 deterministic-first; unknown→DLQ (H2)
-  → persist: merge upsert (D6); write path EXPLORE D1 vs D2
-  → taxonomy hygiene: M2 + M5 (incl. coherence); merge suggestions UI later (M6)
-  → human: non-blocking only (H1/H2)
+REST / curated MCP / CLI
+  → shared application commands
+  → PgQueuer job → LangGraph workflow (O4/O5 shapes under eval)
+  → discover/create | assign | extract (I9)
+  → category search (C2) + product supply P2/P3/P4/P9/P10 under eval
+  → deterministic validators + evidence_span (I3); unknown→DLQ (H2)
+  → owner-specific transactional writes; import cannot reach enrichment state (D6)
+  → revision-linked comparison projection for indexed normalized-price reads
+  → coalesced taxonomy_review_requests → async hygiene (M2/M5)
+  → first-party non-blocking review (H1/H2)
+
+Phoenix receives traces and runs E1/E2/E3/E5 experiments; current application tables remain authoritative.
 ```
 
 ```mermaid
 flowchart LR
-  ingest[Ingest U1-U4] --> stages[Staged I9]
-  stages --> ctx[Category search C2]
-  ctx --> explore[Explore O and P under eval]
-  explore --> val[Validators]
-  val --> merge[Merge upsert D6]
-  merge --> hygiene[Hygiene M2/M5]
-  hygiene --> hitl[Non-blocking H1/H2]
+  inbound["REST / MCP / CLI"] --> commands["Application commands"]
+  commands --> queue["PgQueuer"]
+  queue --> lg["LangGraph workflow"]
+  lg --> stages["Discover / Assign / Extract"]
+  stages --> commands
+  commands --> state[("Owner tables")]
+  state --> projection[("Comparison projection")]
+  commands --> dirty["Coalesced review request"]
+  dirty --> hygiene["Async hygiene"]
+  hygiene --> commands
+  lg -.->|traces| phoenix["Phoenix"]
+  state --> review["First-party review"]
+  review --> commands
 ```
