@@ -17,11 +17,13 @@ cp .env.example .env
 # Edit .env with your database credentials if needed
 ```
 
-3. Ensure PostgreSQL is running:
+3. Ensure PostgreSQL is running (from repo root):
 
 ```bash
-docker-compose up -d
+docker compose -f legacy/docker-compose.yml up -d
 ```
+
+Or from `legacy/`: `docker compose up -d`.
 
 4. Build the project:
 
@@ -66,14 +68,14 @@ yarn run import -- --batch-size 1000
 Combine multiple options:
 
 ```bash
-yarn run import -- --supermarket migros --batch-size 250 --data-dir ../data
+yarn run import -- --supermarket migros --batch-size 250 --data-dir ../../../data
 ```
 
 ### CLI Options
 
 | Option                      | Description                                        | Default               |
 | --------------------------- | -------------------------------------------------- | --------------------- |
-| `-d, --data-dir <path>`     | Path to the data directory containing CSV files    | `../data` (from root) |
+| `-d, --data-dir <path>`     | Path to the data directory containing CSV files    | repo-root `data/` (via `../../../data` from `src/`) |
 | `-s, --supermarket <name>`  | Filter by supermarket (migros, lidl, coop, denner) | All supermarkets      |
 | `-b, --batch-size <number>` | Number of records to process in each batch         | 500                   |
 | `-h, --help`                | Display help information                           | -                     |
@@ -217,13 +219,13 @@ yarn run test:watch
 Ensure PostgreSQL is running:
 
 ```bash
-docker-compose ps
+docker compose -f legacy/docker-compose.yml ps
 ```
 
-Check database logs:
+Check database logs (from repo root):
 
 ```bash
-docker-compose logs -f postgres
+docker compose -f legacy/docker-compose.yml logs -f postgres
 ```
 
 ## Performance

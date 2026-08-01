@@ -39,7 +39,7 @@ export interface ImportOptions {
  * @example
  * ```typescript
  * const stats = await runImport({
- *   dataDir: '../data',
+ *   dataDir: '../../../data',
  *   supermarket: 'coop',
  *   batchSize: 500
  * });
@@ -223,7 +223,7 @@ async function main() {
     .option(
       "-d, --data-dir <path>",
       "Path to the data directory containing CSV files",
-      path.resolve(__dirname, "../../data")
+      path.resolve(__dirname, "../../../data")
     )
     .option(
       "-s, --supermarket <name>",

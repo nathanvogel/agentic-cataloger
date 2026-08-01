@@ -1,0 +1,42 @@
+[project]
+name = "pricecomp"
+version = "0.1.0"
+description = "Swiss grocery price comparison — Python monolith"
+readme = "README.md"
+requires-python = "==3.14.6"
+dependencies = [
+    # NFR17 runtime pins — lockfile is the compatibility authority (AD-27)
+    "langgraph==1.2.10",
+    "langgraph-checkpoint-postgres==3.1.1",
+    "pgqueuer==1.3.2",
+    "sqlalchemy[asyncio]==2.0.51",
+    "alembic==1.18.5",
+    "psycopg[binary]==3.3.4",
+    "psycopg-pool==3.3.1",
+    "fastapi==0.141.1",
+    "fastmcp==3.4.5",
+    "uvicorn==0.52.0",
+    "langchain-core==1.5.3",
+    "langchain-openai==1.4.1",
+    "langchain-anthropic==1.5.3",
+    "pydantic==2.13.4",
+    "opentelemetry-api==1.44.0",
+    "opentelemetry-sdk==1.44.0",
+    "openinference-instrumentation-langchain==0.1.68",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pricecomp"]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+]
+
+[tool.uv]
+# Generate/sync this lockfile with uv 0.12.1 (AD-27 / GATE-01).
+# Do not add LangGraph Server/CLI extras. Pydantic V2 only (no pydantic.v1 models).
