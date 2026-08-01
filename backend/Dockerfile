@@ -36,6 +36,7 @@ RUN apt-get update \
         fd-find \
         git \
         git-lfs \
+        openssh-client \
         ripgrep \
         xz-utils \
     && case "${TARGETARCH}" in \
