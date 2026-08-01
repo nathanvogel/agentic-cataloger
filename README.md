@@ -58,3 +58,5 @@ docker compose -f legacy/docker-compose.yml down
 See [legacy/.kiro/steering/structure.md](legacy/.kiro/steering/structure.md)
 
 Active development: `frontend/` (UI). Reference-only TypeScript stack: `legacy/backend/`, `legacy/data-importer/`, `legacy/db/`.
+
+Implementation gates (bound decisions, pre-Story 1.2): [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/)

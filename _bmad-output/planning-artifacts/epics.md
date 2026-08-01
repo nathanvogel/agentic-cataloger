@@ -166,22 +166,19 @@ NFR31: Shopper-facing features (receipt upload, basket optimizer, nutrition Q&A)
 **⚠️ Starter template: NONE specified.** The Architecture does not name a greenfield starter/scaffold. Instead it fixes a **Structural Seed** (directory layout) and a **mandatory reversible relocation** that must land before any Python implementation. This shapes Epic 1 Story 1.
 
 - **Structural Seed (AD-28, Architecture §Structural Seed):** `backend/` with `pyproject.toml`, `uv.lock`, and `src/pricecomp/` packages `contracts/`, `catalog/`, `taxonomy/`, `enrichment/`, `review/`, `pipeline/`, `comparison/`, `evaluation/`, `platform/`; plus `migrations/` and `tests/{domain,integration,contract,evals}/`. `frontend/` remains the frontend root; `legacy/backend/` and `legacy/data-importer/` receive the relocated TypeScript.
-- **Bootstrap acceptance manifest (gate):** before the relocation unit merges, bind exact move paths, path-scoped rules, legacy data-path/Husky fixes, legacy build/test evidence, port assignments for legacy vs new API, and proof that no Python domain code mixes into the relocation.
-- **Database role/schema privilege manifest (gate):** before Compose bootstrap, bind database names, least-privilege roles, vendor schemas/`search_path`, grants, and proof that runtime credentials cannot create databases or run arbitrary migrations.
-- **Phoenix deployment:** one container `arizephoenix/phoenix:version-19.11.1` (ELv2) pointed at a dedicated database inside the existing Postgres 18 instance via `PHOENIX_SQL_DATABASE_URL`; Compose also runs the relocated legacy API during transition.
+- **Bootstrap acceptance manifest (gate):** bound in [`GATE-01-bootstrap.md`](../../implementation-artifacts/gates/GATE-01-bootstrap.md) — ports **`3020+n`**: API **3020**, Postgres **3021**, Phoenix **3022**, frontend **3023**; legacy frozen at **5532** / **3010**; Husky → `frontend`; legacy reference-only; root `docker-compose.yml` for new stack.
+- **Database role/schema privilege manifest (gate):** bound in [`GATE-02-db-privileges.md`](../../implementation-artifacts/gates/GATE-02-db-privileges.md) — `pricecomp_app` / `pricecomp_phoenix` databases and roles, bootstrap superuser scope, schema ownership.
+- **Phoenix deployment:** one container `arizephoenix/phoenix:version-19.11.1` (ELv2) in **root** `docker-compose.yml`, host port **3022** (`3020+2`) → container `6006`, pointed at `pricecomp_phoenix` via `PHOENIX_SQL_DATABASE_URL`. Legacy API is **not** required in root compose (reference-only under `legacy/`).
 - **Co-hosted REST + MCP (AD-24):** one API process hosts FastAPI REST and a stateless FastMCP Streamable-HTTP ASGI app created with `http_app(path="/", stateless_http=True)` mounted at `/mcp`; FastAPI combines the MCP and application lifespans; strict trusted-host/origin settings apply whenever network-reachable.
 - **Immutable effective run configuration (AD-25):** records provider, resolved model, structured-output method/schema/strictness, sampling, output limit, timeout, retry owner/count/backoff, streaming mode, and provider options. Prompt, rubric, workflow, supply strategy, evaluator, trait schema, and conversion registry carry immutable content/version identities plus optional aliases.
 - **Contracts v1 inventory (AD-34):** `SourceIdentity`, `CatalogSnapshotRef`, `ProductSnapshot`, `Money`, `EvidenceRef`, typed trait/quantity values, command request/result schemas, stable domain error codes, and each stage input/outcome.
-- **PgQueuer completion-reliance proof (gate):** before any dispatch-backed feature, prove enqueue-after-commit recovery, SIGKILL recovery with LangGraph resume, cancellation, trace propagation, and terminal disposition on a single worker; failure reopens queue selection.
-- **First-party review lifecycle details (gate):** before review schema/UI implementation, bind uniqueness/coalescing, transition table, retry/cancel rules, and re-drive target while preserving the read-only MVP surface.
+- **PgQueuer completion-reliance proof (gate):** bound in [`GATE-03-pgqueuer-proof.md`](../../implementation-artifacts/gates/GATE-03-pgqueuer-proof.md) — scenarios P1–P8 before dispatch-backed features.
+- **First-party review lifecycle details (gate):** bound in [`GATE-04-review-lifecycle.md`](../../implementation-artifacts/gates/GATE-04-review-lifecycle.md) — `deferred_items` schema, open-row uniqueness, read API, CLI re-drive, `frontend/app/routes/deferred.tsx`.
 - **Contract test for telemetry joins:** prove Phoenix joins E1/E2/E3/E5 without parent-token double counting.
 - **Deferred-by-design gates to bind before their dependent work:** queue/checkpoint maintenance thresholds; CI/release contract (lock verification, service graph, migration gate, image build/SBOM, artifact promotion, clean-checkout smoke test); configuration and secrets contract; backup/recovery contract; operations contract (health/readiness, graceful drain, metrics, dashboards, alerts, migration-head checks, runbook ownership); frontend review and category-browser details.
 - **Variant registration (AD-34 / Architecture §Deferred):** R1/R2/R5/R6 parse, D1/D2 persistence timing, and A2/A3 assignment timing variants may be evaluated only behind the fixed stage envelope, statuses, prerequisite revisions, and one-time command-application semantics; each variant must be registered before graph implementation.
 
-**🚩 Two contradictions between AD-34 and the 2026-08-01 scope reduction — flagged for resolution before the affected stories are written:**
-
-1. **Evidence addressing.** AD-34 states `EvidenceRef` uses "NFC-normalized field text, UTF-8 byte offsets, and SHA-256 over the exact field bytes." SPEC Constraints, AD-4, and the Architecture's own Deferred list all say byte-offset and NFC addressing are **out of MVP** (evidence = source field + verbatim substring + field-text hash). AD-34 appears not to have been amended by the reduction.
-2. **Taxonomy topology compare-and-set.** AD-34 states "Taxonomy mutating commands carry a taxonomy-wide monotonic topology revision with compare-and-set." AD-3, AD-16, and the Deferred list say topology CAS is **not required** under the single-writer runtime.
+**✅ AD-34 scope alignment (resolved 2026-08-01):** AD-34 amended to match the scope reduction — `EvidenceRef` is field + verbatim span + field-text hash (no byte offsets/NFC in MVP); taxonomy-wide topology compare-and-set deferred under AD-16 single-writer; per-entity optimistic revision (AD-23) remains.
 
 ### UX Design Requirements
 
@@ -345,31 +342,35 @@ Covers FR1–FR7, FR49–FR52, FR55, FR56–FR58. Governed by AD-1, AD-2, AD-6, 
 ### Story 1.1: Relocate Legacy TypeScript and Seed the Python Monolith
 
 As an operator,
-I want the TypeScript backend and data importer moved under `/legacy` and `/backend` reseeded as the Python monolith root,
-So that Python implementation can begin against the architecture's structural seed without legacy code obstructing it.
+I want the legacy TypeScript stack moved under `/legacy` and `/backend` reseeded as the Python monolith root,
+So that Python implementation can begin against the architecture's structural seed without legacy code obstructing the active tree.
+
+**Gate:** [`GATE-01-bootstrap.md`](../../implementation-artifacts/gates/GATE-01-bootstrap.md)
 
 **Acceptance Criteria:**
 
-**Given** the repository has `/backend` and `/data-importer` holding TypeScript
-**When** the relocation change is applied
-**Then** the TypeScript backend lives at `legacy/backend/` and the data importer at `legacy/data-importer/`
-**And** `frontend/` is unchanged and `/backend` contains only the Python monolith root
+**Given** the repository before relocation
+**When** the relocation change is applied per GATE-01
+**Then** `legacy/backend/`, `legacy/data-importer/`, `legacy/db/`, `legacy/.kiro/`, `legacy/docker-compose.yml`, and `legacy/docs/decision_records/ADR001-llm-library-selection.md` exist
+**And** `data/` and `frontend/` remain at the repo root
+**And** `sync-ai-rules.sh` and `.cursor/rules/` are removed
+**And** Husky `pre-commit` runs `frontend` lint-staged only
 
 **Given** the relocation has been applied
-**When** the legacy build and test scripts are run from their new paths
-**Then** they pass with corrected data paths, Husky hooks, and script references
-**And** legacy port assignments are distinct from the ports reserved for the new API
+**When** the change is reviewed
+**Then** legacy is treated as reference-only until parity — **no** requirement to pass legacy build or test from CI or this story
+**And** active ports follow GATE-01: API **3020**, Postgres **3021**, Phoenix **3022**, frontend **3023**; legacy frozen at **3010** / **5532**
 
 **Given** the relocated repository
-**When** `backend/` is inspected
+**When** `backend/` is seeded per AD-28
 **Then** it contains `pyproject.toml`, `uv.lock`, and `src/pricecomp/` with empty-but-present packages `contracts/`, `catalog/`, `taxonomy/`, `enrichment/`, `review/`, `pipeline/`, `comparison/`, `evaluation/`, `platform/`
 **And** `migrations/` and `tests/domain/`, `tests/integration/`, `tests/contract/`, `tests/evals/` exist
+**And** no Python domain logic is included — structural seed only
 
-**Given** the relocation change
-**When** it is reviewed against the bootstrap acceptance manifest
-**Then** no Python domain logic is included in the change
-**And** path-scoped workspace rules and root documentation reference the new locations
-**And** the change is demonstrably reversible by inverting the moves
+**Given** the relocation and seed change
+**When** it is reviewed against GATE-01
+**Then** root documentation references the new layout
+**And** the relocation is demonstrably reversible by inverting the moves
 
 **Given** the pinned toolchain
 **When** `uv sync` runs on the committed lockfile
@@ -379,8 +380,10 @@ So that Python implementation can begin against the architecture's structural se
 ### Story 1.2: Run the Stack Locally with Role Commands
 
 As an operator,
-I want one backend image exposing `api`, `worker`, and `migrate` commands alongside PostgreSQL, Phoenix, and the relocated legacy API,
-So that I can bring the whole environment up locally and in CI with identical commands.
+I want one backend image exposing `api`, `worker`, and `migrate` commands alongside PostgreSQL and Phoenix via root `docker-compose.yml`,
+So that I can bring the new stack up locally and in CI with identical commands.
+
+**Gates:** [`GATE-01-bootstrap.md`](../../implementation-artifacts/gates/GATE-01-bootstrap.md), [`GATE-02-db-privileges.md`](../../implementation-artifacts/gates/GATE-02-db-privileges.md)
 
 **Acceptance Criteria:**
 
@@ -394,15 +397,16 @@ So that I can bring the whole environment up locally and in CI with identical co
 **Then** it executes in the order database/role bootstrap, Alembic, PgQueuer install/upgrade, LangGraph checkpointer setup, Phoenix migration, then service readiness
 **And** each step is idempotent on re-run
 
-**Given** the Compose environment
-**When** it is brought up
-**Then** PostgreSQL 18.4 runs with its durable volume mounted at `/var/lib/postgresql`
-**And** Phoenix runs from `arizephoenix/phoenix:version-19.11.1` against a dedicated database via `PHOENIX_SQL_DATABASE_URL`
-**And** the relocated legacy API runs on its assigned port
+**Given** root `docker compose up -d`
+**When** the Compose environment is brought up
+**Then** PostgreSQL 18.x runs on host port **3021** (`3020+1`) with its durable volume mounted at `/var/lib/postgresql`
+**And** Phoenix runs from `arizephoenix/phoenix:version-19.11.1` on host port **3022** (`3020+2`) against `pricecomp_phoenix` via `PHOENIX_SQL_DATABASE_URL`
+**And** the `api` role binds host port **3020** when started
+**And** root compose references only the new Postgres instance on **3021** — no env vars, volumes, `depends_on`, or connection strings for legacy (`legacy/docker-compose.yml` / **5532** remain fully separate)
 
-**Given** the database role and privilege manifest
+**Given** the database role and privilege manifest (GATE-02)
 **When** the bootstrap provisions databases and roles
-**Then** application, Phoenix, and frozen legacy each have a separate database and least-privilege role
+**Then** `pricecomp_app` and `pricecomp_phoenix` exist with least-privilege runtime roles per GATE-02
 **And** runtime credentials cannot create databases or run arbitrary migrations
 **And** PgQueuer and LangGraph tables live in the application database but remain vendor-owned with their own schemas and `search_path`
 
@@ -413,7 +417,7 @@ So that I can bring the whole environment up locally and in CI with identical co
 
 **Given** the devcontainer and CI
 **When** each runs the stack
-**Then** both use the same role commands and the same PostgreSQL 18.4 image
+**Then** both use the same role commands and the same PostgreSQL 18.x image
 
 ### Story 1.3: Enforce the Single Writer at Worker Startup
 
@@ -670,9 +674,9 @@ So that long-running work survives restarts without coupling it to API availabil
 **When** an operator inspects it
 **Then** the work remains visible and can be requeued
 
-**Given** the completion-reliance proof required before dispatch-backed features
+**Given** the completion-reliance proof required before dispatch-backed features (GATE-03)
 **When** it is executed on a single worker
-**Then** it demonstrates enqueue-after-commit recovery, SIGKILL recovery, cancellation, trace-context propagation, and terminal disposition
+**Then** scenarios P1–P8 in [`GATE-03-pgqueuer-proof.md`](../../implementation-artifacts/gates/GATE-03-pgqueuer-proof.md) pass in `backend/tests/integration/test_pgqueuer_reliance.py`
 
 ### Story 1.11: Rebuild the Catalog from an Immutable Source Manifest
 
@@ -1099,11 +1103,13 @@ As an operator,
 I want every unknown, defer, and low-confidence outcome captured in a durable queue,
 So that the pipeline finishes without waiting on me and I still have a record of what it refused to decide.
 
+**Gate:** [`GATE-04-review-lifecycle.md`](../../implementation-artifacts/gates/GATE-04-review-lifecycle.md)
+
 **Acceptance Criteria:**
 
 **Given** a stage produces an `unknown`, `defer`, or low-confidence outcome
 **When** the outcome is handled
-**Then** a `deferred_items` row is written carrying product reference, stage, reason code, attempt count, immutable payload snapshot, trace ID with deep link, and status
+**Then** a `deferred_items` row is written per GATE-04 carrying product reference, stage, reason code, attempt count, immutable payload snapshot, trace ID with deep link, and status
 **And** the row carries a UUIDv7 identity
 
 **Given** a deferred item has been written
@@ -1747,7 +1753,14 @@ As an operator,
 I want a read-only query returning deferred items with their stage, reason, payload, and trace reference,
 So that a client can render the queue without any write surface existing.
 
+**Gate:** [`GATE-04-review-lifecycle.md`](../../implementation-artifacts/gates/GATE-04-review-lifecycle.md)
+
 **Acceptance Criteria:**
+
+**Given** the read API on the new Python backend
+**When** its routes are inspected
+**Then** `GET /api/v1/deferred` and `GET /api/v1/deferred/{id}` exist per GATE-04
+**And** no POST, PATCH, or DELETE routes exist for deferred items
 
 **Given** deferred items exist
 **When** the deferred list query is called
@@ -1844,9 +1857,11 @@ As an operator,
 I want a single-purpose page header showing the product name, the view, and how many items are open,
 So that I know at a glance what I am looking at and how much is outstanding.
 
+**Gate:** [`GATE-04-review-lifecycle.md`](../../implementation-artifacts/gates/GATE-04-review-lifecycle.md) — route `frontend/app/routes/deferred.tsx`
+
 **Acceptance Criteria:**
 
-**Given** the Deferred route
+**Given** the Deferred route at `frontend/app/routes/deferred.tsx`
 **When** it renders
 **Then** the page uses the `background` token and the header shows the product name in display type followed by "Deferred"
 

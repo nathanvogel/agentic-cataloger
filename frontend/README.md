@@ -70,7 +70,7 @@ domains/
    cd ../backend && yarn start
    ```
 
-The application will be available at `http://localhost:3011`
+The application will be available at `http://localhost:3023`
 
 ### Available Scripts
 
