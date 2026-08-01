@@ -17,9 +17,11 @@ target_metadata = None
 
 
 def get_url() -> str:
-    url = os.environ.get("MIGRATE_DATABASE_URL")
+    url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not url:
         raise RuntimeError("MIGRATE_DATABASE_URL must be set for Alembic migrations")
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://") :]
     return url.replace("postgresql://", "postgresql+psycopg://", 1)
 
 

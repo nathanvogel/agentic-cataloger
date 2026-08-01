@@ -24,8 +24,18 @@ fi
 cd /workspaces/pricecomp/backend
 uv sync
 
-# One-shot bootstrap when postgres is already healthy (idempotent).
-if [ -n "${MIGRATE_DATABASE_URL:-}" ]; then
+# Frontend deps — vendored Yarn 4 in .yarn/releases.
+cd /workspaces/pricecomp/frontend
+export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+node .yarn/releases/yarn-4.11.0.cjs install
+
+# One-shot bootstrap when postgres is already healthy.
+# Migrate-only env vars — never injected into api/worker (GATE-02).
+if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then
+  export MIGRATE_DATABASE_URL="postgresql://postgres:postgres@postgres:5432/pricecomp_app"
+  export PHOENIX_DATABASE_URL="postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix"
+  export PHOENIX_HOST=phoenix
+  export PHOENIX_PORT=6006
   if ! uv run pricecomp migrate; then
     echo "migrate failed — if auth errors mention missing roles, reset the postgres volume:" >&2
     echo "  docker compose down && docker volume rm pricecomp_postgres18_data" >&2

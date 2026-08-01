@@ -29,12 +29,15 @@ def create_app() -> FastAPI:
                 content={"status": "not_ready", "reason": "DATABASE_URL unset"},
             )
         try:
-            async with await AsyncConnection.connect(database_url) as conn:
+            async with await AsyncConnection.connect(
+                database_url,
+                connect_timeout=5,
+            ) as conn:
                 await conn.execute("SELECT 1")
-        except Exception as exc:  # noqa: BLE001 — surface readiness failure
+        except Exception:  # noqa: BLE001 — surface readiness failure without leaking details
             return JSONResponse(
                 status_code=503,
-                content={"status": "not_ready", "reason": str(exc)},
+                content={"status": "not_ready", "reason": "database_unreachable"},
             )
         return JSONResponse(content={"status": "ready"})
 

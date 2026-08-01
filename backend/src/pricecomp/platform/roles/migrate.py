@@ -21,7 +21,7 @@ APP_ROLE = "pricecomp_app"
 
 
 def run_migrate() -> int:
-    migrate_url = os.environ.get("MIGRATE_DATABASE_URL")
+    migrate_url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not migrate_url:
         print("MIGRATE_DATABASE_URL is required for migrate role", file=sys.stderr)
         return 1
@@ -155,6 +155,7 @@ def _phoenix_database_url() -> str | None:
 
 
 def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> None:
+    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer path)."""
     url = _phoenix_database_url()
     if not url:
         return
@@ -171,6 +172,7 @@ def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> N
 
 
 def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
+    """Wait for Phoenix HTTP when PHOENIX_HOST is set. Skipped in CI (no Phoenix container)."""
     host = os.environ.get("PHOENIX_HOST")
     if not host:
         return
@@ -180,7 +182,7 @@ def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
     for _ in range(attempts):
         try:
             with urlopen(endpoint, timeout=3) as response:  # noqa: S310
-                if response.status < 500:
+                if 200 <= response.status < 300:
                     return
         except URLError as exc:
             last_error = exc

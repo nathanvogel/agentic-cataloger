@@ -39,6 +39,12 @@ uv run pytest tests/domain -q \
 uv run pricecomp migrate
 uv run pricecomp migrate
 
+uv run pytest tests/integration -q \
+  --cov=pricecomp \
+  --cov-append \
+  --cov-report=term-missing \
+  --cov-report=xml:coverage.xml
+
 api_pid=""
 cleanup() {
   if [[ -n "${api_pid}" ]] && kill -0 "${api_pid}" 2>/dev/null; then
@@ -53,9 +59,3 @@ api_pid=$!
 sleep 3
 curl -fsS http://127.0.0.1:3020/health
 curl -fsS http://127.0.0.1:3020/ready
-
-uv run pytest tests/integration -q \
-  --cov=pricecomp \
-  --cov-append \
-  --cov-report=term-missing \
-  --cov-report=xml:coverage.xml

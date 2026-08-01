@@ -30,7 +30,10 @@ pricecomp worker    # long-running stub (advisory lock in Story 1.3)
 |----------|---------|---------|
 | `DATABASE_URL` | `api`, `worker` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
 | `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/pricecomp_app` |
-| `PHOENIX_DATABASE_URL` | `migrate` (optional readiness) | `postgresql://pricecomp_phoenix:...@localhost:3021/pricecomp_phoenix` |
+| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://pricecomp_phoenix:...@localhost:3021/pricecomp_phoenix` |
+| `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
+
+Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
 
 **Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker` — elevated credentials are migrate-only (GATE-02).
 
@@ -47,9 +50,10 @@ export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/
 uv run pricecomp api
 ```
 
-Or build and run API via Compose profile:
+Or build and run API via Compose profile (run migrate once on a fresh volume first):
 
 ```bash
+docker compose --profile roles run --rm migrate
 docker compose --profile api up -d
 ```
 

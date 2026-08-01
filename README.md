@@ -45,19 +45,13 @@ export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/
 uv run pricecomp api
 ```
 
-Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`):
+Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`). On a **fresh volume**, bootstrap once before starting API:
 
 ```bash
+docker compose --profile roles run --rm migrate
 docker compose --profile api up -d
 curl http://localhost:3020/health
 ```
-
-| Port | Service |
-|------|---------|
-| **3020** | Python API (`pricecomp api`) |
-| **3021** | New Postgres |
-| **3022** | Phoenix |
-| **3023** | Frontend Vite |
 
 ## Frontend setup
 

@@ -4,7 +4,7 @@ baseline_commit: ae142e5e7b947e858b43adc980f4e92099aabf1f
 
 # Story 1.2: Run the Stack Locally with Role Commands
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -119,6 +119,43 @@ so that I can bring the new stack up locally and in CI with identical commands.
   - [x] Update root `README.md`: `docker compose up -d`, `pricecomp migrate`, `pricecomp api`, port map
   - [x] Update `backend/README.md`: role commands, env vars (`DATABASE_URL` for app on **3021**), migrate vs runtime creds
   - [x] Tick GATE-01 compose + API-listen items; tick GATE-02 checklist items when tests pass
+
+### Review Findings
+
+- [x] [Review][Decision] **CI Phoenix bootstrap scope** — Resolved: Phoenix readiness is compose/devcontainer-only (runs when `PHOENIX_HOST` is set). CI intentionally skips; document this in README/migrate role.
+
+- [x] [Review][Patch] **Document Phoenix bootstrap as compose/devcontainer-only** [`backend/README.md`, `backend/src/pricecomp/platform/roles/migrate.py`]
+
+- [x] [Review][Patch] **Elevated migrate creds in devcontainer api env** [`.devcontainer/devcontainer.json:37`, `.devcontainer/docker-compose.dev.yml:13`]
+
+- [x] [Review][Patch] **CI port 3020 conflict during integration tests** [`scripts/ci/backend-test.sh:51-61`]
+
+- [x] [Review][Patch] **Devcontainer migrate skips Phoenix HTTP readiness** [`.devcontainer/devcontainer.json:33-38`]
+
+- [x] [Review][Patch] **Phoenix HTTP wait accepts 4xx responses** [`backend/src/pricecomp/platform/roles/migrate.py:183`]
+
+- [x] [Review][Patch] **`/ready` probe can hang without connect timeout** [`backend/src/pricecomp/platform/roles/api.py:32`]
+
+- [x] [Review][Patch] **`/ready` leaks raw DB exception strings** [`backend/src/pricecomp/platform/roles/api.py:37`]
+
+- [x] [Review][Patch] **README omits migrate-before-api on fresh volume** [`README.md`]
+
+- [x] [Review][Patch] **CI path filters omit devcontainer** [`.github/workflows/backend.yml:5-17`]
+
+- [x] [Review][Patch] **Alembic URL normalizer misses `postgres://` scheme** [`backend/migrations/env.py:23`]
+
+- [x] [Review][Patch] **Whitespace-only `MIGRATE_DATABASE_URL` not rejected** [`backend/src/pricecomp/platform/roles/migrate.py:24-27`]
+
+- [x] [Review][Defer] **Bootstrap order not asserted in tests** [`backend/tests/integration/test_bootstrap.py`] — deferred, pre-existing test gap
+- [x] [Review][Defer] **No positive vendor-schema grant verification** [`backend/tests/integration/test_privileges.py:33`] — deferred, pre-existing test gap
+- [x] [Review][Defer] **GATE-02 init SQL duplicated in conftest** [`backend/tests/conftest.py:31`, `docker/postgres/init/01-roles.sql`] — deferred, pre-existing
+- [x] [Review][Defer] **No `.dockerignore` for backend image** [`backend/Dockerfile`] — deferred, pre-existing
+- [x] [Review][Defer] **Alembic subprocess has no timeout** [`backend/src/pricecomp/platform/roles/migrate.py:74`] — deferred, pre-existing
+- [x] [Review][Defer] **No concurrent-migrate advisory lock** [`backend/src/pricecomp/platform/roles/migrate.py:23`] — deferred, pre-existing
+- [x] [Review][Defer] **CI init SQL not idempotent on local re-run** [`scripts/ci/backend-test.sh:32`] — deferred, pre-existing
+- [x] [Review][Defer] **postCreate installs Claude via remote curl** [`.devcontainer/postCreate.sh:16`] — deferred, pre-existing
+- [x] [Review][Defer] **Phoenix service has no healthcheck** [`docker-compose.yml:18`] — deferred, pre-existing
+- [x] [Review][Defer] **Parity test doesn't verify devcontainer role invocation** [`backend/tests/domain/test_parity.py:38`] — deferred, pre-existing
 
 ## Dev Notes
 

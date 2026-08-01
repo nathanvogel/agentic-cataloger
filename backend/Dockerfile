@@ -6,6 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir uv==0.12.1
 
 COPY pyproject.toml uv.lock README.md ./
@@ -19,3 +23,33 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 ENTRYPOINT ["pricecomp"]
 CMD ["api"]
+
+# Devcontainer only — Node (corepack/yarn) + shell tooling. Prod roles use `base`.
+FROM base AS dev
+
+ARG NODE_VERSION=25.2.1
+ARG TARGETARCH
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        fd-find \
+        git \
+        git-lfs \
+        ripgrep \
+        xz-utils \
+    && case "${TARGETARCH}" in \
+        amd64) NODE_ARCH=linux-x64 ;; \
+        arm64) NODE_ARCH=linux-arm64 ;; \
+        *) echo "unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac \
+    && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-${NODE_ARCH}.tar.xz" \
+    | tar -xJ -C /usr/local --strip-components=1 \
+    && npm install -g corepack \
+    && corepack enable \
+    && COREPACK_ENABLE_DOWNLOAD_PROMPT=0 corepack prepare yarn@4.11.0 --activate \
+    && ln -sf "$(command -v fdfind)" /usr/local/bin/fd \
+    && git lfs install --system \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0

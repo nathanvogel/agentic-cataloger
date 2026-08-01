@@ -2,6 +2,8 @@
 # Use `.` not `..` — compose resolves relative paths from the project dir (repo root).
 services:
   api:
+    build:
+      target: dev
     working_dir: /workspaces/pricecomp/backend
     volumes:
       - .:/workspaces/pricecomp
@@ -10,8 +12,6 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app
-      MIGRATE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pricecomp_app
-      PHOENIX_DATABASE_URL: postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix
 
   worker:
     working_dir: /workspaces/pricecomp/backend
@@ -24,3 +24,8 @@ services:
     volumes:
       - .:/workspaces/pricecomp
     command: ["migrate"]
+    environment:
+      MIGRATE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pricecomp_app
+      PHOENIX_DATABASE_URL: postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix
+      PHOENIX_HOST: phoenix
+      PHOENIX_PORT: "6006"
