@@ -1,4 +1,36 @@
 {
   "kiroAgent.configureMCP": "Disabled",
-  "typescript.tsdk": "frontend/node_modules/typescript/lib"
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "cSpell.words": [
+    "asyncio",
+    "contextlib",
+    "datname",
+    "Docstrings",
+    "esac",
+    "fastapi",
+    "fastmcp",
+    "fdfind",
+    "isort",
+    "langchain",
+    "langgraph",
+    "libatomic",
+    "openinference",
+    "Perflint",
+    "PGQUEUER",
+    "prefs",
+    "pricecomp",
+    "psycopg",
+    "pycodestyle",
+    "Pydantic",
+    "pydocstyle",
+    "Pyflakes",
+    "Pylint",
+    "pyproject",
+    "Pytest",
+    "PYTHONDONTWRITEBYTECODE",
+    "PYTHONUNBUFFERED",
+    "sqlalchemy",
+    "uvicorn",
+    "venv"
+  ]
 }
