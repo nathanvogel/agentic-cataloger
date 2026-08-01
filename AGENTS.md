@@ -7,3 +7,4 @@
 ### General rules
 
 - This is a prototype, don't overdo it. YAGNI. 
+- CI/CD stays thin: GitHub Actions should mostly invoke portable shell scripts.

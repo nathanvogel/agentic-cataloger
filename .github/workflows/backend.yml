@@ -6,12 +6,14 @@ on:
       - "backend/**"
       - "docker/**"
       - "docker-compose.yml"
+      - "scripts/ci/backend-test.sh"
       - ".github/workflows/backend.yml"
   pull_request:
     paths:
       - "backend/**"
       - "docker/**"
       - "docker-compose.yml"
+      - "scripts/ci/backend-test.sh"
       - ".github/workflows/backend.yml"
 
 jobs:
@@ -34,56 +36,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        run: pip install uv==0.12.1
-
-      - name: Set up Python
-        run: uv python install 3.14.6
-        working-directory: backend
-
-      - name: Sync dependencies
-        run: uv sync
-        working-directory: backend
-
-      - name: Bootstrap Postgres roles
-        run: |
-          PGPASSWORD=postgres psql -h localhost -p 3021 -U postgres -f ../docker/postgres/init/01-roles.sql
-
-      - name: Run unit tests with coverage
-        run: >
-          uv run pytest tests/domain -q
-          --cov=pricecomp
-          --cov-report=term-missing
-          --cov-report=xml:coverage-unit.xml
-        working-directory: backend
-
-      - name: Run migrate
-        env:
-          MIGRATE_DATABASE_URL: postgresql://postgres:postgres@localhost:3021/pricecomp_app
-        run: uv run pricecomp migrate
-        working-directory: backend
-
-      - name: Idempotent migrate
-        env:
-          MIGRATE_DATABASE_URL: postgresql://postgres:postgres@localhost:3021/pricecomp_app
-        run: uv run pricecomp migrate
-        working-directory: backend
-
-      - name: API health smoke
-        env:
-          DATABASE_URL: postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app
-        run: |
-          uv run pricecomp api &
-          sleep 3
-          curl -fsS http://127.0.0.1:3020/health
-          curl -fsS http://127.0.0.1:3020/ready
-        working-directory: backend
-
-      - name: Run integration and PROC tests with coverage
-        run: >
-          uv run pytest tests/integration -q
-          --cov=pricecomp
-          --cov-append
-          --cov-report=term-missing
-          --cov-report=xml:coverage.xml
-        working-directory: backend
+      - name: Backend CI
+        run: ./scripts/ci/backend-test.sh
