@@ -31,7 +31,7 @@ services:
     profiles: ["roles"]
     build:
       context: ./backend
-    command: ["pricecomp", "migrate"]
+    command: ["migrate"]
     environment:
       MIGRATE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pricecomp_app
       PHOENIX_DATABASE_URL: postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix
@@ -47,7 +47,7 @@ services:
     profiles: ["roles", "api"]
     build:
       context: ./backend
-    command: ["pricecomp", "api"]
+    command: ["api"]
     ports:
       - "3020:3020"
     environment:
@@ -60,7 +60,7 @@ services:
     profiles: ["roles", "worker"]
     build:
       context: ./backend
-    command: ["pricecomp", "worker"]
+    command: ["worker"]
     environment:
       DATABASE_URL: postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app
     depends_on:

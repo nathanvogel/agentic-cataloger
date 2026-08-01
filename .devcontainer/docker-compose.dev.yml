@@ -1,18 +1,22 @@
 # Dev-only overrides: bind-mount the full repo for live edit (not used in CI/production).
+# Use `.` not `..` — compose resolves relative paths from the project dir (repo root).
 services:
   api:
     working_dir: /workspaces/pricecomp/backend
     volumes:
-      - ..:/workspaces/pricecomp
-    command: ["pricecomp", "api"]
+      - .:/workspaces/pricecomp
+    # Image ENTRYPOINT is already `pricecomp`; devcontainer lifecycle wrapper appends it again.
+    command: ["api"]
     restart: unless-stopped
 
   worker:
     working_dir: /workspaces/pricecomp/backend
     volumes:
-      - ..:/workspaces/pricecomp
+      - .:/workspaces/pricecomp
+    command: ["worker"]
 
   migrate:
     working_dir: /workspaces/pricecomp/backend
     volumes:
-      - ..:/workspaces/pricecomp
+      - .:/workspaces/pricecomp
+    command: ["migrate"]
