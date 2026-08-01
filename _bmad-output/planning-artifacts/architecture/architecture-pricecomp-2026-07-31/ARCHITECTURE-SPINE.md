@@ -204,11 +204,11 @@ flowchart TB
 - **Prevents:** provider SDK differences and hidden defaults confounding experiments.
 - **Rule:** The application LLM port has LangChain chat-model adapters for exactly two providers in MVP (OpenAI and Anthropic); a third is added only when E5 needs a model family neither covers. Workflows use no LangChain agents, memory, persistence, or domain types. Immutable effective run configuration records provider, resolved model, structured-output method/schema/strictness, sampling, output limit, timeout, retry owner/count/backoff, streaming mode, and provider options; prompt, rubric, workflow, supply strategy, evaluator, trait schema, and conversion registry carry immutable content/version identities plus optional aliases.
 
-### AD-26 — [ADOPTED] UUIDv4 application identities
+### AD-26 — [ADOPTED] UUIDv7 application identities
 
 - **Binds:** all application entities, commands, APIs, and runs
-- **Prevents:** mixed ID types and activity or volume leakage through ordered identifiers.
-- **Rule:** Application-generated UUIDv4 is every application-owned entity's primary and public identity. External `SourceIdentity` is a typed uniqueness key, not a second application primary-key type. PgQueuer, LangGraph, and Phoenix identifiers stay opaque adapter data and map explicitly to application run/attempt IDs.
+- **Prevents:** mixed ID types, random-UUID index fragmentation, and poor PostgreSQL B-tree locality on high-insert tables.
+- **Rule:** Application-generated UUIDv7 is every application-owned entity's primary and public identity. Time ordering is acceptable because current application objects are non-privacy-sensitive; revisit UUIDv4 if a future entity class must not leak creation order or volume signals through its public ID. External `SourceIdentity` is a typed uniqueness key, not a second application primary-key type. PgQueuer, LangGraph, and Phoenix identifiers stay opaque adapter data and map explicitly to application run/attempt IDs.
 
 ### AD-27 — [ADOPTED] Python and uv toolchain
 
@@ -232,7 +232,7 @@ flowchart TB
 
 - **Binds:** all persisted state, APIs, commands, and jobs
 - **Prevents:** incompatible identity, time, numeric, enum, idempotency, and ownership semantics.
-- **Rule:** Use UUIDv4 application IDs, UTC `timestamptz` and RFC 3339 wire timestamps, ISO 4217 currency, a versioned canonical unit registry, positive Decimal/`NUMERIC(24,12)` calculation values with round-half-even only at declared presentation boundaries, string-encoded JSON decimals, and lowercase `snake_case` enums. For fixed content/count, normalized price is `shelf_price_amount / selected_quantity_in_preferred_unit`; a source `price_basis` converts its stated denominator directly and never invents package content. Results always include currency and comparable unit. Application idempotency is scoped by `(command_type, caller, key)`, binds a canonical payload hash, atomically records in-progress/terminal result with business effects, rejects changed payloads, and outlives queue/checkpoint replay. Owner tables are authoritative; vendor tables are adapter-private.
+- **Rule:** Use UUIDv7 application IDs, UTC `timestamptz` and RFC 3339 wire timestamps, ISO 4217 currency, a versioned canonical unit registry, positive Decimal/`NUMERIC(24,12)` calculation values with round-half-even only at declared presentation boundaries, string-encoded JSON decimals, and lowercase `snake_case` enums. For fixed content/count, normalized price is `shelf_price_amount / selected_quantity_in_preferred_unit`; a source `price_basis` converts its stated denominator directly and never invents package content. Results always include currency and comparable unit. Application idempotency is scoped by `(command_type, caller, key)`, binds a canonical payload hash, atomically records in-progress/terminal result with business effects, rejects changed payloads, and outlives queue/checkpoint replay. Owner tables are authoritative; vendor tables are adapter-private.
 
 ### AD-31 — [ADOPTED] Verification boundaries
 
