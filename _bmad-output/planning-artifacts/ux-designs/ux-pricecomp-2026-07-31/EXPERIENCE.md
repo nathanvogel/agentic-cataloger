@@ -22,7 +22,7 @@ Visual tokens live in `DESIGN.md`; cross-refs use `{path.to.token}`. Spines win 
 
 **Product role:** Read-only window onto `deferred_items` (SPEC H2 table; H1 reads from the same table). Purpose: *understand where the agent fails*. Not a review console with domain writes.
 
-**Scope vs SPEC CAP-9:** CAP-9 success criteria include domain actions (reassign leaf, edit trait, accept/reject evidence, re-drive). **This UX intentionally omits those.** Evolution: grow into actionable H1, replace with another workflow, or drop if unused. Trace inspectability stays in Phoenix (SPEC non-goal: no custom E4 run UI).
+**Scope vs SPEC CAP-9 (reconciled 2026-08-01):** the SPEC's 2026-08-01 scope reduction adopted this read-only posture — CAP-9 now requires a read-only dashboard plus a CLI re-drive command, and reviewer domain writes (reassign leaf, edit trait, accept/reject evidence) are deferred. This spine and the SPEC agree; no sync debt remains. Evolution: grow into actionable H1 when the queue proves worth acting on in-app, replace with another workflow, or drop if unused. Trace inspectability stays in Phoenix (SPEC non-goal: no custom E4 run UI).
 
 ## Information Architecture
 
@@ -137,6 +137,6 @@ Failure: Phoenix link missing on a demo fixture → disabled control; payload sn
 
 ## Open / evolution
 
-- **Later:** domain actions per CAP-9 may land here or replace this surface.
+- **Later:** domain actions per the deferred CAP-9 writes may land here or replace this surface.
 - **Exit:** if unused, delete the route; Phoenix + SQL on `deferred_items` remain.
-- **SPEC sync (non-blocking):** CAP-9 success criteria still describe write actions; product owners may phase CAP-9 (read-only MVP → actionable) when convenient.
+- **Re-drive:** exists in MVP as a CLI command against the same application command handler, deliberately outside this surface.
