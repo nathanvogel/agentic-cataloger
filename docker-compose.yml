@@ -7,7 +7,7 @@ services:
     ports:
       - "3021:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql
+      - postgres18_data:/var/lib/postgresql
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -68,4 +68,5 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  # Renamed from postgres_data so existing dev volumes re-init with 01-roles.sql.
+  postgres18_data:

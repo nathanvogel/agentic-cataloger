@@ -26,5 +26,9 @@ uv sync
 
 # One-shot bootstrap when postgres is already healthy (idempotent).
 if [ -n "${MIGRATE_DATABASE_URL:-}" ]; then
-  uv run pricecomp migrate || true
+  if ! uv run pricecomp migrate; then
+    echo "migrate failed — if auth errors mention missing roles, reset the postgres volume:" >&2
+    echo "  docker compose down && docker volume rm pricecomp_postgres18_data" >&2
+    exit 1
+  fi
 fi

@@ -24,13 +24,15 @@
     "3022": { "label": "Phoenix UI" },
     "3023": { "label": "Frontend Vite" }
   },
-  "remoteEnv": {
+  "containerEnv": {
     "COMPOSE_PROFILES": "api",
-    "PATH": "/workspaces/pricecomp/backend/.venv/bin:${containerEnv:PATH}",
     "CLAUDE_CONFIG_DIR": "/root/.claude",
     "DATABASE_URL": "postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app",
     "MIGRATE_DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/pricecomp_app",
     "PHOENIX_DATABASE_URL": "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix"
+  },
+  "remoteEnv": {
+    "PATH": "/workspaces/pricecomp/backend/.venv/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
