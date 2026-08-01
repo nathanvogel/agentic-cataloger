@@ -53,6 +53,15 @@ markers = [
     "proc: process-spawn role command tests",
 ]
 
+[tool.coverage.run]
+source = ["src/pricecomp"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
 [tool.uv]
 # Generate/sync this lockfile with uv 0.12.1 (AD-27 / GATE-01).
 # Do not add LangGraph Server/CLI extras. Pydantic V2 only (no pydantic.v1 models).

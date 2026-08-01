@@ -49,8 +49,12 @@ jobs:
         run: |
           PGPASSWORD=postgres psql -h localhost -p 3021 -U postgres -f ../docker/postgres/init/01-roles.sql
 
-      - name: Run unit tests
-        run: uv run pytest tests/domain -q
+      - name: Run unit tests with coverage
+        run: >
+          uv run pytest tests/domain -q
+          --cov=pricecomp
+          --cov-report=term-missing
+          --cov-report=xml:coverage-unit.xml
         working-directory: backend
 
       - name: Run migrate
@@ -75,6 +79,11 @@ jobs:
           curl -fsS http://127.0.0.1:3020/ready
         working-directory: backend
 
-      - name: Run integration tests
-        run: uv run pytest tests/integration -q
+      - name: Run integration and PROC tests with coverage
+        run: >
+          uv run pytest tests/integration -q
+          --cov=pricecomp
+          --cov-append
+          --cov-report=term-missing
+          --cov-report=xml:coverage.xml
         working-directory: backend

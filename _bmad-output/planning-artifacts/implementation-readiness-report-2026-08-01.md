@@ -369,7 +369,7 @@ Bound in [`_bmad-output/implementation-artifacts/gates/`](../implementation-arti
 |------|------|--------|
 | Bootstrap | GATE-01-bootstrap.md | Stories 1.1, 1.2 |
 | DB privileges | GATE-02-db-privileges.md | Story 1.2 |
-| PgQueuer proof | GATE-03-pgqueuer-proof.md | Story 1.10+ |
+| PgQueuer proof | GATE-03-pgqueuer-proof.md | Story **1.2a** (spike after 1.2, before 1.4); Story 1.10 regression |
 | Review lifecycle | GATE-04-review-lifecycle.md | Stories 3.1, 5.1, 5.4 |
 
 ### Critical Issues Requiring Immediate Action

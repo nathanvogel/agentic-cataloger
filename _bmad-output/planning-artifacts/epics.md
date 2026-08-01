@@ -419,6 +419,28 @@ So that I can bring the new stack up locally and in CI with identical commands.
 **When** each runs the stack
 **Then** both use the same role commands and the same PostgreSQL 18.x image
 
+### Story 1.2a: Prove PgQueuer Completion Reliance (GATE-03 Spike)
+
+As an operator,
+I want the PgQueuer completion-reliance proof to run immediately after the local stack works and before catalog ingest begins,
+So that queue selection is confirmed or reopened before Stories 1.4–1.9 assume AD-22.
+
+**Gate:** [`GATE-03-pgqueuer-proof.md`](../../implementation-artifacts/gates/GATE-03-pgqueuer-proof.md)
+
+**Sequencing note (TECH-001):** This spike was pulled forward from Story 1.10. Story 1.3 may proceed in parallel. Stories **1.4+** are blocked until P1–P8 are green or the Architect reopens queue selection. Story 1.10 keeps production dispatch and central retry policy ACs and reuses this suite as regression.
+
+**Acceptance Criteria:**
+
+**Given** Story 1.2 has delivered role commands, migrate, and disposable PostgreSQL 18.4
+**When** `backend/tests/integration/test_pgqueuer_reliance.py` runs on Linux CI
+**Then** GATE-03 scenarios P1–P8 all pass on a single worker
+**And** the fixture surface is platform-only (no catalog domain tables)
+**And** enqueue remains after commit (no transaction-joining producer bridge)
+
+**Given** any of P1–P8 cannot be satisfied with PgQueuer 1.3.2
+**When** the spike concludes
+**Then** AD-22 queue selection is reopened with the Architect before Story 1.4 starts
+
 ### Story 1.3: Enforce the Single Writer at Worker Startup
 
 As an operator,
@@ -677,6 +699,7 @@ So that long-running work survives restarts without coupling it to API availabil
 **Given** the completion-reliance proof required before dispatch-backed features (GATE-03)
 **When** it is executed on a single worker
 **Then** scenarios P1–P8 in [`GATE-03-pgqueuer-proof.md`](../../implementation-artifacts/gates/GATE-03-pgqueuer-proof.md) pass in `backend/tests/integration/test_pgqueuer_reliance.py`
+**And** if Story 1.2a already proved P1–P8, this story treats that suite as regression while landing production dispatch and the central retry policy
 
 ### Story 1.11: Rebuild the Catalog from an Immutable Source Manifest
 

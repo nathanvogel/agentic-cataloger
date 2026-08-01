@@ -101,7 +101,8 @@ so that I can bring the new stack up locally and in CI with identical commands.
 - [x] **CI workflow skeleton** (AC: #6; NFR18)
   - [x] Add `.github/workflows/backend.yml` (or equivalent) running on Linux with PostgreSQL **18.4**
   - [x] CI uses same role commands: at minimum `uv run pytest`, `pricecomp migrate` against service container, and smoke `api` health on 3020
-  - [x] Do **not** block on full GATE-03 PgQueuer proof — that spike is scheduled **after** this story per test design
+  - [x] Coverage reports via `pytest-cov` (TECH-002)
+  - [x] Do **not** block on full GATE-03 PgQueuer proof — that spike is Story **1.2a** after this story per test design
 
 - [x] **Integration + PROC tests** (AC: #1–#6; test-design 1.2-*)
   - [x] `1.2-PROC-001/002/003`: spawn `api`, `worker`, `migrate` from image/venv independently

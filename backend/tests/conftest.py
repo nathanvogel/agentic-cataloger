@@ -1,8 +1,13 @@
-"""Shared pytest fixtures for integration and PROC tests."""
+"""Shared pytest fixtures for integration and PROC tests.
+
+Closes TECH-002: disposable PostgreSQL 18.4, process-spawn/kill harness for PROC
+scenarios (Story 1.3 single-writer, GATE-03 P4 SIGKILL).
+"""
 
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -108,8 +113,8 @@ def spawn_role(
     role: str,
     *,
     env: dict[str, str] | None = None,
-    timeout_s: float = 5.0,
 ) -> subprocess.Popen[str]:
+    """Spawn a `pricecomp <role>` process for PROC-level tests."""
     merged = os.environ.copy()
     if env:
         merged.update(env)
@@ -128,6 +133,30 @@ def spawn_role(
         stderr=subprocess.PIPE,
         text=True,
     )
+
+
+def terminate_role(
+    proc: subprocess.Popen[str],
+    *,
+    timeout_s: float = 10.0,
+) -> tuple[int | None, str, str]:
+    """SIGTERM a spawned role and wait for exit. Returns (code, stdout, stderr)."""
+    if proc.poll() is None:
+        proc.send_signal(signal.SIGTERM)
+    stdout, stderr = proc.communicate(timeout=timeout_s)
+    return proc.returncode, stdout, stderr
+
+
+def kill_role(
+    proc: subprocess.Popen[str],
+    *,
+    timeout_s: float = 10.0,
+) -> tuple[int | None, str, str]:
+    """SIGKILL a spawned role (GATE-03 P4). Returns (code, stdout, stderr)."""
+    if proc.poll() is None:
+        proc.send_signal(signal.SIGKILL)
+    stdout, stderr = proc.communicate(timeout=timeout_s)
+    return proc.returncode, stdout, stderr
 
 
 def wait_for_http(url: str, *, timeout_s: float = 10.0) -> None:
