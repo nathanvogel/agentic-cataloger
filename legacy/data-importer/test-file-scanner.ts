@@ -3,7 +3,7 @@ import { scanDirectory } from "./src/parsers/file-scanner";
 async function test() {
   console.log("Scanning data directory...\n");
 
-  const files = await scanDirectory("../data");
+  const files = await scanDirectory("../../../data");
 
   console.log(`Found ${files.length} CSV files\n`);
 

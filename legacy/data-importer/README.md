@@ -25,7 +25,7 @@ docker compose -f legacy/docker-compose.yml up -d
 
 Or from `legacy/`: `docker compose up -d`.
 
-4. Build the project:
+4. Build the project (re-run after pulling importer path changes — the CLI runs compiled `dist/`):
 
 ```bash
 yarn run build
@@ -65,9 +65,10 @@ Adjust batch size for performance tuning:
 yarn run import -- --batch-size 1000
 ```
 
-Combine multiple options:
+Combine multiple options (run from `legacy/data-importer/`, or pass an absolute path to repo-root `data/`):
 
 ```bash
+cd legacy/data-importer
 yarn run import -- --supermarket migros --batch-size 250 --data-dir ../../../data
 ```
 
@@ -75,7 +76,7 @@ yarn run import -- --supermarket migros --batch-size 250 --data-dir ../../../dat
 
 | Option                      | Description                                        | Default               |
 | --------------------------- | -------------------------------------------------- | --------------------- |
-| `-d, --data-dir <path>`     | Path to the data directory containing CSV files    | repo-root `data/` (via `../../../data` from `src/`) |
+| `-d, --data-dir <path>`     | Path to the data directory containing CSV files    | repo-root `data/` (default resolves `../../../data` from compiled `dist/`) |
 | `-s, --supermarket <name>`  | Filter by supermarket (migros, lidl, coop, denner) | All supermarkets      |
 | `-b, --batch-size <number>` | Number of records to process in each batch         | 500                   |
 | `-h, --help`                | Display help information                           | -                     |

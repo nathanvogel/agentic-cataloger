@@ -71,4 +71,4 @@ Toolchain: CPython **3.14.6**, uv **0.12.1**; no LangGraph Server/CLI extras; no
 - [x] `backend/` structural seed committed
 - [ ] Root `docker-compose.yml` with Postgres (**3021**) + Phoenix (**3022**)
 - [ ] API role listens on **3020** when wired (Story 1.2)
-- [ ] Frontend dev server on **3023**
+- [x] Frontend dev server on **3023**

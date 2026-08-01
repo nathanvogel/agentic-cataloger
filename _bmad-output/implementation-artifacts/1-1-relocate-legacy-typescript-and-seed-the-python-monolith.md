@@ -4,7 +4,7 @@ baseline_commit: 3a8353dd047b37244fcae47d7319bd0618014fe5
 
 # Story 1.1: Relocate Legacy TypeScript and Seed the Python Monolith
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -228,7 +228,7 @@ Cursor Grok 4.5
 ### Debug Log References
 
 - uv install: astral.sh installer 403'd; installed uv **0.12.1** from GitHub release tarball `uv-aarch64-apple-darwin.tar.gz`
-- `uv python install 3.14.6` + `uv sync` resolved 128 packages; non-free-threaded interpreter confirmed (`abiflags` empty / GIL path)
+- `uv python install 3.14.6` + `uv sync` resolved 100 packages in `uv.lock`; non-free-threaded interpreter confirmed (`abiflags` empty / GIL path)
 
 ### Implementation Plan
 
@@ -280,6 +280,27 @@ Cursor Grok 4.5
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - `_bmad-output/implementation-artifacts/1-1-relocate-legacy-typescript-and-seed-the-python-monolith.md`
 
+### Review Findings
+
+- [x] [Review][Patch] `test-file-scanner.ts` still points at `../data` (legacy/data) [`legacy/data-importer/test-file-scanner.ts:6`]
+- [x] [Review][Patch] GATE-01 frontend port 3023 checkbox unticked though `frontend/vite.config.ts` already binds 3023 [`_bmad-output/implementation-artifacts/gates/GATE-01-bootstrap.md:75`]
+- [x] [Review][Patch] data-importer README `--data-dir ../../../data` example is cwd-sensitive [`legacy/data-importer/README.md:71`]
+- [x] [Review][Patch] data-importer README default-path note says "from `src/`" but CLI resolves from compiled `dist/` [`legacy/data-importer/README.md:78`]
+- [x] [Review][Patch] `legacy/README.md` reversibility note omits warning about overwriting Python `backend/` seed [`legacy/README.md:14`]
+- [x] [Review][Patch] Root `.gitignore` duplicates `dist/` entry [`.gitignore:2,18`]
+- [x] [Review][Patch] Root `README.md` omits `uv run pytest` / pointer to `backend/README.md` [`README.md:31-36`]
+- [x] [Review][Patch] Completion notes say "128 packages" but lockfile resolves more [`1-1-relocate-legacy-typescript-and-seed-the-python-monolith.md:231`]
+- [x] [Review][Patch] Add `venv/` alongside `.venv/` in Python gitignore block [`.gitignore:8`]
+- [x] [Review][Patch] data-importer README should note `yarn build` after path changes (stale `dist/` footgun) [`legacy/data-importer/README.md:28-32`]
+
+- [x] [Review][Defer] Legacy `.kiro/` and `README-TESTS.md` still use bare `docker-compose up` — deferred, pre-existing reference docs outside Story 1.1 scope
+- [x] [Review][Defer] `langgraph-checkpoint` resolved transitively (4.1.1) without direct NFR17 pin — deferred, acceptable for structural seed; revisit when wiring checkpointer
+- [x] [Review][Defer] Importer lacks explicit missing-data-dir guard — deferred, reference-stack hardening not required for this story
+- [x] [Review][Defer] Structural tests omit `pyproject.toml` / `uv.lock` / module-file retrieval checks — deferred, optional hardening beyond AC
+- [x] [Review][Defer] No CI gate for `uv run pytest` — deferred, story explicitly exempts full test-suite gating at this stage
+
 ### Change Log
 
 - 2026-08-01: Story 1.1 implemented — verified relocation, fixed legacy path debt, seeded Python monolith + NFR17 lockfile, updated docs, GATE-01 relocation/seed evidence.
+- 2026-08-01: Code review — ACCEPT with 10 patch items, 5 deferred, 8 dismissed.
+- 2026-08-01: Code review patches applied — all 10 patch findings resolved.

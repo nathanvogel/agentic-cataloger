@@ -11,4 +11,4 @@ Kept for reference until the new Python backend reaches parity. Not maintained o
 - `.kiro/` — former steering and specs
 - `docs/decision_records/` — ADR001 and related
 
-**Reversibility:** the relocation landed in commit `a1c1463`. Invert by moving the same paths back to the repo root (`legacy/backend` → `backend`, etc.) and restoring removed root helpers if needed; prefer `git revert` / checkout of that commit for an exact undo.
+**Reversibility:** the relocation landed in commit `a1c1463`. Invert by moving the same paths back to the repo root (`legacy/backend` → `backend`, etc.) and restoring removed root helpers if needed; prefer `git revert` / checkout of that commit for an exact undo. **Warning:** root `backend/` now holds the Python monolith seed — back up or remove it before restoring legacy NestJS to `backend/`.

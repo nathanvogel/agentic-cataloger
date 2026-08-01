@@ -6,6 +6,7 @@ dist/
 
 # Python (backend/)
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -15,7 +16,6 @@ __pycache__/
 *.egg-info/
 .eggs/
 *.egg
-dist/
 build/
 .coverage
 htmlcov/

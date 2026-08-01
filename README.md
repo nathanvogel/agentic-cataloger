@@ -30,9 +30,12 @@ Root `docker-compose.yml` (Postgres **3021** + Phoenix **3022**) arrives in Stor
 
 ## Python backend setup
 
+See [`backend/README.md`](backend/README.md) for toolchain pins and structural smoke tests.
+
 ```bash
 cd backend
-uv sync   # requires uv 0.12.1; selects CPython 3.14.6 via .python-version
+uv sync          # requires uv 0.12.1; selects CPython 3.14.6 via .python-version
+uv run pytest    # structural seed smoke tests
 ```
 
 ## Frontend setup
