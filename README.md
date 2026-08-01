@@ -12,7 +12,7 @@ Compare prices across Swiss supermarkets: Migros, Lidl, Coop, and Denner.
 
 | Path | Role |
 |------|------|
-| `backend/` | Python monolith root (structural seed — Story 1.1) |
+| `backend/` | Python monolith (API, worker, migrate roles) |
 | `frontend/` | UI (active; Vite on port **3023**) |
 | `data/` | Catalog CSVs (active) |
 | `legacy/` | Relocated TypeScript stack — **reference until parity** |
@@ -21,22 +21,43 @@ Active host ports follow GATE-01 (`3020 + n`):
 
 | Port | Service |
 |------|---------|
-| **3020** | Python API (wired in Story 1.2) |
+| **3020** | Python API (`pricecomp api`) |
 | **3021** | New Postgres |
 | **3022** | Phoenix |
 | **3023** | Frontend Vite |
 
-Root `docker-compose.yml` (Postgres **3021** + Phoenix **3022**) arrives in Story **1.2**. Bound gate checklists: [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/).
+Root `docker-compose.yml` provides Postgres **3021** + Phoenix **3022**. Bound gate checklists: [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/).
 
-## Python backend setup
-
-See [`backend/README.md`](backend/README.md) for toolchain pins and structural smoke tests.
+## Quick start (new Python stack)
 
 ```bash
+# Infrastructure
+docker compose up -d postgres phoenix
+
+# Bootstrap schemas (one-shot, idempotent)
 cd backend
-uv sync          # requires uv 0.12.1; selects CPython 3.14.6 via .python-version
-uv run pytest    # structural seed smoke tests
+export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/pricecomp_app
+uv sync
+uv run pricecomp migrate
+
+# API on port 3020
+export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app
+uv run pricecomp api
 ```
+
+Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`):
+
+```bash
+docker compose --profile api up -d
+curl http://localhost:3020/health
+```
+
+| Port | Service |
+|------|---------|
+| **3020** | Python API (`pricecomp api`) |
+| **3021** | New Postgres |
+| **3022** | Phoenix |
+| **3023** | Frontend Vite |
 
 ## Frontend setup
 
@@ -45,6 +66,16 @@ npm install -g corepack
 corepack enable
 cd frontend
 yarn install
+```
+
+## Python backend
+
+See [`backend/README.md`](backend/README.md) for role commands, env vars, and tests.
+
+```bash
+cd backend
+uv sync
+uv run pytest
 ```
 
 ## Legacy reference stack

@@ -1,0 +1,53 @@
+{
+  "name": "pricecomp",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.dev.yml"],
+  "service": "api",
+  "workspaceFolder": "/workspaces/pricecomp",
+  "shutdownAction": "stopCompose",
+  "runServices": ["postgres", "phoenix", "api"],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "packages": "ripgrep fd-find curl ca-certificates"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  // Sync host Claude Code prefs/auth into the container (same account as on the Mac).
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind,consistency=cached"
+  ],
+  "appPort": ["3020:3020", "3021:3021", "3022:3022", "3023:3023"],
+  "forwardPorts": [3020, 3021, 3022, 3023],
+  "portsAttributes": {
+    "3020": { "label": "Python API (pricecomp api)" },
+    "3021": { "label": "PostgreSQL 18.4" },
+    "3022": { "label": "Phoenix UI" },
+    "3023": { "label": "Frontend Vite" }
+  },
+  "remoteEnv": {
+    "COMPOSE_PROFILES": "api",
+    "PATH": "/workspaces/pricecomp/backend/.venv/bin:${containerEnv:PATH}",
+    "CLAUDE_CONFIG_DIR": "/root/.claude",
+    "DATABASE_URL": "postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app",
+    "MIGRATE_DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/pricecomp_app",
+    "PHOENIX_DATABASE_URL": "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "python.defaultInterpreterPath": "/workspaces/pricecomp/backend/.venv/bin/python"
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "anthropic.claude-code",
+        "eamodio.gitlens",
+        "streetsidesoftware.code-spell-checker",
+        "github.vscode-pull-request-github"
+      ]
+    }
+  }
+}

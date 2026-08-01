@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:18.4
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "3021:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  phoenix:
+    image: arizephoenix/phoenix:version-19.11.1
+    ports:
+      - "3022:6006"
+    environment:
+      PHOENIX_SQL_DATABASE_URL: postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix
+      PHOENIX_DEFAULT_RETENTION_POLICY_DAYS: "30"
+      PHOENIX_TELEMETRY_ENABLED: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  migrate:
+    profiles: ["roles"]
+    build:
+      context: ./backend
+    command: ["pricecomp", "migrate"]
+    environment:
+      MIGRATE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pricecomp_app
+      PHOENIX_DATABASE_URL: postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix
+      PHOENIX_HOST: phoenix
+      PHOENIX_PORT: "6006"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      phoenix:
+        condition: service_started
+
+  api:
+    profiles: ["roles", "api"]
+    build:
+      context: ./backend
+    command: ["pricecomp", "api"]
+    ports:
+      - "3020:3020"
+    environment:
+      DATABASE_URL: postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  worker:
+    profiles: ["roles", "worker"]
+    build:
+      context: ./backend
+    command: ["pricecomp", "worker"]
+    environment:
+      DATABASE_URL: postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

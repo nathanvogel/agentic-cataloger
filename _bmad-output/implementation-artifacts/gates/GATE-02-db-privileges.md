@@ -52,10 +52,10 @@ Phoenix uses **`pricecomp_phoenix`** only — separate database, no cross-DB acc
 
 ## Story checklist (implementation fills these)
 
-- [ ] Root compose: Postgres **3021** + Phoenix **3022**; zero legacy references
-- [ ] Init script at `docker/postgres/init/` creates `pricecomp_app` + `pricecomp_phoenix` only
-- [ ] `PHOENIX_SQL_DATABASE_URL` → `pricecomp_phoenix` (via internal `postgres:5432` in compose network)
-- [ ] App `DATABASE_URL` → `pricecomp_app` on host port **3021** (api/worker only)
-- [ ] `pricecomp migrate` documented as one-shot schema role
-- [ ] Test: `pricecomp_app` cannot `CREATE DATABASE`
-- [ ] Test: `pricecomp_app` cannot write to `pricecomp_phoenix`
+- [x] Root compose: Postgres **3021** + Phoenix **3022**; zero legacy references
+- [x] Init script at `docker/postgres/init/` creates `pricecomp_app` + `pricecomp_phoenix` only
+- [x] `PHOENIX_SQL_DATABASE_URL` → `pricecomp_phoenix` (via internal `postgres:5432` in compose network)
+- [x] App `DATABASE_URL` → `pricecomp_app` on host port **3021** (api/worker only)
+- [x] `pricecomp migrate` documented as one-shot schema role
+- [x] Test: `pricecomp_app` cannot `CREATE DATABASE`
+- [x] Test: `pricecomp_app` cannot write to `pricecomp_phoenix`
