@@ -18,7 +18,6 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
-    "prepare": "cd .. && husky",
     "db:generate-types": "zapatos",
     "cli": "node dist/cli/cli.js",
     "cli:standalone": "node dist/cli/standalone-cli.js"

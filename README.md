@@ -19,16 +19,16 @@ npm install -g corepack
 corepack enable
 ```
 
-### 2. Start the Database
+### 2. Start the Database (legacy stack)
 
 ```bash
-docker-compose up -d
+docker compose -f legacy/docker-compose.yml up -d
 ```
 
 Wait for PostgreSQL to be ready (about 5-10 seconds):
 
 ```bash
-docker-compose logs -f postgres
+docker compose -f legacy/docker-compose.yml logs -f postgres
 ```
 
 ## Direct Database Queries
@@ -50,9 +50,11 @@ Or use any PostgreSQL client:
 ## Stopping the Database
 
 ```bash
-docker-compose down
+docker compose -f legacy/docker-compose.yml down
 ```
 
 ## Project Structure
 
-See [.kiro/steering/structure.md](.kiro/steering/structure.md)
+See [legacy/.kiro/steering/structure.md](legacy/.kiro/steering/structure.md)
+
+Active development: `frontend/` (UI). Reference-only TypeScript stack: `legacy/backend/`, `legacy/data-importer/`, `legacy/db/`.
