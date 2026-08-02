@@ -55,7 +55,7 @@
 
 ## New workflow
 
-> **MVP scope reduction (2026-08-01).** Eleven items below were cut from MVP to shorten time-to-first-graph. **None are killed** — each is deferred with a named revisit condition in "Deferred from MVP" and in `_bmad-output/specs/spec-2026-agent-workflow/explore-bakeoffs.md`. The kill pile (`kill-pile.md`) is unchanged; it remains the only list of things we will not build. Canonical contract: `_bmad-output/specs/spec-2026-agent-workflow/SPEC.md`.
+> **MVP scope reduction (2026-08-01).** Eleven items below were cut from MVP to shorten time-to-first-graph. **None are killed** — each is deferred with a named revisit condition in "Deferred from MVP" below. What's actually rejected (not just deferred) lives in [architecture.md § Won't build](architecture.md#wont-build). Technical invariants live in [architecture.md](architecture.md); the read-only review page's UX spec is [deferred-page.md](deferred-page.md); the current build plan is [../plans/roadmap.md](../plans/roadmap.md).
 
 **Stack:** Python monolith + DDD; one backend for agent flow, REST, and data import. Devcontainers setup.
 
@@ -121,6 +121,20 @@ _None currently open — the two that stood here (category coherence timing, rec
 - **Category coherence timing (resolved 2026-07-31, narrowed 2026-08-01):** assignment does immediate structural and per-product semantic checks; category-wide coherence runs after bulk ingest over the categories that run touched. Not per-assign, and not on a schedule.
 - **Reconciliation dirty set (resolved 2026-07-31, simplified 2026-08-01):** category-affecting mutations upsert one coalesced review-request row per affected category, carrying concise trigger facts and Phoenix references — no full-DB scan and no domain-event journal. Under the single-writer runtime this needs no generation watermark or fencing token.
 - **MVP scope reduction (resolved 2026-08-01):** eleven cuts accepted to shorten time-to-first-graph — see "Deferred from MVP" above. The showcase spine was held intact: staged prompts with separate eval slices, search-backed category context, tree/facet/parent demo, cited traits with defer→DLQ, merge-never-wipe, Phoenix E1/E2/E3/E5, and a 2×2 bakeoff.
+
+## Glossary
+
+- **Import / source category** — retailer or CSV taxonomy label, used only to filter ingest subsets. Not a comparison primitive.
+- **Substitutability category** — our taxonomy node for consumer substitutability (products a shopper would treat as interchangeable). The comparison primitive.
+- **Leaf** — finest substitutability category, used for default cross-retailer price compare. Product ↔ leaf is many-to-one.
+- **Facet** — within-leaf preference filter (organic, fat%, brand tier...). Doesn't create a new leaf.
+- **Parent** — coarser tree ancestor used to widen compare scope (e.g. fresh vs UHT via parent "cow milk").
+- **Comparison-ready row** — a product with substitutability leaf + structured traits + shelf price + normalized comparable price (when convertible).
+- **Source identity** — stable `(source_namespace, source_product_id, optional source_variant_id)` from a versioned adapter. Product name/URL are mutable observations, not identity.
+- **evidence_span** — verbatim substring of a source observation backing a non-null trait/quantity, plus the source field name and a SHA-256 hash of that field's text.
+- **preferred_comparable_unit** — the unit a leaf declares as default for basket math (required on compare leaves).
+- **Normalized comparable price** — shelf price ÷ quantity in the leaf's preferred comparable unit. Derived on read; always reported with currency + unit.
+- **DLQ / deferred queue** — the non-blocking review queue for `unknown`/`defer` outcomes.
 
 ## References
 
