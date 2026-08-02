@@ -80,11 +80,11 @@ uv run pytest
 
 Open the repo with **Dev Containers** (`.devcontainer/`).
 
-For personal shell setup (zsh, aliases, etc.), use a private **`~/dotfiles`** repo and Cursor **User** settings:
+For personal shell (zsh, Spaceship, aliases), push a private dotfiles repo to GitHub and add VS Code / Cursor / <your-ide> **User** settings:
 
 ```json
 {
-  "dotfiles.repository": "/Users/<you>/dotfiles",
+  "dotfiles.repository": "<github-user>/dotfiles",
   "dotfiles.targetPath": "~/dotfiles",
   "dotfiles.installCommand": "install.sh"
 }
