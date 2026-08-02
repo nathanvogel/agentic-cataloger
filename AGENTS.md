@@ -4,7 +4,9 @@
 
 ### Communication rules
 
-- Do not use overly corporate tech speak. Prefer simpler (but precise) startup builder vocabulary and tone (chats, BMAD documents, etc.)
+- **Do not use overly corporate tech speak.** Prefer simpler (but precise) startup builder vocabulary and tone (in chats, documents, etc.)
+- **Name concrete things.** Prefer file paths, CLI commands, table names, and field names over abstract labels ("envelope", "primitive", "load-bearing"). If a technical term is the right name in code, gloss it in plain English on first use.
+- **Keep precision; drop ceremony.** "Fail closed on missing unit" is fine; "leverage synergistic orchestration primitives" is not.
 - When referring to stories, requirements, etc. by IDs (e.g. AC-03, TECH-002, etc.), don't assume the reader is familiar with them, reiterate their title / summary if the surrounding context doesn't already make them clear.
 
 ### Code rules
