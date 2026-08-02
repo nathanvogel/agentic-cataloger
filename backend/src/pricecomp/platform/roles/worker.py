@@ -10,19 +10,20 @@ def run_worker() -> None:
     """Run the worker stub until SIGTERM or SIGINT.
 
     Raises:
-        SystemExit: Always exits `0` after a clean shutdown signal.
+        SystemExit: Always exits ``0`` after a clean shutdown signal.
     """
-    stop = False
+    is_stopping = False
 
     def _handle_sigterm(_signum: int, _frame: object | None) -> None:
-        nonlocal stop
-        stop = True
+        """Mark the worker loop for clean shutdown."""
+        nonlocal is_stopping
+        is_stopping = True
 
     signal.signal(signal.SIGTERM, _handle_sigterm)
     signal.signal(signal.SIGINT, _handle_sigterm)
 
     print("pricecomp worker started (stub — no queue consumer yet)", flush=True)
-    while not stop:
+    while not is_stopping:
         time.sleep(1)
     print("pricecomp worker shutting down", flush=True)
     raise SystemExit(0)

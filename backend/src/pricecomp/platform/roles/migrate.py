@@ -27,7 +27,7 @@ def run_migrate() -> int:
     """Run NFR19 bootstrap and return a process exit code.
 
     Returns:
-        `0` on success, `1` on configuration or bootstrap failure.
+        ``0`` on success, ``1`` on configuration or bootstrap failure.
     """
     migrate_url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not migrate_url:
@@ -59,6 +59,17 @@ def _wait_for_database(
     delay_s: float = 1.0,
     label: str = "database",
 ) -> None:
+    """Poll Postgres until ``SELECT 1`` succeeds or attempts are exhausted.
+
+    Args:
+        url: Postgres connection URL.
+        attempts: Maximum connection attempts.
+        delay_s: Sleep between failed attempts, in seconds.
+        label: Name used in the timeout error message.
+
+    Raises:
+        RuntimeError: If the database never becomes reachable.
+    """
     last_error: Exception | None = None
     for _ in range(attempts):
         try:
@@ -72,6 +83,14 @@ def _wait_for_database(
 
 
 def _verify_databases_exist(migrate_url: str) -> None:
+    """Fail when ``pricecomp_app`` or ``pricecomp_phoenix`` is missing.
+
+    Args:
+        migrate_url: Superuser connection URL used for catalog queries.
+
+    Raises:
+        RuntimeError: If either required database is absent.
+    """
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         rows = conn.execute(
             "SELECT datname FROM pg_database "
@@ -84,6 +103,14 @@ def _verify_databases_exist(migrate_url: str) -> None:
 
 
 def _run_alembic_upgrade(migrate_url: str) -> None:
+    """Run ``alembic upgrade head`` against the migrate database.
+
+    Args:
+        migrate_url: Value exported as ``MIGRATE_DATABASE_URL`` for Alembic.
+
+    Raises:
+        RuntimeError: If the Alembic subprocess exits non-zero.
+    """
     env = os.environ.copy()
     env["MIGRATE_DATABASE_URL"] = migrate_url
     result = subprocess.run(
@@ -100,10 +127,20 @@ def _run_alembic_upgrade(migrate_url: str) -> None:
 
 
 def _install_pgqueuer(migrate_url: str) -> None:
+    """Install or upgrade the PgQueuer schema (sync wrapper).
+
+    Args:
+        migrate_url: Superuser connection URL for schema setup.
+    """
     asyncio.run(_install_pgqueuer_async(migrate_url))
 
 
 async def _install_pgqueuer_async(migrate_url: str) -> None:
+    """Install or upgrade PgQueuer tables under ``PGQUEUER_SCHEMA``.
+
+    Args:
+        migrate_url: Superuser connection URL for schema setup.
+    """
     import psycopg
     from pgqueuer.adapters.drivers.psycopg import PsycopgDriver
     from pgqueuer.adapters.persistence import qb
@@ -123,11 +160,24 @@ async def _install_pgqueuer_async(migrate_url: str) -> None:
 
 
 def _langgraph_conn_string(base_url: str) -> str:
+    """Build a LangGraph checkpointer URL with ``search_path`` set.
+
+    Args:
+        base_url: Base Postgres URL (may already include query params).
+
+    Returns:
+        Connection string forcing ``search_path`` to ``LANGGRAPH_SCHEMA``.
+    """
     separator = "&" if "?" in base_url else "?"
     return f"{base_url}{separator}options=-c%20search_path%3D{LANGGRAPH_SCHEMA}"
 
 
 async def _install_langgraph_async(migrate_url: str) -> None:
+    """Create the LangGraph schema and run AsyncPostgresSaver setup.
+
+    Args:
+        migrate_url: Superuser connection URL for schema setup.
+    """
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         conn.execute(f"CREATE SCHEMA IF NOT EXISTS {LANGGRAPH_SCHEMA}")
 
@@ -137,10 +187,20 @@ async def _install_langgraph_async(migrate_url: str) -> None:
 
 
 def _install_langgraph(migrate_url: str) -> None:
+    """Install LangGraph checkpoint schema (sync wrapper).
+
+    Args:
+        migrate_url: Superuser connection URL for schema setup.
+    """
     asyncio.run(_install_langgraph_async(migrate_url))
 
 
 def _grant_vendor_schema_privileges(migrate_url: str) -> None:
+    """Grant app-role DML on vendor schemas; revoke CREATE.
+
+    Args:
+        migrate_url: Superuser connection URL used to apply GRANTs.
+    """
     statements = [
         f"GRANT USAGE ON SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
         (
@@ -180,11 +240,21 @@ def _grant_vendor_schema_privileges(migrate_url: str) -> None:
 
 
 def _phoenix_database_url() -> str | None:
+    """Return ``PHOENIX_DATABASE_URL`` when set.
+
+    Returns:
+        Connection URL, or ``None`` when Phoenix DB wait should be skipped.
+    """
     return os.environ.get("PHOENIX_DATABASE_URL")
 
 
 def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> None:
-    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer)."""
+    """Wait for Phoenix DB when ``PHOENIX_DATABASE_URL`` is set.
+
+    Args:
+        attempts: Maximum connection attempts.
+        delay_s: Sleep between failed attempts, in seconds.
+    """
     url = _phoenix_database_url()
     if not url:
         return
@@ -194,7 +264,11 @@ def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> N
 
 
 def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
-    """Wait for Phoenix HTTP when PHOENIX_HOST is set. Skipped in CI.
+    """Wait for Phoenix HTTP when ``PHOENIX_HOST`` is set. Skipped in CI.
+
+    Args:
+        attempts: Maximum HTTP probes.
+        delay_s: Sleep between failed probes, in seconds.
 
     Raises:
         RuntimeError: If the HTTP endpoint never returns a success status.
@@ -219,6 +293,14 @@ def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
 
 
 def _verify_bootstrap_state(migrate_url: str) -> None:
+    """Assert Alembic version and vendor schemas exist after migrate.
+
+    Args:
+        migrate_url: Connection URL used for post-bootstrap checks.
+
+    Raises:
+        RuntimeError: If alembic_version or a vendor schema is missing.
+    """
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         version = conn.execute(
             "SELECT version_num FROM public.alembic_version"

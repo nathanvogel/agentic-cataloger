@@ -17,6 +17,14 @@ target_metadata = None
 
 
 def get_url() -> str:
+    """Build the SQLAlchemy URL from ``MIGRATE_DATABASE_URL``.
+
+    Returns:
+        ``postgresql+psycopg://…`` URL for Alembic.
+
+    Raises:
+        RuntimeError: If ``MIGRATE_DATABASE_URL`` is unset.
+    """
     url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not url:
         raise RuntimeError("MIGRATE_DATABASE_URL must be set for Alembic migrations")
@@ -26,6 +34,7 @@ def get_url() -> str:
 
 
 def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode (emit SQL without a live connection)."""
     context.configure(
         url=get_url(),
         target_metadata=target_metadata,
@@ -37,6 +46,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    """Run migrations against a live database connection."""
     configuration = config.get_section(config.config_ini_section) or {}
     configuration["sqlalchemy.url"] = get_url()
     connectable = engine_from_config(

@@ -6,7 +6,10 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Dispatch `pricecomp <role>` to api, worker, or migrate.
+    """Dispatch ``pricecomp <role>`` to api, worker, or migrate.
+
+    Args:
+        argv: Role arguments. When ``None``, uses ``sys.argv[1:]``.
 
     Raises:
         SystemExit: On help, version, unknown role, or migrate exit code.
@@ -43,6 +46,7 @@ def main(argv: list[str] | None = None) -> None:
 
 
 def _print_help() -> None:
+    """Print CLI usage for supported process roles."""
     print(
         "usage: pricecomp <role>\n\n"
         "roles:\n"

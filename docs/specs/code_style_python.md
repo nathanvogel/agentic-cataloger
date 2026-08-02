@@ -110,11 +110,11 @@ This document defines the standard Python coding style for all Python projects d
 - Data Structures: For complex data structures, strongly prefer using Pydantic models over plain dictionaries.
 
 ## 9. Testing
-- Requirement: All new features and bug fixes should ideally be accompanied by automated tests (unit, integration, etc.).
+- Requirement: All new features and bug fixes must be accompanied by automated tests (unit, integration, etc.).
 - Framework: Use Pytest as the standard testing framework.
 - Fixtures: Utilize pytest fixtures for setting up and tearing down test preconditions (e.g., database connections, temporary files, object instances).
 - Asynchronous Code: For testing async code, use the `pytest-asyncio` plugin and mark test functions with `@pytest.mark.asyncio`.
 - Test Docstrings: Test functions must have docstrings clearly stating what scenario or behavior is being tested.
 - Isolation: Ensure tests are independent and isolated from each other. Tests should not rely on the state or side effects of previously run tests.
-- Mocking: Use `pytest-mock` to isolate the code under test from external dependencies (e.g., databases, external APIs, filesystem).
+- Mocking: `pytest-mock` is the preferred tool to isolate the code under test from external dependencies (e.g., databases, external APIs, filesystem).
 - Coverage: Use `pytest-cov` to measure coverage.

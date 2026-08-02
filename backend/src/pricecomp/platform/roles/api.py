@@ -14,7 +14,7 @@ API_PORT = 3020
 
 
 def create_app() -> FastAPI:
-    """Build the FastAPI app with `/health` and `/ready` endpoints.
+    """Build the FastAPI app with ``/health`` and ``/ready`` endpoints.
 
     Returns:
         Configured FastAPI application instance.
@@ -23,10 +23,16 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict[str, str]:
+        """Return liveness status."""
         return {"status": "ok"}
 
     @app.get("/ready")
     async def ready() -> JSONResponse:
+        """Return readiness after a lightweight database probe.
+
+        Returns:
+            ``200`` when ``DATABASE_URL`` connects; ``503`` otherwise.
+        """
         database_url = os.environ.get("DATABASE_URL")
         if not database_url:
             return JSONResponse(
@@ -50,7 +56,7 @@ def create_app() -> FastAPI:
 
 
 def run_api() -> None:
-    """Serve the API role on `API_HOST`:`API_PORT`."""
+    """Serve the API role on ``API_HOST``:``API_PORT`` via uvicorn."""
     uvicorn.run(
         "pricecomp.platform.roles.api:create_app",
         factory=True,
