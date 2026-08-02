@@ -54,4 +54,8 @@ RUN apt-get update \
     && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+ARG CLAUDE_CODE_VERSION=2.1.220
+RUN curl -fsSL https://claude.ai/install.sh | bash -s "${CLAUDE_CODE_VERSION}"
+
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    PATH="/root/.local/bin:${PATH}"

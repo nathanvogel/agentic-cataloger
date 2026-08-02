@@ -12,14 +12,7 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
   fi
 fi
 
-# Install the Claude CLI for in-container agent workflows (optional; skip if blocked).
-if ! command -v claude >/dev/null 2>&1; then
-  echo "postCreate: installing Claude CLI (may take a moment)..."
-  curl -fsSL https://claude.ai/install.sh | bash || true
-else
-  echo "postCreate: Claude CLI already installed"
-fi
-
+# Claude CLI is baked into the dev image (backend/Dockerfile dev stage).
 # Host ~/.claude is bind-mounted via devcontainer.json mounts (auth, settings, sessions).
 if [ -d "${CLAUDE_CONFIG_DIR:-/root/.claude}" ]; then
   echo "postCreate: Claude config synced from host: ${CLAUDE_CONFIG_DIR:-/root/.claude}"
