@@ -20,3 +20,11 @@
 - postCreate installs Claude via remote curl — supply-chain / silent-failure risk in dev bootstrap
 - Phoenix service has no healthcheck — migrate only waits for `service_started`
 - Parity test doesn't verify devcontainer role invocation — only image tags and CI script substrings
+
+## Deferred from: code review of 1-2a-prove-pgqueuer-completion-reliance (2026-08-01)
+
+- External Postgres bootstrap assumption — `ExternalPostgres` path yields without `_run_init_sql`; compose/CI Postgres assumed pre-provisioned
+- P5 handler path limited resume proof — direct LangGraph test covers P5 intent; handler-path smoke test does not prove crash/restart resume on `pipeline_run_id`
+- P4 redrive vs worker respawn — after SIGKILL, recovery uses `redrive_from_owner_row` + in-process drain rather than respawning the worker subprocess (AD-22 re-drive pattern)
+- migrate privilege fix untested — `_grant_vendor_schema_privileges` SQL fix has no test asserting default-privilege grants apply
+- backend-test.sh redundant suite run — full integration suite plus explicit `test_pgqueuer_reliance.py` re-run adds CI time without coverage append

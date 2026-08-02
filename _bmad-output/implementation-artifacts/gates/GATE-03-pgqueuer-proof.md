@@ -31,7 +31,9 @@ Transient infra: up to **5** retries, exponential full jitter, cap **15 min**.
 
 ## Story checklist (implementation fills these)
 
-- [ ] Integration suite covers P1–P8 (`test_pgqueuer_reliance.py`)
-- [ ] Story **1.2a** AC references this file as proof artifact; Story **1.10** AC references it as regression
-- [ ] CI job runs suite against disposable Postgres 18 (PR-blocking for 1.2a; nightly thereafter)
+- [x] Integration suite covers P1–P8 (`test_pgqueuer_reliance.py`)
+- [x] Story **1.2a** AC references this file as proof artifact; Story **1.10** AC references it as regression
+- [x] CI job runs suite against disposable Postgres 18 (PR-blocking for 1.2a; nightly thereafter)
 - [ ] If any scenario cannot be satisfied, Architect reopens AD-22 queue selection **before** Story 1.4
+
+**Evidence (2026-08-01):** `backend/tests/integration/test_pgqueuer_reliance.py` — P1–P8 green. Story 1.10 reuses this suite as regression; production dispatch + central retry policy remain Story 1.10.

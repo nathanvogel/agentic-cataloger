@@ -45,6 +45,11 @@ uv run pytest tests/integration -q \
   --cov-report=term-missing \
   --cov-report=xml:coverage.xml
 
+# GATE-03 / Story 1.2a: PgQueuer completion-reliance proof (P1–P8) is included
+# in tests/integration (test_pgqueuer_reliance.py). Explicit re-run keeps the
+# gate visible in CI logs when integration selection changes.
+uv run pytest tests/integration/test_pgqueuer_reliance.py -q --tb=line
+
 api_pid=""
 cleanup() {
   if [[ -n "${api_pid}" ]] && kill -0 "${api_pid}" 2>/dev/null; then

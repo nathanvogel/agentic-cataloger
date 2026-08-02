@@ -99,7 +99,9 @@ async def _install_pgqueuer_async(migrate_url: str) -> None:
     settings = DBSettings(db_schema=PGQUEUER_SCHEMA)
     qbe = qb.QueryBuilderEnvironment(settings=settings)
 
-    async with await psycopg.AsyncConnection.connect(migrate_url, autocommit=True) as conn:
+    async with await psycopg.AsyncConnection.connect(
+        migrate_url, autocommit=True
+    ) as conn:
         queries = Queries(PsycopgDriver(conn), qbe=qbe)
         if not await queries.has_table(settings.queue_table):
             await queries.install()
@@ -130,18 +132,26 @@ def _grant_vendor_schema_privileges(migrate_url: str) -> None:
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
         f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
         f"GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
-        f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
-        f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}",
-        f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
-        f"GRANT USAGE, SELECT ON SEQUENCES TO {APP_ROLE}",
+        (
+            f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
+            f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}"
+        ),
+        (
+            f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
+            f"GRANT USAGE, SELECT ON SEQUENCES TO {APP_ROLE}"
+        ),
         f"GRANT USAGE ON SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
         f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
         f"GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
-        f"ALTER DEFAULT PRIVILEGES IN SCHEMA {LANGGRAPH_SCHEMA} "
-        f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}",
-        f"ALTER DEFAULT PRIVILEGES IN SCHEMA {LANGGRAPH_SCHEMA} "
-        f"GRANT USAGE, SELECT ON SEQUENCES TO {APP_ROLE}",
+        (
+            f"ALTER DEFAULT PRIVILEGES IN SCHEMA {LANGGRAPH_SCHEMA} "
+            f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}"
+        ),
+        (
+            f"ALTER DEFAULT PRIVILEGES IN SCHEMA {LANGGRAPH_SCHEMA} "
+            f"GRANT USAGE, SELECT ON SEQUENCES TO {APP_ROLE}"
+        ),
         f"REVOKE CREATE ON SCHEMA {PGQUEUER_SCHEMA} FROM {APP_ROLE}",
         f"REVOKE CREATE ON SCHEMA {LANGGRAPH_SCHEMA} FROM {APP_ROLE}",
     ]

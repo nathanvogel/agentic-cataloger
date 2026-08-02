@@ -2,6 +2,9 @@
 
 Closes TECH-002: disposable PostgreSQL 18.4, process-spawn/kill harness for PROC
 scenarios (Story 1.3 single-writer, GATE-03 P4 SIGKILL).
+
+Prefers testcontainers when Docker is available; otherwise uses the compose/CI
+Postgres service (PRICECOMP_TEST_PG_* or host ``postgres``).
 """
 
 from __future__ import annotations
@@ -12,7 +15,9 @@ import subprocess
 import sys
 import time
 from collections.abc import Generator, Iterator
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Union
 
 import psycopg
 import pytest
@@ -21,16 +26,35 @@ from testcontainers.postgres import PostgresContainer
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
 POSTGRES_IMAGE = "postgres:18.4"
-MIGRATE_SUPERUSER = "postgresql://postgres:test@localhost:{port}/pricecomp_app"
-APP_RUNTIME = "postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_app"
+MIGRATE_SUPERUSER = "postgresql://postgres:{password}@{host}:{port}/pricecomp_app"
+APP_RUNTIME = "postgresql://pricecomp_app:pricecomp_app_dev@{host}:{port}/pricecomp_app"
 PHOENIX_RUNTIME = (
-    "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@localhost:{port}/pricecomp_phoenix"
+    "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@{host}:{port}/pricecomp_phoenix"
 )
 
+PostgresHandle = Union[PostgresContainer, "ExternalPostgres"]
 
-def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
+
+@dataclass(frozen=True)
+class ExternalPostgres:
+    """Compose/CI Postgres stand-in with the same port accessor as testcontainers."""
+
+    host: str
+    port: int
+    password: str = "postgres"
+
+    def get_exposed_port(self, _container_port: int) -> str:
+        return str(self.port)
+
+
+def bootstrap_gate02_roles(
+    port: int,
+    *,
+    host: str = "localhost",
+    password: str = "test",
+) -> None:
     """Mirror docker/postgres/init/01-roles.sql without psql meta-commands."""
-    admin = f"postgresql://postgres:{password}@localhost:{port}/postgres"
+    admin = f"postgresql://postgres:{password}@{host}:{port}/postgres"
     with psycopg.connect(admin, autocommit=True) as conn:
         conn.execute("CREATE ROLE pricecomp_app LOGIN PASSWORD 'pricecomp_app_dev'")
         conn.execute(
@@ -43,7 +67,7 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
         conn.execute("GRANT CONNECT ON DATABASE pricecomp_app TO pricecomp_app")
         conn.execute("GRANT CONNECT ON DATABASE pricecomp_phoenix TO pricecomp_phoenix")
 
-    app_admin = f"postgresql://postgres:{password}@localhost:{port}/pricecomp_app"
+    app_admin = f"postgresql://postgres:{password}@{host}:{port}/pricecomp_app"
     with psycopg.connect(app_admin, autocommit=True) as conn:
         conn.execute("GRANT USAGE ON SCHEMA public TO pricecomp_app")
         conn.execute(
@@ -55,7 +79,7 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
             "GRANT USAGE, SELECT ON SEQUENCES TO pricecomp_app"
         )
 
-    phoenix_admin = f"postgresql://postgres:{password}@localhost:{port}/pricecomp_phoenix"
+    phoenix_admin = f"postgresql://postgres:{password}@{host}:{port}/pricecomp_phoenix"
     with psycopg.connect(phoenix_admin, autocommit=True) as conn:
         conn.execute("GRANT ALL ON SCHEMA public TO pricecomp_phoenix")
         conn.execute(
@@ -67,12 +91,50 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
         )
 
 
-def _run_init_sql(port: int) -> None:
-    bootstrap_gate02_roles(port)
+def _run_init_sql(port: int, *, host: str = "localhost", password: str = "test") -> None:
+    bootstrap_gate02_roles(port, host=host, password=password)
+
+
+def _docker_available() -> bool:
+    try:
+        import docker
+
+        client = docker.from_env()
+        client.ping()
+        client.close()
+        return True
+    except Exception:  # noqa: BLE001 — any failure means use external Postgres
+        return False
+
+
+def _external_postgres_from_env() -> ExternalPostgres | None:
+    """Use compose/CI Postgres when Docker is unavailable or explicitly requested."""
+    forced = os.environ.get("PRICECOMP_TEST_PG_HOST")
+    if forced:
+        return ExternalPostgres(
+            host=forced,
+            port=int(os.environ.get("PRICECOMP_TEST_PG_PORT", "5432")),
+            password=os.environ.get("PRICECOMP_TEST_PG_PASSWORD", "postgres"),
+        )
+    if _docker_available():
+        return None
+    # Devcontainer / compose network default.
+    return ExternalPostgres(host="postgres", port=5432, password="postgres")
+
+
+def _connection_parts(handle: PostgresHandle) -> tuple[str, int, str]:
+    if isinstance(handle, ExternalPostgres):
+        return handle.host, handle.port, handle.password
+    return "localhost", int(handle.get_exposed_port(5432)), "test"
 
 
 @pytest.fixture(scope="session")
-def postgres_container() -> Generator[PostgresContainer, None, None]:
+def postgres_container() -> Generator[PostgresHandle, None, None]:
+    external = _external_postgres_from_env()
+    if external is not None:
+        yield external
+        return
+
     with PostgresContainer(POSTGRES_IMAGE, username="postgres", password="test") as postgres:
         port = int(postgres.get_exposed_port(5432))
         _run_init_sql(port)
@@ -80,21 +142,21 @@ def postgres_container() -> Generator[PostgresContainer, None, None]:
 
 
 @pytest.fixture
-def migrate_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return MIGRATE_SUPERUSER.format(port=port)
+def migrate_url(postgres_container: PostgresHandle) -> str:
+    host, port, password = _connection_parts(postgres_container)
+    return MIGRATE_SUPERUSER.format(host=host, port=port, password=password)
 
 
 @pytest.fixture
-def app_database_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return APP_RUNTIME.format(port=port)
+def app_database_url(postgres_container: PostgresHandle) -> str:
+    host, port, _password = _connection_parts(postgres_container)
+    return APP_RUNTIME.format(host=host, port=port)
 
 
 @pytest.fixture
-def phoenix_database_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return PHOENIX_RUNTIME.format(port=port)
+def phoenix_database_url(postgres_container: PostgresHandle) -> str:
+    host, port, _password = _connection_parts(postgres_container)
+    return PHOENIX_RUNTIME.format(host=host, port=port)
 
 
 @pytest.fixture
@@ -160,13 +222,12 @@ def kill_role(
 
 
 def wait_for_http(url: str, *, timeout_s: float = 10.0) -> None:
-    import urllib.error
-    import urllib.request
-
     deadline = time.time() + timeout_s
     last_error: Exception | None = None
     while time.time() < deadline:
         try:
+            import urllib.request
+
             with urllib.request.urlopen(url, timeout=1) as response:  # noqa: S310
                 if response.status < 500:
                     return
