@@ -1,5 +1,14 @@
 {
   "name": "pricecomp",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "username": "root",
+      "uid": "0",
+      "gid": "0"
+    }
+  },
   "dockerComposeFile": [
     "../docker-compose.yml",
     "docker-compose.dev.yml"
@@ -63,7 +72,8 @@
       "settings": {
         "editor.formatOnSave": true,
         "files.eol": "\n",
-        "python.defaultInterpreterPath": "/workspaces/pricecomp/backend/.venv/bin/python"
+        "python.defaultInterpreterPath": "/workspaces/pricecomp/backend/.venv/bin/python",
+        "terminal.integrated.defaultProfile.linux": "zsh"
       },
       "extensions": [
         "ms-python.python",
