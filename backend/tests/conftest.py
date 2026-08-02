@@ -213,6 +213,24 @@ def _tcp_open(host: str, port: int, *, timeout_s: float = 1.0) -> bool:
         return False
 
 
+def find_free_port() -> int:
+    """Return an ephemeral localhost TCP port for isolated PROC tests."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
+
+
+def resolve_api_test_port(*, default: int = 3020) -> int:
+    """Pick a port for spawned API PROC tests.
+
+    Uses GATE-01 default **3020** when free; otherwise an ephemeral port so
+    devcontainer's ambient ``api`` service does not cause false passes.
+    """
+    if not _tcp_open("127.0.0.1", default):
+        return default
+    return find_free_port()
+
+
 def _resolve_external_postgres() -> PostgresHarness | None:
     """Match scripts/ci/backend-test.sh host detection; target isolated ``*_test`` DBs."""
     password = os.environ.get("PGPASSWORD", "postgres")

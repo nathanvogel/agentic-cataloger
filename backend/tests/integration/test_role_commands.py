@@ -6,7 +6,7 @@ import signal
 import time
 
 import pytest
-from tests.conftest import spawn_role, wait_for_http
+from tests.conftest import resolve_api_test_port, spawn_role, wait_for_http
 
 
 @pytest.mark.proc
@@ -36,17 +36,24 @@ def test_proc_002_worker_starts_and_stops(
 
 
 @pytest.mark.proc
-def test_proc_003_api_health_on_3020(
+def test_proc_003_api_health(
     migrated_database: str,
     app_database_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Spawned API serves `/health` and `/ready` on port 3020."""
+    """Spawned API serves `/health` and `/ready` on a dedicated port."""
+    port = resolve_api_test_port()
     monkeypatch.setenv("DATABASE_URL", app_database_url)
+    monkeypatch.setenv("API_PORT", str(port))
     proc = spawn_role("api")
     try:
-        wait_for_http("http://127.0.0.1:3020/health")
-        wait_for_http("http://127.0.0.1:3020/ready")
+        time.sleep(0.5)
+        if proc.poll() is not None:
+            stdout, stderr = proc.communicate(timeout=1)
+            pytest.fail(f"API process exited early: {stderr or stdout}")
+        base = f"http://127.0.0.1:{port}"
+        wait_for_http(f"{base}/health")
+        wait_for_http(f"{base}/ready")
     finally:
         proc.send_signal(signal.SIGTERM)
         proc.communicate(timeout=10)

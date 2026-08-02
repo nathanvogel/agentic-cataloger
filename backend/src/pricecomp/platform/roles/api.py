@@ -62,11 +62,16 @@ def create_app() -> FastAPI:
 
 
 def run_api() -> None:
-    """Serve the API role on ``API_HOST``:``API_PORT`` via uvicorn."""
+    """Serve the API role on ``API_HOST`` and the configured port via uvicorn.
+
+    Port defaults to ``API_PORT`` (3020, GATE-01). Tests may override via the
+    ``API_PORT`` environment variable when 3020 is already bound.
+    """
+    port = int(os.environ.get("API_PORT", API_PORT))
     uvicorn.run(
         "pricecomp.platform.roles.api:create_app",
         factory=True,
         host=API_HOST,
-        port=API_PORT,
+        port=port,
         log_level="info",
     )
