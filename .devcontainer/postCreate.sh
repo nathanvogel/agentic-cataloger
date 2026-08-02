@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Modeled on tildou-track/.devcontainer/postCreate.sh — bootstrap tooling after the
-# workspace is mounted so branch/lockfile changes apply without rebuilding the image.
 
 set -euo pipefail
 

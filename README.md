@@ -8,6 +8,7 @@ Compare prices across Swiss supermarkets: Migros, Lidl, Coop, and Denner.
 - **Python backend:** CPython **3.14.6** (non-free-threaded) + **uv 0.12.1**
 - **Frontend / legacy TS:** Node.js v25+ (via nvm recommended) with Corepack (Yarn 4.11.0+)
 
+
 ## Active stack layout
 
 | Path | Role |
@@ -73,6 +74,20 @@ uv run pytest
 
 # format + lint + types (also via pre-commit)
 ./scripts/ci/backend-lint.sh
+```
+
+## Devcontainer customization
+
+Open the repo with **Dev Containers** (`.devcontainer/`).
+
+For personal shell setup (zsh, aliases, etc.), use a private **`~/dotfiles`** repo and Cursor **User** settings:
+
+```json
+{
+  "dotfiles.repository": "/Users/<you>/dotfiles",
+  "dotfiles.targetPath": "~/dotfiles",
+  "dotfiles.installCommand": "install.sh"
+}
 ```
 
 ## Legacy reference stack
