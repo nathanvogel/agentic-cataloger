@@ -2,48 +2,168 @@
 
 Closes TECH-002: disposable PostgreSQL 18.4, process-spawn/kill harness for PROC
 scenarios (Story 1.3 single-writer, GATE-03 P4 SIGKILL).
+
+Prefers testcontainers when a Docker daemon is reachable; otherwise falls back to
+dedicated ``*_test`` databases on an external Postgres (compose ``postgres:5432``
+or host ``localhost:3021``) so the suite does not mutate the live app DBs.
 """
 
 from __future__ import annotations
 
 import os
 import signal
+import socket
 import subprocess
 import sys
 import time
 from collections.abc import Generator, Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
 import psycopg
 import pytest
-from testcontainers.postgres import PostgresContainer
+from psycopg import sql
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
 POSTGRES_IMAGE = "postgres:18.4"
-MIGRATE_SUPERUSER = "postgresql://postgres:test@localhost:{port}/pricecomp_app"
-APP_RUNTIME = (
-    "postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_app"
-)
-PHOENIX_RUNTIME = "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@localhost:{port}/pricecomp_phoenix"
+APP_PASSWORD = "pricecomp_app_dev"
+PHOENIX_PASSWORD = "pricecomp_phoenix_dev"
+APP_DB = "pricecomp_app"
+PHOENIX_DB = "pricecomp_phoenix"
+APP_DB_TEST = "pricecomp_app_test"
+PHOENIX_DB_TEST = "pricecomp_phoenix_test"
 
 
-def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
+@dataclass(frozen=True)
+class PostgresHarness:
+    """Host/port/password/database names for integration fixtures."""
+
+    host: str
+    port: int
+    password: str
+    app_database: str = APP_DB
+    phoenix_database: str = PHOENIX_DB
+
+    def url(self, user: str, password: str, database: str) -> str:
+        """Build a libpq URL for this harness endpoint."""
+        return f"postgresql://{user}:{password}@{self.host}:{self.port}/{database}"
+
+    @property
+    def migrate_url(self) -> str:
+        """Superuser URL for migrate against the app database under test."""
+        return self.url("postgres", self.password, self.app_database)
+
+    @property
+    def app_url(self) -> str:
+        """Runtime app-role URL for the app database under test."""
+        return self.url("pricecomp_app", APP_PASSWORD, self.app_database)
+
+    @property
+    def phoenix_url(self) -> str:
+        """Runtime Phoenix-role URL for the Phoenix database under test."""
+        return self.url("pricecomp_phoenix", PHOENIX_PASSWORD, self.phoenix_database)
+
+    @property
+    def app_on_phoenix_url(self) -> str:
+        """App role pointed at the Phoenix DB under test (must be denied)."""
+        return self.url("pricecomp_app", APP_PASSWORD, self.phoenix_database)
+
+
+def bootstrap_gate02_roles(host: str, port: int, *, password: str = "test") -> None:
     """Mirror docker/postgres/init/01-roles.sql without psql meta-commands."""
-    admin = f"postgresql://postgres:{password}@localhost:{port}/postgres"
+    admin = f"postgresql://postgres:{password}@{host}:{port}/postgres"
     with psycopg.connect(admin, autocommit=True) as conn:
-        conn.execute("CREATE ROLE pricecomp_app LOGIN PASSWORD 'pricecomp_app_dev'")
+        conn.execute(f"CREATE ROLE pricecomp_app LOGIN PASSWORD '{APP_PASSWORD}'")
         conn.execute(
-            "CREATE ROLE pricecomp_phoenix LOGIN PASSWORD 'pricecomp_phoenix_dev'"
+            f"CREATE ROLE pricecomp_phoenix LOGIN PASSWORD '{PHOENIX_PASSWORD}'"
         )
-        conn.execute("CREATE DATABASE pricecomp_app")
-        conn.execute("CREATE DATABASE pricecomp_phoenix OWNER pricecomp_phoenix")
-        conn.execute("REVOKE ALL ON DATABASE pricecomp_app FROM PUBLIC")
-        conn.execute("REVOKE ALL ON DATABASE pricecomp_phoenix FROM PUBLIC")
-        conn.execute("GRANT CONNECT ON DATABASE pricecomp_app TO pricecomp_app")
-        conn.execute("GRANT CONNECT ON DATABASE pricecomp_phoenix TO pricecomp_phoenix")
+        _create_database(conn, APP_DB)
+        _create_database(conn, PHOENIX_DB, owner="pricecomp_phoenix")
+        _apply_database_connect_grants(conn, APP_DB, PHOENIX_DB)
 
-    app_admin = f"postgresql://postgres:{password}@localhost:{port}/pricecomp_app"
+    _grant_app_schema_privileges(host, port, password, APP_DB)
+    _grant_phoenix_schema_privileges(host, port, password, PHOENIX_DB)
+
+
+def ensure_external_test_databases(harness: PostgresHarness) -> None:
+    """Create isolated ``*_test`` DBs on shared Postgres; leave live DBs alone."""
+    admin = harness.url("postgres", harness.password, "postgres")
+    with psycopg.connect(admin, autocommit=True) as conn:
+        for role in ("pricecomp_app", "pricecomp_phoenix"):
+            row = conn.execute(
+                "SELECT 1 FROM pg_roles WHERE rolname = %s", (role,)
+            ).fetchone()
+            if row is None:
+                msg = (
+                    f"GATE-02 role {role!r} missing on {harness.host}:{harness.port} — "
+                    "run compose init or ./scripts/ci/backend-test.sh first"
+                )
+                raise RuntimeError(msg)
+
+        _create_database(conn, harness.app_database)
+        _create_database(conn, harness.phoenix_database, owner="pricecomp_phoenix")
+        _apply_database_connect_grants(
+            conn, harness.app_database, harness.phoenix_database
+        )
+
+    _grant_app_schema_privileges(
+        harness.host, harness.port, harness.password, harness.app_database
+    )
+    _grant_phoenix_schema_privileges(
+        harness.host, harness.port, harness.password, harness.phoenix_database
+    )
+
+
+def _create_database(
+    conn: psycopg.Connection,
+    name: str,
+    *,
+    owner: str | None = None,
+) -> None:
+    exists = conn.execute(
+        "SELECT 1 FROM pg_database WHERE datname = %s", (name,)
+    ).fetchone()
+    if exists is not None:
+        return
+    if owner is None:
+        conn.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+        return
+    conn.execute(
+        sql.SQL("CREATE DATABASE {} OWNER {}").format(
+            sql.Identifier(name),
+            sql.Identifier(owner),
+        )
+    )
+
+
+def _apply_database_connect_grants(
+    conn: psycopg.Connection,
+    app_database: str,
+    phoenix_database: str,
+) -> None:
+    for database in (app_database, phoenix_database):
+        conn.execute(
+            sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(
+                sql.Identifier(database)
+            )
+        )
+    conn.execute(
+        sql.SQL("GRANT CONNECT ON DATABASE {} TO pricecomp_app").format(
+            sql.Identifier(app_database)
+        )
+    )
+    conn.execute(
+        sql.SQL("GRANT CONNECT ON DATABASE {} TO pricecomp_phoenix").format(
+            sql.Identifier(phoenix_database)
+        )
+    )
+
+
+def _grant_app_schema_privileges(
+    host: str, port: int, password: str, database: str
+) -> None:
+    app_admin = f"postgresql://postgres:{password}@{host}:{port}/{database}"
     with psycopg.connect(app_admin, autocommit=True) as conn:
         conn.execute("GRANT USAGE ON SCHEMA public TO pricecomp_app")
         conn.execute(
@@ -55,13 +175,16 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
             "GRANT USAGE, SELECT ON SEQUENCES TO pricecomp_app"
         )
 
-    phoenix_admin = (
-        f"postgresql://postgres:{password}@localhost:{port}/pricecomp_phoenix"
-    )
+
+def _grant_phoenix_schema_privileges(
+    host: str, port: int, password: str, database: str
+) -> None:
+    phoenix_admin = f"postgresql://postgres:{password}@{host}:{port}/{database}"
     with psycopg.connect(phoenix_admin, autocommit=True) as conn:
         conn.execute("GRANT ALL ON SCHEMA public TO pricecomp_phoenix")
         conn.execute(
-            "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO pricecomp_phoenix"
+            "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
+            "GRANT ALL ON TABLES TO pricecomp_phoenix"
         )
         conn.execute(
             "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
@@ -69,36 +192,85 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
         )
 
 
-def _run_init_sql(port: int) -> None:
-    bootstrap_gate02_roles(port)
+def _docker_reachable() -> bool:
+    try:
+        import docker
+        from docker.errors import DockerException
+    except ImportError:
+        return False
+    try:
+        docker.from_env().ping()
+    except DockerException, OSError:
+        return False
+    return True
+
+
+def _tcp_open(host: str, port: int, *, timeout_s: float = 1.0) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout_s):
+            return True
+    except OSError:
+        return False
+
+
+def _resolve_external_postgres() -> PostgresHarness | None:
+    """Match scripts/ci/backend-test.sh host detection; target isolated ``*_test`` DBs."""
+    password = os.environ.get("PGPASSWORD", "postgres")
+    kwargs = {
+        "password": password,
+        "app_database": APP_DB_TEST,
+        "phoenix_database": PHOENIX_DB_TEST,
+    }
+    if host := os.environ.get("PGHOST"):
+        port = int(os.environ.get("PGPORT", "5432"))
+        if _tcp_open(host, port):
+            return PostgresHarness(host=host, port=port, **kwargs)
+        return None
+    if _tcp_open("postgres", 5432):
+        return PostgresHarness(host="postgres", port=5432, **kwargs)
+    if _tcp_open("localhost", 3021):
+        return PostgresHarness(host="localhost", port=3021, **kwargs)
+    return None
 
 
 @pytest.fixture(scope="session")
-def postgres_container() -> Generator[PostgresContainer, None, None]:
-    with PostgresContainer(
-        POSTGRES_IMAGE, username="postgres", password="test"
-    ) as postgres:
-        port = int(postgres.get_exposed_port(5432))
-        _run_init_sql(port)
-        yield postgres
+def postgres() -> Generator[PostgresHarness, None, None]:
+    """Disposable Postgres via testcontainers, or ``*_test`` DBs when Docker is absent."""
+    if _docker_reachable():
+        from testcontainers.postgres import PostgresContainer
+
+        with PostgresContainer(
+            POSTGRES_IMAGE, username="postgres", password="test"
+        ) as container:
+            host = container.get_container_host_ip()
+            port = int(container.get_exposed_port(5432))
+            bootstrap_gate02_roles(host, port, password="test")
+            yield PostgresHarness(host=host, port=port, password="test")
+        return
+
+    external = _resolve_external_postgres()
+    if external is None:
+        pytest.fail(
+            "No Docker daemon and no external Postgres "
+            "(set PGHOST/PGPORT, or start compose postgres / localhost:3021)"
+        )
+    ensure_external_test_databases(external)
+    yield external
 
 
 @pytest.fixture
-def migrate_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return MIGRATE_SUPERUSER.format(port=port)
+def migrate_url(postgres: PostgresHarness) -> str:
+    return postgres.migrate_url
 
 
 @pytest.fixture
-def app_database_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return APP_RUNTIME.format(port=port)
+def app_database_url(postgres: PostgresHarness) -> str:
+    return postgres.app_url
 
 
 @pytest.fixture
-def phoenix_database_url(postgres_container: PostgresContainer) -> str:
-    port = int(postgres_container.get_exposed_port(5432))
-    return PHOENIX_RUNTIME.format(port=port)
+def phoenix_database_url(postgres: PostgresHarness) -> str:
+    return postgres.phoenix_url
 
 
 @pytest.fixture

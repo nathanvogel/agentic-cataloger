@@ -144,3 +144,11 @@ docker compose --profile api up -d
 | **3020** | Python API |
 | **3021** | PostgreSQL 18.4 (`pricecomp_app`, `pricecomp_phoenix`) |
 | **3022** | Phoenix UI |
+
+## Inspect DB from the host
+
+Superuser URL (GUI/`psql`, SSL off):
+
+```
+postgresql://postgres:postgres@127.0.0.1:3021/pricecomp_app?sslmode=disable
+```

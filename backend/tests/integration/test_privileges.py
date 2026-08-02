@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import psycopg
 import pytest
-from testcontainers.postgres import PostgresContainer
-from tests.conftest import BACKEND_ROOT, REPO_ROOT
+from tests.conftest import BACKEND_ROOT, REPO_ROOT, PostgresHarness
 
 
 @pytest.mark.integration
@@ -17,14 +16,10 @@ def test_int_003_app_role_cannot_create_database(app_database_url: str) -> None:
 
 
 @pytest.mark.integration
-def test_int_004_app_role_cannot_access_phoenix_db(
-    postgres_container: PostgresContainer,
-) -> None:
+def test_int_004_app_role_cannot_access_phoenix_db(postgres: PostgresHarness) -> None:
     """App role cannot connect to the Phoenix database."""
-    port = int(postgres_container.get_exposed_port(5432))
-    app_on_phoenix_db = f"postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_phoenix"
     with pytest.raises(psycopg.Error):
-        with psycopg.connect(app_on_phoenix_db, connect_timeout=3) as conn:
+        with psycopg.connect(postgres.app_on_phoenix_url, connect_timeout=3) as conn:
             conn.execute("SELECT 1")
 
 
