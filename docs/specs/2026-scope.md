@@ -79,7 +79,7 @@
 - **Eval / observability MVP:** golden assign set (E1), per-stage evals (E2), average cost per item (E3), model/context bakeoff (E5) — on **self-hosted Arize Phoenix** (single platform; no custom run UI)
 - **Human loop surfaces:** H1 and H2 are first-party, not vendor label queues. H1 is **read-only in MVP** — list, filter, inspect payload, open Phoenix trace; re-drive is a CLI command. Its job is to show *where* the agent fails; reviewer domain writes deferred
 - **Capability surface:** start at MCP / tool calls (O1) as a **thin** adapter over one command layer; O2/O3 only if a concrete limit appears
-- **Runtime:** single operator, single worker. Enforced by a Postgres advisory lock at worker startup so a second worker fails to boot instead of silently corrupting taxonomy topology and eval baselines
+- **Runtime:** single operator, no job queue. Ingest/pipeline/hygiene runs are triggered directly (CLI today) and run to completion; taxonomy-mutating commands take a Postgres advisory lock for their duration so an overlapping run fails loudly instead of corrupting topology. LangGraph node-level `RetryPolicy` (plus the LangChain provider clients' own retry/backoff) covers transient LLM failures — no durable dispatch layer needed for that
 - **Cutover:** fresh rebuild — provision new databases and replay one immutable source manifest; legacy stays read-only and the frontend stays on the legacy API. Recovery is re-import
 - **Providers:** two LLM provider adapters; E5 needs no more
 - **Portfolio showcase:** inspectable agent runs in Phoenix + shareable bakeoff metrics (2 control-flow × 2 supply under the same harness)
@@ -100,6 +100,7 @@ Cut on 2026-08-01 to shorten time-to-first-graph. Each has a revisit condition; 
 | Indexed comparison-price projection (revision-linked, fail-closed, generation switch) | Derive-on-read comparison queries are measured too slow at the target catalog size |
 | Snapshot completeness attestation, absence-driven deactivation, replay-ordering equality | A second source adapter, or a source that genuinely delists products, is onboarded |
 | Concurrency machinery: taxonomy topology CAS, generation watermarks, leases/fencing, transaction-joining queue producer | More than one worker or writer runs concurrently — the advisory lock makes this a deliberate choice |
+| Durable job queue (PgQueuer) for dispatch, retry, and a separate `worker` role | Scheduled/unattended triggering is wanted (cron ingest, automatic hygiene) or more than one trigger source runs concurrently — MVP triggers everything by direct, synchronous command invocation |
 | Reviewer domain writes in H1 (leaf reassign, trait edit, evidence accept/reject) | The read-only queue proves worth acting on in-app rather than by CLI |
 | Periodic scheduled hygiene (M2) | Post-bulk hygiene is shown to miss drift between runs |
 | Gated cutover ceremony: freeze/restore drill, reconciliation gates, observation window, routing rollback | The system holds data that cannot be recovered by re-import |

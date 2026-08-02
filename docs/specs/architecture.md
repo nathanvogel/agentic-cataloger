@@ -11,7 +11,6 @@ Condensed from BMAD's architecture spine (now deleted). Companion to [2026-scope
 | PostgreSQL | 18.4 |
 | LangGraph | 1.2.10 |
 | langgraph-checkpoint-postgres | 3.1.1 |
-| PgQueuer | 1.3.2 |
 | SQLAlchemy `[asyncio]` | 2.0.51 |
 | Alembic | 1.18.5 |
 | Psycopg `[binary]` | 3.3.4 |
@@ -44,15 +43,15 @@ frontend/
 legacy/            # frozen old TypeScript backend + data importer
 ```
 
-Hexagonal, vertical-package monolith: `catalog`/`taxonomy`/`enrichment`/`review`/`pipeline`/`comparison`/`evaluation` are pure domain + application code with **zero** imports of FastAPI, SQLAlchemy, LangGraph, LangChain, PgQueuer, Phoenix, or OpenTelemetry. All of that lives in `platform/` adapters. Domain operations take facts and return new state/rejection/events; transactions, clocks, IDs, and telemetry are the application/adapter layer's job.
+Hexagonal, vertical-package monolith: `catalog`/`taxonomy`/`enrichment`/`review`/`pipeline`/`comparison`/`evaluation` are pure domain + application code with **zero** imports of FastAPI, SQLAlchemy, LangGraph, LangChain, Phoenix, or OpenTelemetry. All of that lives in `platform/` adapters. Domain operations take facts and return new state/rejection/events; transactions, clocks, IDs, and telemetry are the application/adapter layer's job.
 
 ```mermaid
 flowchart TB
   rest["FastAPI REST adapter"] --> app["Application commands and queries"]
   mcp["Curated FastMCP adapter"] --> app
   cli["CLI adapter"] --> app
-  lg["LangGraph workflows"] --> app
-  jobs["PgQueuer handlers"] --> lg
+  app --> lg["LangGraph workflows"]
+  lg --> app
   app --> domain["Pure domain"]
   app --> ports["Application ports"]
   persistence["SQLAlchemy/Psycopg adapters"] -.->|implements| ports
@@ -64,11 +63,11 @@ flowchart TB
 
 ## Runtime & process
 
-- One backend image exposes `api`, `worker`, `migrate` commands. No Redis, no separate workflow runtime — PgQueuer + LangGraph checkpoints live in the same Postgres instance.
-- **Single operator, single worker in MVP**, enforced mechanically: a worker takes a Postgres advisory lock at startup; a second worker exits with a distinct error instead of running. This is what lets us skip taxonomy compare-and-set, generation watermarks, leases, and fencing tokens for now — that machinery comes back the moment a real second writer shows up.
-- PgQueuer dispatches durable work (pipeline runs, re-drive, maintenance, cleanup). Enqueue happens **after** the triggering transaction commits; handlers are idempotent, so a lost or duplicated enqueue is safe — no transaction-joining producer bridge. Work states: `pending`/`running`/`retry_wait`/`completed`/`failed`/`cancelled`. Retry: 5 exponential-backoff attempts with full jitter, capped at 15 min, for *transient infra* failures only — a deterministic `invalid`/`defer` outcome never auto-retries.
-- **Command-only mutation.** Every business operation goes through exactly one application command handler in one Unit of Work. No adapter — REST, MCP, CLI, agent, LangGraph node, job handler — touches SQL directly, and none may chain several commands to fake one atomic op.
-- **Idempotency.** Commands are keyed by `(command_type, caller, key)` plus a canonical payload hash. Replaying a known key returns the stored terminal result rather than re-running side effects; the same key with a changed payload is rejected.
+- One backend image exposes `api` and `migrate` commands. No Redis, no job queue, no separate `worker` role. Ingest runs, pipeline runs, hygiene, and cleanup are invoked directly — CLI today, optionally REST/MCP-triggered later — as application commands that run synchronously to completion. A `worker` entrypoint exists as an inert stub in code; it isn't the dispatch mechanism.
+- **Single operator in MVP**, by discipline rather than a scheduler: don't kick off two overlapping pipeline/hygiene runs. Commands that mutate taxonomy-wide state (hygiene, reparent/merge) take a Postgres advisory lock for the duration of the run so a second overlapping invocation fails loudly instead of racing — this is the one piece of the old "mechanically enforced" single-writer story worth keeping without a worker process behind it.
+- Retrying a flaky LLM call is a LangGraph concern, not a queue concern: nodes carry a `RetryPolicy`, and the LangChain provider clients already retry/back off on transient rate-limit and network errors underneath that. A durable job queue (PgQueuer) is deferred — see [2026-scope.md § Deferred from MVP](2026-scope.md#deferred-from-mvp-deferred-not-killed) for when to reach for it.
+- **Command-only mutation.** Every business operation goes through exactly one application command handler in one Unit of Work. No adapter — REST, MCP, CLI, agent, LangGraph node — touches SQL directly, and none may chain several commands to fake one atomic op.
+- **Idempotency.** Commands are keyed by `(command_type, caller, key)` plus a canonical payload hash. Replaying a known key returns the stored terminal result rather than re-running side effects; the same key with a changed payload is rejected. This is what makes re-running a CLI invocation after a crash safe, independent of whether anything durable sits in front of the command.
 
 ## Catalog & ingest
 
@@ -110,8 +109,8 @@ flowchart TB
 
 ```text
 REST / thin MCP / CLI
-  → shared application commands
-  → PgQueuer job (enqueued after commit, idempotent handler) → LangGraph workflow
+  → shared application commands (idempotent, safe to re-run)
+  → LangGraph workflow
   → discover/create | assign | extract
   → category search + product supply
   → deterministic validators + evidence_span; unknown → deferred queue

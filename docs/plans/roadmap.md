@@ -4,7 +4,7 @@ Condensed from BMAD's epics.md (2440 lines, 58 FRs, 31 NFRs, full Gherkin ACs pe
 
 Status as of 2026-08-01: only Epic 1 has started.
 
-**Scope cuts from the original BMAD plan** (see bottom of Epic 5 and Epic 6 for details): the Deferred review page loses its dedicated design-token/keyboard-nav/responsive/"hold contract" stories — it's one small read-only page, not a design system. The eval/bakeoff epic loses the full 2×2 isolated-database bakeoff machinery until one workflow shape actually works end to end — comparing variants only pays off once there's something to compare.
+**Scope cuts from the original BMAD plan** (see bottom of Epic 5 and Epic 6 for details): the Deferred review page loses its dedicated design-token/keyboard-nav/responsive/"hold contract" stories — it's one small read-only page, not a design system. The eval/bakeoff epic loses the full 2×2 isolated-database bakeoff machinery until one workflow shape actually works end to end — comparing variants only pays off once there's something to compare. **PgQueuer is cut from Epic 1** (2026-08-02): no durable job queue, no separate `worker` role — ingest/pipeline/hygiene run as direct, synchronous, idempotent command invocations, and LangGraph's per-node `RetryPolicy` covers flaky LLM calls. Revisit if scheduled/unattended triggering is ever wanted; see [../specs/2026-scope.md § Deferred from MVP](../specs/2026-scope.md#deferred-from-mvp-deferred-not-killed).
 
 ## Order
 
@@ -17,17 +17,16 @@ Epic 3 doesn't need an LLM at all (extraction is deterministic-first), so compar
 
 ## Epic 1 — Runnable Python stack + non-destructive ingest
 
-Boot `api`/`worker`/`migrate` against Postgres + Phoenix, and pull products into the new catalog through one ingest primitive, without ever wiping enrichment on re-import (the D6 bug).
+Boot `api`/`migrate` against Postgres + Phoenix, and pull products into the new catalog through one ingest primitive, without ever wiping enrichment on re-import (the D6 bug).
 
 - [x] **1.1** Relocate legacy TypeScript under `/legacy`, seed `/backend` as the Python monolith root.
-- [x] **1.2** Run the stack locally with `api`/`worker`/`migrate` role commands via Compose.
-- [ ] **1.2a** *(ready for dev)* Prove PgQueuer completion reliance (GATE-03 spike) — enqueue-after-commit recovery, crash recovery, cancellation, trace propagation on a single worker. Blocks everything below.
-- [ ] **1.3** Enforce the single-writer advisory lock at worker startup.
+- [x] **1.2** Run the stack locally with `api`/`migrate` role commands via Compose (`worker` exists as an inert stub — not the dispatch mechanism, see the PgQueuer cut above).
+- [ ] **1.3** Guard taxonomy-mutating commands (hygiene, reparent/merge) with a Postgres advisory lock for their duration, so an overlapping run fails loudly instead of racing.
 - [ ] **1.4** Register immutable catalog snapshots and import products under durable source identity.
 - [ ] **1.5** Ingest selection primitive — bulk / single / filtered through one code path.
 - [ ] **1.6** Revisioned shelf prices (kind + one current row per kind).
 - [ ] **1.7** D6 regression test: re-import never wipes enrichment-owned attributes.
-- [ ] **1.8** Idempotent commands + durable PgQueuer dispatch with the central retry policy.
+- [ ] **1.8** Idempotent commands — safe to re-run a CLI invocation after a crash without duplicating effects.
 - [ ] **1.9** Fresh-rebuild cutover: replay the immutable source manifest into new databases.
 
 ## Epic 2 — Substitutability taxonomy
