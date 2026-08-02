@@ -1,10 +1,17 @@
 {
   "name": "pricecomp",
-  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.dev.yml"],
+  "dockerComposeFile": [
+    "../docker-compose.yml",
+    "docker-compose.dev.yml"
+  ],
   "service": "api",
   "workspaceFolder": "/workspaces/pricecomp",
   "shutdownAction": "stopCompose",
-  "runServices": ["postgres", "phoenix", "api"],
+  "runServices": [
+    "postgres",
+    "phoenix",
+    "api"
+  ],
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
   // Sync host Claude Code prefs/auth into the container (same account as on the Mac).
   "mounts": [
@@ -15,13 +22,29 @@
   // compose services with their own host publishes (3021:5432, 3022:6006). If the
   // IDE auto-forwards those onto the api container (where nothing listens), Mac
   // clients get TCP-up then "server closed the connection unexpectedly".
-  "appPort": ["3020:3020", "3023:3023"],
-  "forwardPorts": [3020, 3023],
+  "appPort": [
+    "3020:3020",
+    "3023:3023"
+  ],
+  "forwardPorts": [
+    3020,
+    3023
+  ],
   "portsAttributes": {
-    "3020": { "label": "Python API (pricecomp api)" },
-    "3021": { "label": "PostgreSQL 18.4", "onAutoForward": "ignore" },
-    "3022": { "label": "Phoenix UI", "onAutoForward": "ignore" },
-    "3023": { "label": "Frontend Vite" }
+    "3020": {
+      "label": "Python API (pricecomp api)"
+    },
+    "3021": {
+      "label": "PostgreSQL 18.4",
+      "onAutoForward": "ignore"
+    },
+    "3022": {
+      "label": "Phoenix UI",
+      "onAutoForward": "ignore"
+    },
+    "3023": {
+      "label": "Frontend Vite"
+    }
   },
   "otherPortsAttributes": {
     "onAutoForward": "ignore"
