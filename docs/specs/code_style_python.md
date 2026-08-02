@@ -27,8 +27,13 @@ This document defines the standard Python coding style for all Python projects d
   # ERA: eradicate (commented-out code detection)
   # FAST: FastAPI-specific rules
   # G: flake8-logging-format (logging best practices)
-  lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G"]
+  # S: flake8-bandit (security)
+  # C901: mccabe cyclomatic complexity
+  lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G", "S", "C901"]
   target-version = "py314"
+
+  [tool.ruff.lint.mccabe]
+  max-complexity = 10
 
   [tool.ruff.format]
   docstring-code-format=true
@@ -44,6 +49,10 @@ This document defines the standard Python coding style for all Python projects d
   reportMissingSuperCall = "error"
   reportMissingParameterType = "error"
   ```
+- **jscpd**: Copy/paste detection on `backend/src` (config: repo-root `.jscpd.json`). Runs via `./scripts/ci/backend-lint.sh` and pre-commit.
+- **For substantial projects**:
+  - **import-linter**: enforce package boundaries (e.g. `domain ↛ platform` and vendor adapters).
+  - **Unused-export analyzer** (e.g. vulture): Knip-style dead public API detection.
 - **Pre-commit Hooks**: Configured at repo root (`.pre-commit-config.yaml`). Install once with `uv run --directory backend pre-commit install`. Manual full-tree run: `./scripts/ci/backend-lint.sh` or `uv run --directory backend pre-commit run --all-files`. CLI details live in [`backend/README.md`](../../backend/README.md).
   
 ## 3. Naming Conventions

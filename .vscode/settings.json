@@ -31,6 +31,7 @@
     "langchain",
     "langgraph",
     "libatomic",
+    "mccabe",
     "openinference",
     "Perflint",
     "PGQUEUER",

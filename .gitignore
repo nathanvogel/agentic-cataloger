@@ -22,3 +22,6 @@ build/
 coverage*.xml
 htmlcov/
 .python-version.local
+
+# jscpd duplication reports
+report/

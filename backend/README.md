@@ -7,7 +7,7 @@ Python monolith — operational shell (Story 1.2).
 - **CPython** (non-free-threaded, not `3.14t`)
 - **uv** (required for lock generation / sync)
 - **pytest** integration harness (testcontainers PostgreSQL 18.4)
-- **Ruff** (format + lint) and **Pyright** (types), see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
+- **Ruff** (format + lint, including Bandit `S` + McCabe `C901`), **Pyright** (types), and **jscpd** (duplication) — see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
 
 ```bash
 cd backend
@@ -69,10 +69,18 @@ uv sync --group dev
 
 uv run ruff format .          # rewrite formatting
 uv run ruff format --check .  # CI-style: fail if rewrite needed
-uv run ruff check .           # lint
+uv run ruff check .           # lint (includes S security + C901 complexity)
 uv run ruff check --fix .     # lint + apply safe autofixes
 uv run pyright                # static types
+
+# from repo root — needs Node/npx
+npx --yes jscpd@4.0.5 backend/src --config .jscpd.json
 ```
+
+Not wired yet (add once packages have real code, not empty seeds):
+
+- **import-linter** — enforce hexagonal boundaries (`domain ↛ platform` / vendor adapters); vacuous today
+- **unused-export analyser** (e.g. vulture) — Knip-style dead public API; noisy until there is a public surface
 
 ### Pre-commit
 

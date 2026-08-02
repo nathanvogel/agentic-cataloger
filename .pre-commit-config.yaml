@@ -1,4 +1,4 @@
-# Pre-commit hooks for the Python backend (Ruff + Pyright).
+# Pre-commit hooks for the Python backend (Ruff + Pyright + jscpd).
 # Install once (from repo root):  uv run --directory backend pre-commit install
 # Run manually:                    ./scripts/ci/backend-lint.sh
 # Or:                              uv run --directory backend pre-commit run --all-files
@@ -29,4 +29,11 @@ repos:
         language: system
         files: ^backend/
         types_or: [python, pyi]
+        pass_filenames: false
+
+      - id: jscpd
+        name: jscpd
+        entry: npx --yes jscpd@4.0.5 backend/src --config .jscpd.json
+        language: system
+        files: ^backend/src/.*\.py$
         pass_filenames: false

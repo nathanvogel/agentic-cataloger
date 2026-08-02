@@ -52,7 +52,13 @@ def run_migrate() -> int:
     return 0
 
 
-def _wait_for_database(url: str, *, attempts: int = 30, delay_s: float = 1.0) -> None:
+def _wait_for_database(
+    url: str,
+    *,
+    attempts: int = 30,
+    delay_s: float = 1.0,
+    label: str = "database",
+) -> None:
     last_error: Exception | None = None
     for _ in range(attempts):
         try:
@@ -62,7 +68,7 @@ def _wait_for_database(url: str, *, attempts: int = 30, delay_s: float = 1.0) ->
         except Exception as exc:
             last_error = exc
             time.sleep(delay_s)
-    raise RuntimeError(f"database not ready: {last_error}")
+    raise RuntimeError(f"{label} not ready: {last_error}")
 
 
 def _verify_databases_exist(migrate_url: str) -> None:
@@ -178,24 +184,13 @@ def _phoenix_database_url() -> str | None:
 
 
 def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> None:
-    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer).
-
-    Raises:
-        RuntimeError: If the database never becomes reachable.
-    """
+    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer)."""
     url = _phoenix_database_url()
     if not url:
         return
-    last_error: Exception | None = None
-    for _ in range(attempts):
-        try:
-            with psycopg.connect(url, autocommit=True) as conn:
-                conn.execute("SELECT 1")
-            return
-        except Exception as exc:
-            last_error = exc
-            time.sleep(delay_s)
-    raise RuntimeError(f"phoenix database not ready: {last_error}")
+    _wait_for_database(
+        url, attempts=attempts, delay_s=delay_s, label="phoenix database"
+    )
 
 
 def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:

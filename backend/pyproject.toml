@@ -99,6 +99,8 @@ src = ["src"]
 # ERA: eradicate (commented-out code detection)
 # FAST: FastAPI-specific rules
 # G: flake8-logging-format (logging best practices)
+# S: flake8-bandit (security)
+# C901: mccabe cyclomatic complexity
 preview = true
 select = [
     "E",
@@ -119,7 +121,12 @@ select = [
     "ERA",
     "FAST",
     "G",
+    "S",
+    "complex-structure",
 ]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -134,6 +141,7 @@ docstring-code-line-length = "dynamic"
     "module-import-not-at-top-of-file",
     "D",
     "DOC",
+    "S",        # asserts / test fixtures trip bandit hard
     "line-too-long",     # long assertion / URL strings
     "magic-value-comparison",  # magic values in assertions are fine
     "ARG",      # fixtures / unused params in test signatures
@@ -149,9 +157,14 @@ docstring-code-line-length = "dynamic"
 "src/pricecomp/platform/cli.py" = [
     "import-outside-top-level",  # lazy role imports keep unused roles unloaded
 ]
+"src/pricecomp/platform/roles/api.py" = [
+    "hardcoded-bind-all-interfaces",  # bind 0.0.0.0 — intentional for container/host publish
+]
 "src/pricecomp/platform/roles/migrate.py" = [
     "import-outside-top-level",  # pgqueuer import deferred until install step
     "too-many-statements-in-try-clause",  # bootstrap try wraps the full ordered sequence
+    "suspicious-subprocess-import",  # subprocess used to invoke alembic with fixed argv
+    "subprocess-without-shell-equals-true",  # subprocess.run with trusted fixed command list
 ]
 
 [tool.pyright]
