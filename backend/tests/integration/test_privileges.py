@@ -10,6 +10,7 @@ from tests.conftest import BACKEND_ROOT, REPO_ROOT
 
 @pytest.mark.integration
 def test_int_003_app_role_cannot_create_database(app_database_url: str) -> None:
+    """App role lacks CREATEDB — CREATE DATABASE must fail."""
     with pytest.raises(psycopg.errors.InsufficientPrivilege):
         with psycopg.connect(app_database_url, autocommit=True) as conn:
             conn.execute("CREATE DATABASE should_fail")
@@ -19,6 +20,7 @@ def test_int_003_app_role_cannot_create_database(app_database_url: str) -> None:
 def test_int_004_app_role_cannot_access_phoenix_db(
     postgres_container: PostgresContainer,
 ) -> None:
+    """App role cannot connect to the Phoenix database."""
     port = int(postgres_container.get_exposed_port(5432))
     app_on_phoenix_db = f"postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_phoenix"
     with pytest.raises(psycopg.Error):
@@ -31,6 +33,7 @@ def test_int_008_app_role_cannot_ddl_vendor_schemas(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
+    """App role cannot CREATE TABLE in vendor schemas (pgqueuer, langgraph)."""
     with psycopg.connect(app_database_url, autocommit=True) as conn:
         for schema in ("pgqueuer", "langgraph"):
             with pytest.raises(psycopg.Error):
@@ -42,6 +45,7 @@ def test_int_009_migrate_credentials_absent_from_api_worker_env(
     app_database_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """MIGRATE_DATABASE_URL is absent from api/worker source and compose blocks."""
     monkeypatch.delenv("MIGRATE_DATABASE_URL", raising=False)
     monkeypatch.setenv("DATABASE_URL", app_database_url)
     api_source = (

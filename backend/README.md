@@ -12,8 +12,46 @@ Python monolith — operational shell (Story 1.2).
 ```bash
 cd backend
 uv sync
-uv run pytest
 ```
+
+## Tests
+
+Prefer the portable CI script from repo root when you want the full gate (unit → migrate twice → integration → live `/health` + `/ready`):
+
+```bash
+# Needs Postgres on localhost:3021 (compose or CI service)
+./scripts/ci/backend-test.sh
+```
+
+Or run pytest directly from `backend/`:
+
+```bash
+cd backend
+uv sync --group dev
+
+# Domain / unit (static + import smoke — no Postgres required)
+uv run pytest tests/domain -q   # -q = quiet (dots instead of each test name)
+
+# Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
+uv run pytest tests/integration -q
+
+# Everything under tests/
+uv run pytest -q
+
+# With coverage
+uv run pytest tests/domain -q --cov=pricecomp --cov-report=term-missing
+uv run pytest tests/integration -q --cov=pricecomp --cov-append --cov-report=term-missing
+```
+
+Pytest **markers** are labels on tests (`@pytest.mark.integration`, `@pytest.mark.proc`) so you can select subsets:
+
+```bash
+uv run pytest -m integration -q
+uv run pytest -m proc -q
+uv run pytest -m "not proc" -q
+```
+
+`integration` = needs Postgres. `proc` = spawns a real `pricecomp <role>` subprocess.
 
 ## Lint & typecheck
 

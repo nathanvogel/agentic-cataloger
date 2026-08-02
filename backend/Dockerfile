@@ -37,6 +37,7 @@ RUN apt-get update \
         git \
         git-lfs \
         openssh-client \
+        postgresql-client \
         ripgrep \
         xz-utils \
     && case "${TARGETARCH}" in \

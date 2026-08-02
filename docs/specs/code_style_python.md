@@ -28,7 +28,7 @@ This document defines the standard Python coding style for all Python projects d
   # FAST: FastAPI-specific rules
   # G: flake8-logging-format (logging best practices)
   lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G"]
-  target-version = "py313"
+  target-version = "py314"
 
   [tool.ruff.format]
   docstring-code-format=true

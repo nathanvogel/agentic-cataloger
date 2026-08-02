@@ -13,6 +13,7 @@ from tests.conftest import spawn_role, wait_for_http
 def test_proc_001_migrate_exits_zero(
     migrate_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Spawned `pricecomp migrate` exits 0 on a ready database."""
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
     proc = spawn_role("migrate")
     stdout, stderr = proc.communicate(timeout=120)
@@ -24,6 +25,7 @@ def test_proc_002_worker_starts_and_stops(
     app_database_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Spawned worker stays up until SIGTERM, then exits 0."""
     monkeypatch.setenv("DATABASE_URL", app_database_url)
     proc = spawn_role("worker")
     time.sleep(1.0)
@@ -39,6 +41,7 @@ def test_proc_003_api_health_on_3020(
     app_database_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    """Spawned API serves `/health` and `/ready` on port 3020."""
     monkeypatch.setenv("DATABASE_URL", app_database_url)
     proc = spawn_role("api")
     try:

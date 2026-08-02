@@ -18,5 +18,7 @@ __pycache__/
 *.egg
 build/
 .coverage
+.coverage.*
+coverage*.xml
 htmlcov/
 .python-version.local

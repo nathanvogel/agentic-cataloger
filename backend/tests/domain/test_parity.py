@@ -18,6 +18,7 @@ COMPOSE_FILE = REPO_ROOT / "docker-compose.yml"
 
 
 def test_unit_002_no_redis_or_external_workflow_runtime() -> None:
+    """Lockfile must not pull Redis, Celery, or LangGraph Server/CLI."""
     lock = LOCKFILE.read_text()
     forbidden = ("redis", "celery", "langgraph-cli", "langgraph-server")
     for name in forbidden:
@@ -36,6 +37,7 @@ def _load_jsonc(path: Path) -> object:
 
 
 def test_unit_003_devcontainer_ci_postgres_and_role_parity() -> None:
+    """Devcontainer, CI, and compose agree on Postgres 18.4 and role commands."""
     compose = yaml.safe_load(COMPOSE_FILE.read_text())
     assert compose["services"]["postgres"]["image"] == "postgres:18.4"
 

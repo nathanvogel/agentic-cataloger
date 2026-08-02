@@ -8,6 +8,7 @@ import pytest
 
 @pytest.mark.integration
 def test_int_001_bootstrap_creates_vendor_schemas(migrated_database: str) -> None:
+    """Migrate leaves alembic_version plus pgqueuer and langgraph schemas."""
     with psycopg.connect(migrated_database, autocommit=True) as conn:
         version = conn.execute(
             "SELECT version_num FROM public.alembic_version"
@@ -25,6 +26,7 @@ def test_int_001_bootstrap_creates_vendor_schemas(migrated_database: str) -> Non
 def test_int_002_migrate_is_idempotent(
     migrate_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Running migrate twice against the same DB exits zero both times."""
     from pricecomp.platform.roles.migrate import run_migrate
 
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
