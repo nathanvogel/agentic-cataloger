@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import LiteralString, cast
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -18,9 +19,16 @@ BACKEND_ROOT = Path(__file__).resolve().parents[4]
 PGQUEUER_SCHEMA = "pgqueuer"
 LANGGRAPH_SCHEMA = "langgraph"
 APP_ROLE = "pricecomp_app"
+HTTP_OK = 200
+HTTP_REDIRECT = 300
 
 
 def run_migrate() -> int:
+    """Run NFR19 bootstrap and return a process exit code.
+
+    Returns:
+        `0` on success, `1` on configuration or bootstrap failure.
+    """
     migrate_url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not migrate_url:
         print("MIGRATE_DATABASE_URL is required for migrate role", file=sys.stderr)
@@ -36,7 +44,7 @@ def run_migrate() -> int:
         _wait_for_phoenix_database()
         _wait_for_phoenix_http()
         _verify_bootstrap_state(migrate_url)
-    except Exception as exc:  # noqa: BLE001 — migrate must exit non-zero on failure
+    except Exception as exc:
         print(f"migrate failed: {exc}", file=sys.stderr)
         return 1
 
@@ -51,7 +59,7 @@ def _wait_for_database(url: str, *, attempts: int = 30, delay_s: float = 1.0) ->
             with psycopg.connect(url, autocommit=True) as conn:
                 conn.execute("SELECT 1")
             return
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_error = exc
             time.sleep(delay_s)
     raise RuntimeError(f"database not ready: {last_error}")
@@ -60,7 +68,8 @@ def _wait_for_database(url: str, *, attempts: int = 30, delay_s: float = 1.0) ->
 def _verify_databases_exist(migrate_url: str) -> None:
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         rows = conn.execute(
-            "SELECT datname FROM pg_database WHERE datname IN ('pricecomp_app', 'pricecomp_phoenix')"
+            "SELECT datname FROM pg_database "
+            "WHERE datname IN ('pricecomp_app', 'pricecomp_phoenix')"
         ).fetchall()
     names = {row[0] for row in rows}
     missing = {"pricecomp_app", "pricecomp_phoenix"} - names
@@ -80,9 +89,8 @@ def _run_alembic_upgrade(migrate_url: str) -> None:
         text=True,
     )
     if result.returncode != 0:
-        raise RuntimeError(
-            f"alembic upgrade failed ({result.returncode}): {result.stderr or result.stdout}"
-        )
+        detail = result.stderr or result.stdout
+        raise RuntimeError(f"alembic upgrade failed ({result.returncode}): {detail}")
 
 
 def _install_pgqueuer(migrate_url: str) -> None:
@@ -99,7 +107,9 @@ async def _install_pgqueuer_async(migrate_url: str) -> None:
     settings = DBSettings(db_schema=PGQUEUER_SCHEMA)
     qbe = qb.QueryBuilderEnvironment(settings=settings)
 
-    async with await psycopg.AsyncConnection.connect(migrate_url, autocommit=True) as conn:
+    async with await psycopg.AsyncConnection.connect(
+        migrate_url, autocommit=True
+    ) as conn:
         queries = Queries(PsycopgDriver(conn), qbe=qbe)
         if not await queries.has_table(settings.queue_table):
             await queries.install()
@@ -127,16 +137,28 @@ def _install_langgraph(migrate_url: str) -> None:
 def _grant_vendor_schema_privileges(migrate_url: str) -> None:
     statements = [
         f"GRANT USAGE ON SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
-        f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
-        f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
+        (
+            f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
+            f"IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}"
+        ),
+        (
+            f"GRANT USAGE, SELECT ON ALL SEQUENCES "
+            f"IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}"
+        ),
         f"GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA {PGQUEUER_SCHEMA} TO {APP_ROLE}",
         f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}",
         f"ALTER DEFAULT PRIVILEGES IN SCHEMA {PGQUEUER_SCHEMA} "
         f"GRANT USAGE, SELECT ON SEQUENCES TO {APP_ROLE}",
         f"GRANT USAGE ON SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
-        f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
-        f"GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
+        (
+            f"GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES "
+            f"IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}"
+        ),
+        (
+            f"GRANT USAGE, SELECT ON ALL SEQUENCES "
+            f"IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}"
+        ),
         f"GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA {LANGGRAPH_SCHEMA} TO {APP_ROLE}",
         f"ALTER DEFAULT PRIVILEGES IN SCHEMA {LANGGRAPH_SCHEMA} "
         f"GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {APP_ROLE}",
@@ -147,7 +169,8 @@ def _grant_vendor_schema_privileges(migrate_url: str) -> None:
     ]
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         for statement in statements:
-            conn.execute(statement)
+            # Dynamic DDL strings are not LiteralString; cast for psycopg typing.
+            conn.execute(cast(LiteralString, statement))
 
 
 def _phoenix_database_url() -> str | None:
@@ -155,7 +178,11 @@ def _phoenix_database_url() -> str | None:
 
 
 def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> None:
-    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer path)."""
+    """Wait for Phoenix DB when PHOENIX_DATABASE_URL is set (compose/devcontainer).
+
+    Raises:
+        RuntimeError: If the database never becomes reachable.
+    """
     url = _phoenix_database_url()
     if not url:
         return
@@ -165,14 +192,18 @@ def _wait_for_phoenix_database(*, attempts: int = 30, delay_s: float = 2.0) -> N
             with psycopg.connect(url, autocommit=True) as conn:
                 conn.execute("SELECT 1")
             return
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_error = exc
             time.sleep(delay_s)
     raise RuntimeError(f"phoenix database not ready: {last_error}")
 
 
 def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
-    """Wait for Phoenix HTTP when PHOENIX_HOST is set. Skipped in CI (no Phoenix container)."""
+    """Wait for Phoenix HTTP when PHOENIX_HOST is set. Skipped in CI.
+
+    Raises:
+        RuntimeError: If the HTTP endpoint never returns a success status.
+    """
     host = os.environ.get("PHOENIX_HOST")
     if not host:
         return
@@ -181,12 +212,12 @@ def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
     last_error: Exception | None = None
     for _ in range(attempts):
         try:
-            with urlopen(endpoint, timeout=3) as response:  # noqa: S310
-                if 200 <= response.status < 300:
+            with urlopen(endpoint, timeout=3) as response:
+                if HTTP_OK <= response.status < HTTP_REDIRECT:
                     return
         except URLError as exc:
             last_error = exc
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_error = exc
         time.sleep(delay_s)
     raise RuntimeError(f"phoenix HTTP not ready at {endpoint}: {last_error}")

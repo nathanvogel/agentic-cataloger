@@ -23,6 +23,8 @@ fi
 
 cd /workspaces/pricecomp/backend
 uv sync
+# Install git hooks (Ruff + Pyright). Safe to re-run; no-op if already linked.
+uv run pre-commit install
 
 # Frontend deps — vendored Yarn 4 in .yarn/releases.
 cd /workspaces/pricecomp/frontend

@@ -22,10 +22,10 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
 POSTGRES_IMAGE = "postgres:18.4"
 MIGRATE_SUPERUSER = "postgresql://postgres:test@localhost:{port}/pricecomp_app"
-APP_RUNTIME = "postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_app"
-PHOENIX_RUNTIME = (
-    "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@localhost:{port}/pricecomp_phoenix"
+APP_RUNTIME = (
+    "postgresql://pricecomp_app:pricecomp_app_dev@localhost:{port}/pricecomp_app"
 )
+PHOENIX_RUNTIME = "postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@localhost:{port}/pricecomp_phoenix"
 
 
 def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
@@ -55,7 +55,9 @@ def bootstrap_gate02_roles(port: int, *, password: str = "test") -> None:
             "GRANT USAGE, SELECT ON SEQUENCES TO pricecomp_app"
         )
 
-    phoenix_admin = f"postgresql://postgres:{password}@localhost:{port}/pricecomp_phoenix"
+    phoenix_admin = (
+        f"postgresql://postgres:{password}@localhost:{port}/pricecomp_phoenix"
+    )
     with psycopg.connect(phoenix_admin, autocommit=True) as conn:
         conn.execute("GRANT ALL ON SCHEMA public TO pricecomp_phoenix")
         conn.execute(
@@ -73,7 +75,9 @@ def _run_init_sql(port: int) -> None:
 
 @pytest.fixture(scope="session")
 def postgres_container() -> Generator[PostgresContainer, None, None]:
-    with PostgresContainer(POSTGRES_IMAGE, username="postgres", password="test") as postgres:
+    with PostgresContainer(
+        POSTGRES_IMAGE, username="postgres", password="test"
+    ) as postgres:
         port = int(postgres.get_exposed_port(5432))
         _run_init_sql(port)
         yield postgres
@@ -119,12 +123,16 @@ def spawn_role(
     if env:
         merged.update(env)
     pricecomp = BACKEND_ROOT / ".venv" / "bin" / "pricecomp"
-    command = [str(pricecomp), role] if pricecomp.exists() else [
-        sys.executable,
-        "-m",
-        "pricecomp.platform.cli",
-        role,
-    ]
+    command = (
+        [str(pricecomp), role]
+        if pricecomp.exists()
+        else [
+            sys.executable,
+            "-m",
+            "pricecomp.platform.cli",
+            role,
+        ]
+    )
     return subprocess.Popen(
         command,
         cwd=BACKEND_ROOT,
@@ -160,17 +168,16 @@ def kill_role(
 
 
 def wait_for_http(url: str, *, timeout_s: float = 10.0) -> None:
-    import urllib.error
     import urllib.request
 
     deadline = time.time() + timeout_s
     last_error: Exception | None = None
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=1) as response:  # noqa: S310
+            with urllib.request.urlopen(url, timeout=1) as response:
                 if response.status < 500:
                     return
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             last_error = exc
             time.sleep(0.2)
     raise TimeoutError(f"HTTP not ready at {url}: {last_error}")

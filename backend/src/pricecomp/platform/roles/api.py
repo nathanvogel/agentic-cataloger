@@ -14,6 +14,11 @@ API_PORT = 3020
 
 
 def create_app() -> FastAPI:
+    """Build the FastAPI app with `/health` and `/ready` endpoints.
+
+    Returns:
+        Configured FastAPI application instance.
+    """
     app = FastAPI(title="pricecomp", version="0.1.0")
 
     @app.get("/health")
@@ -34,7 +39,7 @@ def create_app() -> FastAPI:
                 connect_timeout=5,
             ) as conn:
                 await conn.execute("SELECT 1")
-        except Exception:  # noqa: BLE001 — surface readiness failure without leaking details
+        except Exception:
             return JSONResponse(
                 status_code=503,
                 content={"status": "not_ready", "reason": "database_unreachable"},
@@ -45,6 +50,7 @@ def create_app() -> FastAPI:
 
 
 def run_api() -> None:
+    """Serve the API role on `API_HOST`:`API_PORT`."""
     uvicorn.run(
         "pricecomp.platform.roles.api:create_app",
         factory=True,

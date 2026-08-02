@@ -64,12 +64,15 @@ yarn install
 
 ## Python backend
 
-See [`backend/README.md`](backend/README.md) for role commands, env vars, and tests.
+See [`backend/README.md`](backend/README.md) for role commands, env vars, lint/typecheck, and tests.
 
 ```bash
 cd backend
 uv sync
 uv run pytest
+
+# format + lint + types (also via pre-commit)
+./scripts/ci/backend-lint.sh
 ```
 
 ## Legacy reference stack

@@ -6,6 +6,11 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Dispatch `pricecomp <role>` to api, worker, or migrate.
+
+    Raises:
+        SystemExit: On help, version, unknown role, or migrate exit code.
+    """
     args = list(sys.argv[1:] if argv is None else argv)
     if not args or args[0] in {"-h", "--help"}:
         _print_help()

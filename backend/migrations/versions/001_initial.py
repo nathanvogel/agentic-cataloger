@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from alembic import op
-
 revision = "001_initial"
 down_revision = None
 branch_labels = None

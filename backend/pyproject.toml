@@ -43,6 +43,9 @@ dev = [
     "testcontainers[postgres]==4.14.1",
     "httpx==0.28.1",
     "pyyaml==6.0.3",
+    "ruff==0.16.1",
+    "pyright==1.1.411",
+    "pre-commit==4.5.1",
 ]
 
 [tool.pytest.ini_options]
@@ -65,3 +68,98 @@ skip_empty = true
 [tool.uv]
 # Generate/sync this lockfile with uv 0.12.1 (AD-27 / GATE-01).
 # Do not add LangGraph Server/CLI extras. Pydantic V2 only (no pydantic.v1 models).
+
+# ---------------------------------------------------------------------------
+# Lint / typecheck — see docs/specs/code_style_python.md
+# CLI: ./scripts/ci/backend-lint.sh  (or the commands in backend/README.md)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+# Match runtime pin (requires-python == 3.14.6). Style guide sample used py313.
+target-version = "py314"
+src = ["src"]
+
+[tool.ruff.lint]
+# Enable linters:
+# E: pycodestyle (style errors)
+# F: Pyflakes (logical errors)
+# DOC: pydoclint (docstring ↔ signature; preview)
+# D: pydocstyle (docstring content)
+# I: isort (import sorting)
+# N: naming (variable/function naming)
+# B: flake8-bugbear (bug detection)
+# C4: flake8-comprehensions (list/dict comprehension improvements)
+# ARG: flake8-unused-arguments (unused function arguments)
+# SIM: flake8-simplify (code simplification)
+# TID: flake8-tidy-imports (import organization)
+# TD: flake8-todos (TODO comments)
+# PL: Pylint (general Python linting)
+# RUF: Ruff-specific rules
+# PERF: Perflint (performance optimizations)
+# ERA: eradicate (commented-out code detection)
+# FAST: FastAPI-specific rules
+# G: flake8-logging-format (logging best practices)
+preview = true
+select = [
+    "E",
+    "F",
+    "DOC",
+    "D",
+    "I",
+    "N",
+    "B",
+    "C4",
+    "ARG",
+    "SIM",
+    "TID",
+    "TD",
+    "PL",
+    "RUF",
+    "PERF",
+    "ERA",
+    "FAST",
+    "G",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["unused-import"]
+"**/tests/**" = [
+    "module-import-not-at-top-of-file",
+    "D",
+    "DOC",
+    "line-too-long",     # long assertion / URL strings
+    "magic-value-comparison",  # magic values in assertions are fine
+    "ARG",      # fixtures / unused params in test signatures
+    "import-outside-top-level",  # deferred imports in fixtures / test helpers
+    "multiple-with-statements",   # nested with pytest.raises + connect is clearer
+    "unspecified-encoding",  # encoding= on Path.read_text in tests
+]
+"migrations/**" = [
+    "D",
+    "DOC",
+    "implicit-namespace-package",
+]
+"src/pricecomp/platform/cli.py" = [
+    "import-outside-top-level",  # lazy role imports keep unused roles unloaded
+]
+"src/pricecomp/platform/roles/migrate.py" = [
+    "import-outside-top-level",  # pgqueuer import deferred until install step
+    "too-many-statements-in-try-clause",  # bootstrap try wraps the full ordered sequence
+]
+
+[tool.pyright]
+include = ["src", "tests", "migrations"]
+exclude = ["**/__pycache__", ".venv", "dist"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+pythonPlatform = "Linux"
+reportMissingSuperCall = "error"
+reportMissingParameterType = "error"

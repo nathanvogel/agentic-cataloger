@@ -8,6 +8,8 @@ on:
       - "docker-compose.yml"
       - ".devcontainer/**"
       - "scripts/ci/backend-test.sh"
+      - "scripts/ci/backend-lint.sh"
+      - ".pre-commit-config.yaml"
       - ".github/workflows/backend.yml"
   pull_request:
     paths:
@@ -16,11 +18,21 @@ on:
       - "docker-compose.yml"
       - ".devcontainer/**"
       - "scripts/ci/backend-test.sh"
+      - "scripts/ci/backend-lint.sh"
+      - ".pre-commit-config.yaml"
       - ".github/workflows/backend.yml"
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backend lint
+        run: ./scripts/ci/backend-lint.sh
+
   test:
     runs-on: ubuntu-latest
+    needs: lint
     services:
       postgres:
         image: postgres:18.4

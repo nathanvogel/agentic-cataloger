@@ -4,14 +4,48 @@ Python monolith — operational shell (Story 1.2).
 
 ## Toolchain
 
-- **CPython** 3.14.6 (non-free-threaded — not `3.14t`)
-- **uv** 0.12.1 (required for lock generation / sync)
-- **pytest** 9.1.1 + integration harness (testcontainers PostgreSQL 18.4)
+- **CPython** (non-free-threaded, not `3.14t`)
+- **uv** (required for lock generation / sync)
+- **pytest** integration harness (testcontainers PostgreSQL 18.4)
+- **Ruff** (format + lint) and **Pyright** (types), see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
 
 ```bash
 cd backend
 uv sync
 uv run pytest
+```
+
+## Lint & typecheck
+
+Config is in `pyproject.toml` (`[tool.ruff]`, `[tool.pyright]`). Prefer the portable script from repo root:
+
+```bash
+./scripts/ci/backend-lint.sh
+```
+
+Or run the tools directly from `backend/`:
+
+```bash
+cd backend
+uv sync --group dev
+
+uv run ruff format .          # rewrite formatting
+uv run ruff format --check .  # CI-style: fail if rewrite needed
+uv run ruff check .           # lint
+uv run ruff check --fix .     # lint + apply safe autofixes
+uv run pyright                # static types
+```
+
+### Pre-commit
+
+Hooks live in the repo-root [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) (Ruff format, Ruff check, Pyright). They call `uv run --directory backend …`, so sync the backend venv first.
+
+```bash
+# one-time (repo root)
+uv run --directory backend pre-commit install
+
+# run all hooks on the whole tree
+uv run --directory backend pre-commit run --all-files
 ```
 
 ## Role commands

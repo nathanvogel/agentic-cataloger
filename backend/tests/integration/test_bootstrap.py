@@ -9,7 +9,9 @@ import pytest
 @pytest.mark.integration
 def test_int_001_bootstrap_creates_vendor_schemas(migrated_database: str) -> None:
     with psycopg.connect(migrated_database, autocommit=True) as conn:
-        version = conn.execute("SELECT version_num FROM public.alembic_version").fetchone()
+        version = conn.execute(
+            "SELECT version_num FROM public.alembic_version"
+        ).fetchone()
         assert version is not None
         for schema in ("pgqueuer", "langgraph"):
             row = conn.execute(
@@ -20,7 +22,9 @@ def test_int_001_bootstrap_creates_vendor_schemas(migrated_database: str) -> Non
 
 
 @pytest.mark.integration
-def test_int_002_migrate_is_idempotent(migrate_url: str, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_int_002_migrate_is_idempotent(
+    migrate_url: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from pricecomp.platform.roles.migrate import run_migrate
 
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)

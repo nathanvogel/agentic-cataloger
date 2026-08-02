@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import os
 import signal
 import time
 
 import pytest
-
 from tests.conftest import spawn_role, wait_for_http
 
 
 @pytest.mark.proc
-def test_proc_001_migrate_exits_zero(migrate_url: str, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_proc_001_migrate_exits_zero(
+    migrate_url: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
     proc = spawn_role("migrate")
     stdout, stderr = proc.communicate(timeout=120)

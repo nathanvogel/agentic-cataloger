@@ -4,6 +4,18 @@
   "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
   "python.venvPath": "${workspaceFolder}/backend",
   "python.terminal.activateEnvironment": false,
+  "ruff.configuration": "${workspaceFolder}/backend/pyproject.toml",
+  "ruff.interpreter": [
+    "${workspaceFolder}/backend/.venv/bin/python"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
   "cSpell.words": [
     "asyncio",
     "bmad",
@@ -15,6 +27,7 @@
     "fastmcp",
     "fdfind",
     "isort",
+    "isready",
     "langchain",
     "langgraph",
     "libatomic",

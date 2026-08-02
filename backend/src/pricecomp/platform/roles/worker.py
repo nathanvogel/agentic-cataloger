@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import signal
-import sys
 import time
 
 
 def run_worker() -> None:
+    """Run the worker stub until SIGTERM or SIGINT.
+
+    Raises:
+        SystemExit: Always exits `0` after a clean shutdown signal.
+    """
     stop = False
 
     def _handle_sigterm(_signum: int, _frame: object | None) -> None:

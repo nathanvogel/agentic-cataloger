@@ -25,7 +25,7 @@ This document defines the standard Python coding style for all Python projects d
   # RUF: Ruff-specific rules
   # PERF: Perflint (performance optimizations)
   # ERA: eradicate (commented-out code detection)
-  # FAST: flake8-faster (performance improvements)
+  # FAST: FastAPI-specific rules
   # G: flake8-logging-format (logging best practices)
   lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G"]
   target-version = "py313"
@@ -44,7 +44,7 @@ This document defines the standard Python coding style for all Python projects d
   reportMissingSuperCall = "error"
   reportMissingParameterType = "error"
   ```
-- **Pre-commit Hooks**: It is highly recommended to configure pre-commit hooks to run Ruff and Pyright automatically before committing code.
+- **Pre-commit Hooks**: Configured at repo root (`.pre-commit-config.yaml`). Install once with `uv run --directory backend pre-commit install`. Manual full-tree run: `./scripts/ci/backend-lint.sh` or `uv run --directory backend pre-commit run --all-files`. CLI details live in [`backend/README.md`](../../backend/README.md).
   
 ## 3. Naming Conventions
 - Constant Names: Constant names must use `UPPER_CASE_WITH_UNDERSCORES`.
