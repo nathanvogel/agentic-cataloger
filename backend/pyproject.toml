@@ -103,6 +103,7 @@ src = ["src"]
 # C901: mccabe cyclomatic complexity
 # BLE: blind-except (no bare `except Exception`)
 # TRY: tryceratops (exception anti-patterns; see ignore for TRY003)
+# T20: flake8-print (no print/pprint — use logging; CLI stdout is excepted)
 preview = true
 select = [
     "E",
@@ -127,6 +128,7 @@ select = [
     "complex-structure",
     "BLE",
     "TRY",
+    "T20",
 ]
 # raise-vanilla-args (TRY003) wants messages baked into exception __init__;
 # conflicts with §6 informative raise-site messages on small custom *Error types.
@@ -156,19 +158,23 @@ docstring-code-line-length = "dynamic"
     "multiple-with-statements",   # nested with pytest.raises + connect is clearer
     "unspecified-encoding",  # encoding= on Path.read_text in tests
     "BLE",      # wait helpers intentionally catch broadly
+    "T20",      # prints in tests are fine
 ]
 "migrations/**" = [
     "D",
     "DOC",
     "implicit-namespace-package",
 ]
-"src/pricecomp/platform/cli.py" = [
+# Use **/… so ignores match both CLI (cwd=backend) and the VS Code Ruff
+# extension (cwd=repo root → paths look like backend/src/…).
+"**/platform/cli.py" = [
     "import-outside-top-level",  # lazy role imports keep unused roles unloaded
+    "T20",  # help/version are intentional CLI stdout (§7)
 ]
-"src/pricecomp/platform/roles/api.py" = [
+"**/platform/roles/api.py" = [
     "hardcoded-bind-all-interfaces",  # bind 0.0.0.0 — intentional for container/host publish
 ]
-"src/pricecomp/platform/roles/migrate.py" = [
+"**/platform/roles/migrate.py" = [
     "import-outside-top-level",  # pgqueuer import deferred until install step
     "too-many-statements-in-try-clause",  # bootstrap try wraps the full ordered sequence
     "suspicious-subprocess-import",  # subprocess used to invoke alembic with fixed argv
