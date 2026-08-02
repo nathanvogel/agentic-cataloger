@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import signal
 import time
+
+logger = logging.getLogger(__name__)
 
 
 def run_worker() -> None:
@@ -22,10 +25,10 @@ def run_worker() -> None:
     signal.signal(signal.SIGTERM, _handle_sigterm)
     signal.signal(signal.SIGINT, _handle_sigterm)
 
-    print("pricecomp worker started (stub — no queue consumer yet)", flush=True)
+    logger.info("pricecomp worker started (stub — no queue consumer yet)")
     while not is_stopping:
         time.sleep(1)
-    print("pricecomp worker shutting down", flush=True)
+    logger.info("pricecomp worker shutting down")
     raise SystemExit(0)
 
 

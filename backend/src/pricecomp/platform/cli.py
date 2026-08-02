@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import sys
+
+logger = logging.getLogger(__name__)
+
+
+def _configure_logging() -> None:
+    """Configure root logging once for the process entrypoint."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s",
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -14,6 +25,7 @@ def main(argv: list[str] | None = None) -> None:
     Raises:
         SystemExit: On help, version, unknown role, or migrate exit code.
     """
+    _configure_logging()
     args = list(sys.argv[1:] if argv is None else argv)
     if not args or args[0] in {"-h", "--help"}:
         _print_help()
@@ -40,7 +52,7 @@ def main(argv: list[str] | None = None) -> None:
         print(version("pricecomp"))
         raise SystemExit(0)
 
-    print(f"Unknown role: {role}", file=sys.stderr)
+    logger.error("Unknown role: %s", role)
     _print_help()
     raise SystemExit(1)
 

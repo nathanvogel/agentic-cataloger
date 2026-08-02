@@ -101,6 +101,8 @@ src = ["src"]
 # G: flake8-logging-format (logging best practices)
 # S: flake8-bandit (security)
 # C901: mccabe cyclomatic complexity
+# BLE: blind-except (no bare `except Exception`)
+# TRY: tryceratops (exception anti-patterns; see ignore for TRY003)
 preview = true
 select = [
     "E",
@@ -123,7 +125,12 @@ select = [
     "G",
     "S",
     "complex-structure",
+    "BLE",
+    "TRY",
 ]
+# raise-vanilla-args (TRY003) wants messages baked into exception __init__;
+# conflicts with §6 informative raise-site messages on small custom *Error types.
+ignore = ["raise-vanilla-args"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10
@@ -148,6 +155,7 @@ docstring-code-line-length = "dynamic"
     "import-outside-top-level",  # deferred imports in fixtures / test helpers
     "multiple-with-statements",   # nested with pytest.raises + connect is clearer
     "unspecified-encoding",  # encoding= on Path.read_text in tests
+    "BLE",      # wait helpers intentionally catch broadly
 ]
 "migrations/**" = [
     "D",

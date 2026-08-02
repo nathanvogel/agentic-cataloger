@@ -29,7 +29,11 @@ This document defines the standard Python coding style for all Python projects d
   # G: flake8-logging-format (logging best practices)
   # S: flake8-bandit (security)
   # C901: mccabe cyclomatic complexity
-  lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G", "S", "C901"]
+  # BLE: blind-except (no bare `except Exception`)
+  # TRY: tryceratops (exception anti-patterns)
+  lint.select = ["E", "F", "DOC", "D", "I", "N", "B", "C4", "ARG", "SIM", "TID", "TD", "PL", "RUF", "PERF", "ERA", "FAST", "G", "S", "C901", "BLE", "TRY"]
+  # raise-vanilla-args (TRY003) fights informative raise-site messages (§6).
+  lint.ignore = ["raise-vanilla-args"]
   target-version = "py314"
 
   [tool.ruff.lint.mccabe]

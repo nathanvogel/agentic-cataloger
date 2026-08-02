@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import logging
 import os
 
+import psycopg
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -11,6 +13,8 @@ from psycopg import AsyncConnection
 
 API_HOST = "0.0.0.0"
 API_PORT = 3020
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -45,7 +49,9 @@ def create_app() -> FastAPI:
                 connect_timeout=5,
             ) as conn:
                 await conn.execute("SELECT 1")
-        except Exception:
+        except psycopg.Error, OSError, TimeoutError:
+            # Keep the 503 body generic — do not leak connection details.
+            logger.exception("database readiness probe failed")
             return JSONResponse(
                 status_code=503,
                 content={"status": "not_ready", "reason": "database_unreachable"},

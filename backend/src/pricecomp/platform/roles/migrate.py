@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import subprocess
 import sys
@@ -15,12 +16,20 @@ from urllib.request import urlopen
 import psycopg
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
+from pricecomp.platform.errors import (
+    BootstrapError,
+    DatabaseNotReadyError,
+    MigrateError,
+)
+
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 PGQUEUER_SCHEMA = "pgqueuer"
 LANGGRAPH_SCHEMA = "langgraph"
 APP_ROLE = "pricecomp_app"
 HTTP_OK = 200
 HTTP_REDIRECT = 300
+
+logger = logging.getLogger(__name__)
 
 
 def run_migrate() -> int:
@@ -31,7 +40,7 @@ def run_migrate() -> int:
     """
     migrate_url = os.environ.get("MIGRATE_DATABASE_URL", "").strip()
     if not migrate_url:
-        print("MIGRATE_DATABASE_URL is required for migrate role", file=sys.stderr)
+        logger.error("MIGRATE_DATABASE_URL is required for migrate role")
         return 1
 
     try:
@@ -44,11 +53,11 @@ def run_migrate() -> int:
         _wait_for_phoenix_database()
         _wait_for_phoenix_http()
         _verify_bootstrap_state(migrate_url)
-    except Exception as exc:
-        print(f"migrate failed: {exc}", file=sys.stderr)
+    except MigrateError:
+        logger.exception("migrate failed")
         return 1
 
-    print("migrate completed successfully")
+    logger.info("migrate completed successfully")
     return 0
 
 
@@ -68,18 +77,19 @@ def _wait_for_database(
         label: Name used in the timeout error message.
 
     Raises:
-        RuntimeError: If the database never becomes reachable.
+        DatabaseNotReadyError: If the database never becomes reachable.
     """
-    last_error: Exception | None = None
+    last_error: BaseException | None = None
     for _ in range(attempts):
         try:
             with psycopg.connect(url, autocommit=True) as conn:
                 conn.execute("SELECT 1")
-            return
-        except Exception as exc:
+        except (psycopg.Error, OSError) as exc:
             last_error = exc
             time.sleep(delay_s)
-    raise RuntimeError(f"{label} not ready: {last_error}")
+        else:
+            return
+    raise DatabaseNotReadyError(f"{label} not ready: {last_error}")
 
 
 def _verify_databases_exist(migrate_url: str) -> None:
@@ -89,7 +99,7 @@ def _verify_databases_exist(migrate_url: str) -> None:
         migrate_url: Superuser connection URL used for catalog queries.
 
     Raises:
-        RuntimeError: If either required database is absent.
+        BootstrapError: If either required database is absent.
     """
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         rows = conn.execute(
@@ -99,7 +109,7 @@ def _verify_databases_exist(migrate_url: str) -> None:
     names = {row[0] for row in rows}
     missing = {"pricecomp_app", "pricecomp_phoenix"} - names
     if missing:
-        raise RuntimeError(f"missing databases after init: {sorted(missing)}")
+        raise BootstrapError(f"missing databases after init: {sorted(missing)}")
 
 
 def _run_alembic_upgrade(migrate_url: str) -> None:
@@ -109,7 +119,7 @@ def _run_alembic_upgrade(migrate_url: str) -> None:
         migrate_url: Value exported as ``MIGRATE_DATABASE_URL`` for Alembic.
 
     Raises:
-        RuntimeError: If the Alembic subprocess exits non-zero.
+        BootstrapError: If the Alembic subprocess exits non-zero.
     """
     env = os.environ.copy()
     env["MIGRATE_DATABASE_URL"] = migrate_url
@@ -123,7 +133,7 @@ def _run_alembic_upgrade(migrate_url: str) -> None:
     )
     if result.returncode != 0:
         detail = result.stderr or result.stdout
-        raise RuntimeError(f"alembic upgrade failed ({result.returncode}): {detail}")
+        raise BootstrapError(f"alembic upgrade failed ({result.returncode}): {detail}")
 
 
 def _install_pgqueuer(migrate_url: str) -> None:
@@ -271,25 +281,23 @@ def _wait_for_phoenix_http(*, attempts: int = 30, delay_s: float = 2.0) -> None:
         delay_s: Sleep between failed probes, in seconds.
 
     Raises:
-        RuntimeError: If the HTTP endpoint never returns a success status.
+        DatabaseNotReadyError: If the HTTP endpoint never returns a success status.
     """
     host = os.environ.get("PHOENIX_HOST")
     if not host:
         return
     port = os.environ.get("PHOENIX_PORT", "6006")
     endpoint = f"http://{host}:{port}/"
-    last_error: Exception | None = None
+    last_error: BaseException | None = None
     for _ in range(attempts):
         try:
             with urlopen(endpoint, timeout=3) as response:
                 if HTTP_OK <= response.status < HTTP_REDIRECT:
                     return
-        except URLError as exc:
-            last_error = exc
-        except Exception as exc:
+        except (URLError, TimeoutError, OSError) as exc:
             last_error = exc
         time.sleep(delay_s)
-    raise RuntimeError(f"phoenix HTTP not ready at {endpoint}: {last_error}")
+    raise DatabaseNotReadyError(f"phoenix HTTP not ready at {endpoint}: {last_error}")
 
 
 def _verify_bootstrap_state(migrate_url: str) -> None:
@@ -299,18 +307,18 @@ def _verify_bootstrap_state(migrate_url: str) -> None:
         migrate_url: Connection URL used for post-bootstrap checks.
 
     Raises:
-        RuntimeError: If alembic_version or a vendor schema is missing.
+        BootstrapError: If alembic_version or a vendor schema is missing.
     """
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         version = conn.execute(
             "SELECT version_num FROM public.alembic_version"
         ).fetchone()
         if not version:
-            raise RuntimeError("alembic_version missing after migrate")
+            raise BootstrapError("alembic_version missing after migrate")
         for schema in (PGQUEUER_SCHEMA, LANGGRAPH_SCHEMA):
             exists = conn.execute(
                 "SELECT 1 FROM information_schema.schemata WHERE schema_name = %s",
                 (schema,),
             ).fetchone()
             if not exists:
-                raise RuntimeError(f"schema {schema} missing after migrate")
+                raise BootstrapError(f"schema {schema} missing after migrate")
