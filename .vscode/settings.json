@@ -1,8 +1,12 @@
 {
   "kiroAgent.configureMCP": "Disabled",
-  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "js/ts.tsdk.path": "frontend/node_modules/typescript/lib",
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.venvPath": "${workspaceFolder}/backend",
+  "python.terminal.activateEnvironment": false,
   "cSpell.words": [
     "asyncio",
+    "bmad",
     "contextlib",
     "datname",
     "Docstrings",
