@@ -43,7 +43,7 @@ Just enough catalog to have something to categorize.
 
 - [x] **1.1** Relocate legacy TypeScript under `/legacy`, seed `/backend` as the Python monolith root.
 - [x] **1.2** Run the stack locally with `api`/`migrate` role commands via Compose (`worker` exists as an inert stub — not the dispatch mechanism).
-- [ ] **1.4** Register immutable catalog snapshots and import products under durable source identity `(source_namespace, source_product_id, source_variant_id?)`. Shelf price lands as a **plain column** here — the revisioned-by-kind model (1.6) is price-comparison work, not ingest work.
+- [ ] **1.4** Register immutable catalog snapshots and import products under durable source identity `(source_namespace, source_product_id, source_variant_id?)`. Shelf price lands as a **plain column** here — the revisioned-by-kind model (1.6) is price-comparison work, not ingest work. Import only the last csv snapshot, include and leverage new fields (documented in data/README.md) 
 - [ ] **1.5** Ingest selection primitive — bulk / single / filtered through one code path. Load-bearing twice: it selects what to import *and* what a pipeline run operates on (4.5).
 
 Upsert-on-source-identity is what makes re-import non-duplicating. That's a property of 1.4, not of the deferred idempotency framework (1.8) — don't let cutting 1.8 quietly cost you this.
@@ -102,6 +102,7 @@ Everything here is unchanged in content, just moved behind the MVP.
 - [ ] **6.3** Average cost per item per stage (E3), leaf LLM spans only.
 - [ ] **4.2** Store stage outcomes durably; replay reapplies the stored outcome instead of re-calling the LLM.
 - [ ] **1.9** Fresh-rebuild cutover: replay the immutable source manifest into new databases.
+- [ ] **1.11** Backfill catalog from earlier CSV scraps — union by source identity across historical snapshots.
 
 ## Cut from the MVP line
 
