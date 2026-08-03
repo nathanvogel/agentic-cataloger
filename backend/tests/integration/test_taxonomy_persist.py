@@ -23,7 +23,6 @@ from pricecomp.platform.persistence.catalog_repo import (
 from pricecomp.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
     PsycopgMembershipRepository,
-    PsycopgProductExistence,
 )
 from pricecomp.platform.taxonomy.runner import (
     ProductRef,
@@ -296,9 +295,9 @@ def test_product_existence_adapter(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
-    """PsycopgProductExistence mirrors catalog_products rows."""
+    """PsycopgProductRepository.exists mirrors catalog_products rows."""
     with connect_app(app_database_url) as conn:
         product_uuid = _seed_product(conn, product_id="500")
-        lookup = PsycopgProductExistence(conn)
+        lookup = PsycopgProductRepository(conn)
         assert lookup.exists(product_uuid) is True
         assert lookup.exists(uuid4()) is False

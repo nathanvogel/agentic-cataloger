@@ -17,6 +17,7 @@ from pricecomp.catalog.ports import (
     ProductRepository,
     SnapshotRepository,
 )
+from pricecomp.taxonomy.ports import ProductExistence
 
 
 @final
@@ -103,8 +104,12 @@ class PsycopgSnapshotRepository(SnapshotRepository):
 
 
 @final
-class PsycopgProductRepository(ProductRepository):
-    """Product repository backed by ``catalog_products``."""
+class PsycopgProductRepository(ProductRepository, ProductExistence):
+    """Product repository backed by ``catalog_products``.
+
+    Implements the full ``ProductRepository`` surface plus the slim
+    ``ProductExistence`` check used by taxonomy assign.
+    """
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
         """Create a repository on ``conn``.
@@ -114,6 +119,14 @@ class PsycopgProductRepository(ProductRepository):
         """
         super().__init__()
         self._conn = conn
+
+    def exists(self, product_id: UUID) -> bool:
+        """Return True when ``product_id`` is a catalog product."""
+        row = self._conn.execute(
+            "SELECT 1 FROM catalog_products WHERE id = %s",
+            (product_id,),
+        ).fetchone()
+        return row is not None
 
     def get_by_source_identity(self, identity: SourceIdentity) -> CatalogProduct | None:
         """Return the product for a source identity, if present."""

@@ -13,7 +13,6 @@ from pricecomp.taxonomy.models import Category, Membership
 from pricecomp.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
-    ProductExistence,
     TaxonomyUnitOfWork,
 )
 
@@ -21,7 +20,6 @@ from pricecomp.taxonomy.ports import (
 __all__ = [
     "PsycopgCategoryRepository",
     "PsycopgMembershipRepository",
-    "PsycopgProductExistence",
     "PsycopgUnitOfWork",
     "TaxonomyUnitOfWork",
     "connect_app",
@@ -219,28 +217,6 @@ class PsycopgMembershipRepository(MembershipRepository):
             msg = f"Upsert did not persist membership for {membership.product_id}"
             raise RuntimeError(msg)
         return _membership_from_row(row)
-
-
-@final
-class PsycopgProductExistence(ProductExistence):
-    """Catalog product existence check for assign."""
-
-    def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Create a lookup on ``conn``.
-
-        Args:
-            conn: Live psycopg connection.
-        """
-        super().__init__()
-        self._conn = conn
-
-    def exists(self, product_id: UUID) -> bool:
-        """Return True when ``product_id`` is a catalog product."""
-        row = self._conn.execute(
-            "SELECT 1 FROM catalog_products WHERE id = %s",
-            (product_id,),
-        ).fetchone()
-        return row is not None
 
 
 def _category_from_row(row: Any) -> Category:

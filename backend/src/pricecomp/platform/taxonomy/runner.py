@@ -15,7 +15,6 @@ from pricecomp.platform.persistence.catalog_repo import PsycopgProductRepository
 from pricecomp.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
     PsycopgMembershipRepository,
-    PsycopgProductExistence,
     PsycopgUnitOfWork,
     connect_app,
 )
@@ -159,7 +158,7 @@ def run_assign_product(
             AssignProductRequest(product_id=resolved, leaf_id=leaf_id),
             categories=PsycopgCategoryRepository(conn),
             memberships=PsycopgMembershipRepository(conn),
-            products=PsycopgProductExistence(conn),
+            products=PsycopgProductRepository(conn),
             uow=PsycopgUnitOfWork(conn),
         )
 
