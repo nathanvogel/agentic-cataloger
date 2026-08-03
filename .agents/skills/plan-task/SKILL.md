@@ -1,9 +1,9 @@
 ---
-name: plan-task.local
+name: plan-task
 description: Interactive planning workflow for upper-small to large development tasks. Produces a committed dev-plan document under docs/plans/ that is ready to hand off as prompt material to a coding agent. Use when the user asks to "plan a task", "scope a feature", "draft an implementation plan", "prep work for another agent", or anything similar before code is written. Not for one-line fixes.
 ---
 
-# plan-task.local
+# plan-task
 
 Interactive planning workflow for upper-small to large development tasks. The output is a committed dev-plan document that another coding agent can pick up and implement with minimal additional context.
 
