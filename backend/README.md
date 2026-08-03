@@ -1,13 +1,13 @@
 # pricecomp backend
 
-Python monolith — operational shell (Story 1.2).
+Python monolith.
 
 ## Toolchain
 
 - **CPython** (non-free-threaded, not `3.14t`)
 - **uv** (required for lock generation / sync)
 - **pytest** integration harness (testcontainers PostgreSQL 18.4)
-- **Ruff** (format + lint, including Bandit `S` + McCabe `C901`), **Pyright** (types), and **jscpd** (duplication) — see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
+- **Ruff** (format + lint, including Bandit `S` + McCabe `C901`), **Pyright** (types), and **jscpd** (duplication), see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
 
 ```bash
 cd backend
@@ -29,7 +29,7 @@ Or run pytest directly from `backend/`:
 cd backend
 uv sync --group dev
 
-# Domain / unit (static + import smoke — no Postgres required)
+# Domain / unit (static + import smoke, no Postgres required)
 uv run pytest tests/domain
 
 # Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
@@ -73,14 +73,14 @@ uv run ruff check .           # lint (includes S security + C901 complexity)
 uv run ruff check --fix .     # lint + apply safe autofixes
 uv run pyright                # static types
 
-# from repo root — needs Node/npx
+# from repo root, needs Node/npx
 npx --yes jscpd@4.0.5 backend/src --config .jscpd.json
 ```
 
 Not wired yet (add once packages have real code, not empty seeds):
 
-- **import-linter** — enforce hexagonal boundaries (`domain ↛ platform` / vendor adapters); vacuous today
-- **unused-export analyzer** (e.g. vulture) — Knip-style dead public API; noisy until there is a public surface
+- **import-linter**: enforce hexagonal boundaries (`domain ↛ platform` / vendor adapters); vacuous today
+- **unused-export analyzer** (e.g. vulture): Knip-style dead public API; noisy until there is a public surface
 
 ### Pre-commit
 
@@ -100,7 +100,7 @@ Same entrypoints in local dev, Docker, devcontainer, and CI:
 
 ```bash
 pricecomp migrate   # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
-pricecomp api       # FastAPI on 0.0.0.0:3020 — /health and /ready
+pricecomp api       # FastAPI on 0.0.0.0:3020, /health and /ready
 pricecomp worker    # long-running stub (advisory lock in Story 1.3)
 pricecomp ingest    # import latest CSV per retailer into catalog_snapshots / catalog_products
 ```
@@ -109,12 +109,22 @@ pricecomp ingest    # import latest CSV per retailer into catalog_snapshots / ca
 
 Imports **only the latest** `YYYY/MM/DD-HH:MM.csv` under each `data/{retailer}-ch-products/` folder (or a subset via `--retailer`). Products upsert on durable source identity extracted from the product URL; name/URL changes update observations without creating duplicates. Rows without a trustworthy ID are deferred (no product row).
 
+Optional **ingest filter**:
+
+- `--source-category NEEDLE`: case-insensitive substring of retailer `source_category`, or exact match of `unified_category` (e.g. `Milchprodukte` or `dairy`)
+- `--keyword NEEDLE`: case-insensitive substring of `name` / `name_de`
+- Both set → AND. Neither set → bulk (all rows)
+
+Non-matching products are left untouched.
+
 Needs a migrated DB and the same `DATABASE_URL` as `api` (already set in the devcontainer / compose `api` service).
 
 ```bash
 uv run pricecomp ingest --retailer denner
 uv run pricecomp ingest                  # all four retailers
 uv run pricecomp ingest --data-dir /path/to/data
+uv run pricecomp ingest --source-category "Milchprodukte" --retailer migros
+uv run pricecomp ingest --keyword "litschi" --retailer denner
 ```
 
 ### Environment variables
@@ -128,7 +138,7 @@ uv run pricecomp ingest --data-dir /path/to/data
 
 Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
 
-**Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker` — elevated credentials are migrate-only (GATE-02).
+**Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
 
 ## Local stack (with root Compose)
 

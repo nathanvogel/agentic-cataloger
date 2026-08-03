@@ -1,4 +1,4 @@
-"""Integration tests for catalog snapshot registration and product ingest (1.4)."""
+"""Integration tests for catalog snapshot registration and product ingest (1.4 / 1.5)."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from pricecomp.catalog.commands import (
     import_snapshot,
 )
 from pricecomp.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
+from pricecomp.catalog.ingest_filter import IngestFilter
 from pricecomp.catalog.models import ProductObservation
 from pricecomp.platform.ingest.csv_source import (
     find_latest_csv,
@@ -336,6 +337,112 @@ def test_ingest_latest_denner_fixture(
         assert Decimal(str(product[4])) == Decimal("7.95")
         assert Decimal(str(product[5])) == Decimal("6.95")
         assert product[6] == IDENTITY_POLICY_VERSION
+
+
+@pytest.mark.integration
+def test_ingest_source_category_filter(
+    migrated_database: str,
+    app_database_url: str,
+    tmp_path: Path,
+) -> None:
+    """Filtered ingest upserts only matching rows; bulk path stays shared."""
+
+    data_dir = tmp_path / "data"
+    retailer_dir = data_dir / "denner-ch-products" / "2025" / "12"
+    retailer_dir.mkdir(parents=True)
+    csv_path = retailer_dir / "30-14:48.csv"
+    with csv_path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=[
+                "name",
+                "name_de",
+                "url",
+                "price",
+                "price_text",
+                "original_price",
+                "original_unit",
+                "original_unit_price",
+                "unit",
+                "unit_price",
+                "has_discount",
+                "discount_info",
+                "image_url",
+                "category",
+                "unified_category",
+                "unified_subcategory",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "name": "Litschis Offenverkauf",
+                "name_de": "Litschis",
+                "url": (
+                    "https://www.denner.ch/de/aktionen-und-sortiment/"
+                    "litschis-offenverkauf~p1101270"
+                    "?variant=2c8381d3-be7d-41c5-b852-b2a5aff21021"
+                ),
+                "price": "6.95",
+                "price_text": "6.95/kg",
+                "original_price": "",
+                "original_unit": "",
+                "original_unit_price": "",
+                "unit": "kg",
+                "unit_price": "6.95",
+                "has_discount": "",
+                "discount_info": "",
+                "image_url": "",
+                "category": "Obst",
+                "unified_category": "fruits",
+                "unified_subcategory": "misc",
+            }
+        )
+        writer.writerow(
+            {
+                "name": "Vollmilch",
+                "name_de": "Milch",
+                "url": (
+                    "https://www.denner.ch/de/aktionen-und-sortiment/vollmilch~p2200001"
+                ),
+                "price": "1.55",
+                "price_text": "1.55",
+                "original_price": "",
+                "original_unit": "",
+                "original_unit_price": "",
+                "unit": "l",
+                "unit_price": "1.55",
+                "has_discount": "",
+                "discount_info": "",
+                "image_url": "",
+                "category": "Milchprodukte, Eier",
+                "unified_category": "dairy",
+                "unified_subcategory": "",
+            }
+        )
+
+    summary = run_ingest(
+        data_dir=data_dir,
+        database_url=app_database_url,
+        retailers=("denner",),
+        ingest_filter=IngestFilter(source_category="Milchprodukte"),
+    )
+    assert summary.snapshot_count == 1
+    assert summary.matched_count == 1
+    assert summary.filtered_out_count == 1
+    assert summary.upserted_count == 1
+
+    with psycopg.connect(app_database_url) as conn:
+        rows = conn.execute(
+            """
+            SELECT source_product_id, source_category
+            FROM catalog_products
+            WHERE last_snapshot_id = %s
+            ORDER BY source_product_id
+            """,
+            (summary.results[0].snapshot.id,),
+        ).fetchall()
+        assert rows == [("2200001", "Milchprodukte, Eier")]
 
 
 @pytest.mark.integration

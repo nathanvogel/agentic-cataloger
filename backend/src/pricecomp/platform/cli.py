@@ -90,8 +90,22 @@ def _run_ingest(argv: list[str]) -> int:
         choices=("migros", "lidl", "coop", "denner"),
         help="Limit to one or more retailers (repeatable). Default: all.",
     )
+    parser.add_argument(
+        "--source-category",
+        default=None,
+        help=(
+            "Filter: case-insensitive substring of source_category, or exact "
+            "match of unified_category (e.g. Milchprodukte or dairy)."
+        ),
+    )
+    parser.add_argument(
+        "--keyword",
+        default=None,
+        help="Filter: case-insensitive substring of product name / name_de.",
+    )
     parsed = parser.parse_args(argv)
 
+    from pricecomp.catalog.ingest_filter import IngestFilter
     from pricecomp.platform.ingest.runner import run_ingest
 
     data_dir = parsed.data_dir
@@ -100,10 +114,20 @@ def _run_ingest(argv: list[str]) -> int:
         data_dir = Path(__file__).resolve().parents[4] / "data"
 
     retailers = tuple(parsed.retailers) if parsed.retailers else None
-    summary = run_ingest(data_dir=data_dir, retailers=retailers)
+    ingest_filter = IngestFilter(
+        source_category=parsed.source_category,
+        keyword=parsed.keyword,
+    )
+    summary = run_ingest(
+        data_dir=data_dir,
+        retailers=retailers,
+        ingest_filter=ingest_filter,
+    )
     print(
         f"ingest ok: snapshots={summary.snapshot_count} "
         f"upserted={summary.upserted_count} "
+        f"matched={summary.matched_count} "
+        f"filtered_out={summary.filtered_out_count} "
         f"deferred={summary.deferred_count} "
         f"collisions={summary.collision_count}"
     )

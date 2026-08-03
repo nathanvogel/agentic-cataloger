@@ -71,7 +71,7 @@ flowchart TB
 
 ## Catalog & ingest
 
-- One ingest-selection primitive filters by source category or keyword: bulk = empty filter, single = filter-of-one, filtered = the general case. All three run the identical pipeline — no mode-specific branch anywhere.
+- One ingest filter by source category or keyword: bulk = empty filter, single = filter-of-one, filtered = the general case. All three run the identical pipeline — no mode-specific branch anywhere.
 - Durable source identity is `(source_namespace, source_product_id, optional source_variant_id)`, unique with `NULLS NOT DISTINCT`. Product name and URLs are mutable *observations*, never identity. A source record without a trustworthy stable ID must explicitly defer/fail — never fall back to name/URL to synthesize one.
 - Each import batch is an immutable catalog snapshot (source-observed time in UTC, checksum, adapter version).
 - Ingest replaces imported facts only for the products it actually observed; everything else is untouched. No "this snapshot is complete" assertion, no absence-based deactivation — add that only once a source that genuinely delists products shows up.

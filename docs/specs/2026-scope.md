@@ -63,7 +63,7 @@
 
 ### Commitments
 
-- **Ingest:** one selection primitive — bulk is the empty filter, single is a filter of one, filtered subset is the general case. **Same pipeline** for all three, so no separate three-mode equivalence acceptance is needed
+- **Ingest:** one filter — bulk is the empty filter, single is a filter of one, filtered subset is the general case. **Same pipeline** for all three, so no separate three-mode equivalence acceptance is needed
 - **Stages (I9):** separate prompts / eval slices for discover/create, assign, extract
 - **Category context (C2):** agent search (MCP/CLI-like); no full taxonomy dump. C4 embed shortlist deferred with embeddings
 - **Substitutability (S1+S2):** prose rubric + few-shot pairs; comparison primitive = consumer substitutability

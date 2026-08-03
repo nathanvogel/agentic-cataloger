@@ -12,6 +12,7 @@ from pricecomp.catalog.commands import (
     ImportSnapshotRequest,
     import_snapshot,
 )
+from pricecomp.catalog.ingest_filter import IngestFilter
 from pricecomp.catalog.models import ImportSnapshotResult
 from pricecomp.platform.ingest.csv_source import (
     RETAILERS,
@@ -55,12 +56,23 @@ class IngestRunSummary:
         """Total intra-snapshot identity collisions across snapshots."""
         return sum(item.collision_count for item in self.results)
 
+    @property
+    def matched_count(self) -> int:
+        """Total observations that matched the ingest filter."""
+        return sum(item.matched_count for item in self.results)
+
+    @property
+    def filtered_out_count(self) -> int:
+        """Total unique observations dropped by the ingest filter."""
+        return sum(item.filtered_out_count for item in self.results)
+
 
 def run_ingest(
     *,
     data_dir: Path,
     database_url: str | None = None,
     retailers: tuple[str, ...] | None = None,
+    ingest_filter: IngestFilter | None = None,
 ) -> IngestRunSummary:
     """Import the latest CSV per selected retailer into the catalog.
 
@@ -68,6 +80,8 @@ def run_ingest(
         data_dir: Root ``data/`` directory containing ``*-ch-products`` folders.
         database_url: App DB URL; defaults to ``DATABASE_URL``.
         retailers: Optional subset of ``migros`` / ``lidl`` / ``coop`` / ``denner``.
+        ingest_filter: Optional product filter (source category / keyword).
+            Empty = bulk.
 
     Returns:
         Aggregate ingest summary.
@@ -76,6 +90,7 @@ def run_ingest(
         RuntimeError: If ``DATABASE_URL`` is unset.
         ValueError: If a requested retailer is unknown or has no CSV.
     """
+    active_filter = ingest_filter if ingest_filter is not None else IngestFilter()
     url = (database_url or os.environ.get("DATABASE_URL", "")).strip()
     if not url:
         msg = "DATABASE_URL must be set for ingest"
@@ -124,6 +139,7 @@ def run_ingest(
                     observations=parsed.observations,
                     deferred=parsed.deferred,
                     adapter_version=CSV_ADAPTER_VERSION,
+                    ingest_filter=active_filter,
                 ),
                 snapshots=snapshots,
                 products=products,
@@ -131,10 +147,13 @@ def run_ingest(
             )
             results.append(result)
             logger.info(
-                "Snapshot %s new=%s upserted=%d deferred=%d collisions=%d",
+                "Snapshot %s new=%s upserted=%d matched=%d filtered_out=%d "
+                "deferred=%d collisions=%d",
                 result.snapshot.id,
                 result.is_new_snapshot,
                 result.upserted_count,
+                result.matched_count,
+                result.filtered_out_count,
                 result.deferred_count,
                 result.collision_count,
             )

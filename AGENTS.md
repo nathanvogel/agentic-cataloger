@@ -14,3 +14,4 @@
 - When writing Python, always read and follow the [code_style_python.md](docs/specs/code_style_python.md).
 - When writing Typescript, always read and follow the [code_style_typescript.md](docs/specs/code_style_typescript.md).
 - CI/CD stays thin: GitHub Actions should mostly invoke portable shell scripts
+- Architectural decisions that outlive a PR go in [`docs/decision_records/`](docs/decision_records/) (template: [`docs/templates/decision_record.md`](docs/templates/decision_record.md)).

@@ -92,3 +92,5 @@ class ImportSnapshotResult:
     collision_count: int
     deferred_urls: tuple[str, ...]
     colliding_identities: tuple[SourceIdentity, ...]
+    matched_count: int = 0
+    filtered_out_count: int = 0
