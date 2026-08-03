@@ -37,12 +37,28 @@ else
   echo "postCreate: rtk not found — rebuild the devcontainer image"
 fi
 
-echo "postCreate: syncing Python deps (uv sync)..."
-cd /workspaces/agentic-cataloger/backend
-uv sync
-# Install git hooks (Ruff + Pyright). Safe to re-run; no-op if already linked.
+# Image is built with `uv sync --frozen --no-dev`; dev tools (pre-commit, ruff, …) need the dev group.
+BACKEND_DIR="/workspaces/agentic-cataloger/backend"
+VENV_DIR="${BACKEND_DIR}/.venv"
+if [ -d "${VENV_DIR}" ]; then
+  # Console scripts bake the venv python path at install time; a bind-mounted .venv
+  # from a renamed/moved workspace keeps dead shebangs (e.g. /workspaces/pricecomp/...).
+  SAMPLE_SCRIPT="${VENV_DIR}/bin/pre-commit"
+  if [ -f "${SAMPLE_SCRIPT}" ]; then
+    INTERPRETER="$(head -1 "${SAMPLE_SCRIPT}" | sed 's/^#!//; s/ .*//')"
+    if [ ! -x "${INTERPRETER}" ]; then
+      echo "postCreate: removing stale backend .venv (missing interpreter: ${INTERPRETER})..."
+      rm -rf "${VENV_DIR}"
+    fi
+  fi
+fi
+echo "postCreate: syncing Python deps (uv sync --group dev)..."
+cd "${BACKEND_DIR}"
+uv sync --group dev
+# Install git hooks (Ruff + Pyright). Config is at repo root — see .pre-commit-config.yaml.
 echo "postCreate: installing pre-commit hooks..."
-uv run pre-commit install
+cd /workspaces/agentic-cataloger
+uv run --directory backend pre-commit install
 
 # Frontend deps — vendored Yarn 4 in .yarn/releases.
 echo "postCreate: installing frontend deps (yarn)..."
