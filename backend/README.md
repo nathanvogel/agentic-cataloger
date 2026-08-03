@@ -137,12 +137,13 @@ ingest filter only — never an assign target. Categories are identified by UUID
 accepts leaves; create/reparent refuse demoting a membered node to a non-leaf.
 
 ```bash
-uv run agentic-cataloger taxonomy create --name "Dairy" --unit L
-uv run agentic-cataloger taxonomy create --name "Cow milk" --parent <root-uuid>
+uv run agentic-cataloger taxonomy create --name "Root"
+uv run agentic-cataloger taxonomy create --name "Dairy" --parent <root-uuid>
+uv run agentic-cataloger taxonomy create --name "Cow milk" --unit L --parent <dairy-uuid>
 uv run agentic-cataloger taxonomy show
 uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> --product-id <product-uuid>
 uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> \
-  --namespace migros-ch --source-product-id 100
+  --namespace migros-ch --source-product-id 204009100800
 uv run agentic-cataloger taxonomy reparent --category <uuid> --parent <new-parent-uuid>
 ```
 

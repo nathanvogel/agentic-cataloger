@@ -5,8 +5,9 @@ A multi-stage LLM agent that builds a product category tree and assigns SKUs to 
 ## Prerequisites
 
 - Docker & Docker Compose
-- **Python backend:** CPython **3.14.6** (non-free-threaded) + **uv 0.12.1**
-- **Frontend / legacy TS:** Node.js v25+ (via nvm recommended) with Corepack (Yarn 4.11.0+)
+- **Dev Containers** extension (VS Code / Cursor)
+- **Python backend:** CPython **3.14.6** (non-free-threaded) via **uv 0.12.1** (installed in the devcontainer image)
+- **Frontend / legacy TS:** Node.js v25+ with Corepack and Yarn 4.11.0+ (installed in the devcontainer image)
 
 
 ## Active stack layout
@@ -18,8 +19,6 @@ A multi-stage LLM agent that builds a product category tree and assigns SKUs to 
 | `data/` | Catalog CSVs (active) |
 | `legacy/` | Relocated TypeScript stack — **reference until parity** |
 
-Active host ports follow GATE-01 (`3020 + n`):
-
 | Port | Service |
 |------|---------|
 | **3020** | Python API (`agentic-cataloger api`) |
@@ -27,41 +26,33 @@ Active host ports follow GATE-01 (`3020 + n`):
 | **3022** | Phoenix |
 | **3023** | Frontend Vite |
 
-Root `docker-compose.yml` provides Postgres **3021** + Phoenix **3022**. Bound gate checklists: [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/).
+Root `docker-compose.yml` backs the devcontainer (Postgres, Phoenix, API). Bound gate checklists: [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/).
 
-## Quick start (new Python stack)
+## Quick start
+
+Open the repo with **Dev Containers** (`.devcontainer/`). Compose starts Postgres, Phoenix, and the API; `postCreate` runs `uv sync` and migrates the DB when Postgres is healthy.
 
 ```bash
-# Infrastructure
-docker compose up -d postgres phoenix
-
-# Bootstrap schemas (one-shot, idempotent)
 cd backend
-export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
-uv sync
+
+# Only needed if postCreate skipped migrate (postgres wasn't up yet)
+export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app
 uv run agentic-cataloger migrate
 
-# API on port 3020
-export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
-uv run agentic-cataloger api
-
 # Catalog ingest (latest CSV per retailer under data/)
-uv run agentic-cataloger ingest --retailer lidl
-```
+uv run agentic-cataloger ingest
 
-Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`). On a **fresh volume**, bootstrap once before starting API:
-
-```bash
-docker compose --profile roles run --rm migrate
-docker compose --profile api up -d
+# API is already running on port 3020 (devcontainer api service)
 curl http://localhost:3020/health
 ```
 
+`DATABASE_URL` is preset in the API devcontainer (`@postgres:5432` on the docker compose network). `MIGRATE_DATABASE_URL` is not as the API service must not have superuser access. 
+
 ## Frontend setup
 
+`postCreate` installs frontend deps. To refresh manually:
+
 ```bash
-npm install -g corepack
-corepack enable
 cd frontend
 yarn install
 ```
@@ -72,18 +63,15 @@ See [`backend/README.md`](backend/README.md) for role commands, env vars, lint/t
 
 ```bash
 cd backend
-uv sync
 uv run pytest
 
 # format + lint + types (also via pre-commit)
-./scripts/ci/backend-lint.sh
+../scripts/ci/backend-lint.sh
 ```
 
 ## Devcontainer customization
 
-Open the repo with **Dev Containers** (`.devcontainer/`).
-
-For personal shell (zsh, Spaceship, aliases), push a private dotfiles repo to GitHub and add VS Code / Cursor / <your-ide> **User** settings:
+For personal shell (zsh, Spaceship, aliases), push a private `dotfiles` repo to GitHub and add these VS Code / Cursor / <your-ide> **User** settings:
 
 ```json
 {
