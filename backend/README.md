@@ -99,10 +99,11 @@ uv run --directory backend pre-commit run --all-files
 Same entrypoints in local dev, Docker, devcontainer, and CI:
 
 ```bash
-pricecomp migrate   # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
-pricecomp api       # FastAPI on 0.0.0.0:3020, /health and /ready
-pricecomp worker    # long-running stub (advisory lock in Story 1.3)
-pricecomp ingest    # import latest CSV per retailer into catalog_snapshots / catalog_products
+pricecomp migrate    # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
+pricecomp api        # FastAPI on 0.0.0.0:3020, /health and /ready
+pricecomp worker     # long-running stub (advisory lock in Story 1.3)
+pricecomp ingest     # import latest CSV per retailer into catalog_snapshots / catalog_products
+pricecomp taxonomy   # create|reparent|show|assign substitutability categories
 ```
 
 ### Ingest
@@ -127,11 +128,31 @@ uv run pricecomp ingest --source-category "Milchprodukte" --retailer migros
 uv run pricecomp ingest --keyword "litschi" --retailer denner
 ```
 
+### Taxonomy
+
+Rooted substitutability tree (`taxonomy_categories`) plus one leaf per product
+(`taxonomy_memberships`). Retailer `source_category` on catalog products is an
+ingest filter only — never an assign target. Categories are identified by UUID
+(`taxonomy show` prints them). Re-assign **moves** membership; assign only
+accepts leaves; create/reparent refuse demoting a membered node to a non-leaf.
+
+```bash
+uv run pricecomp taxonomy create --name "Dairy" --unit L
+uv run pricecomp taxonomy create --name "Cow milk" --parent <root-uuid>
+uv run pricecomp taxonomy show
+uv run pricecomp taxonomy assign --leaf <leaf-uuid> --product-id <product-uuid>
+uv run pricecomp taxonomy assign --leaf <leaf-uuid> \
+  --namespace migros-ch --source-product-id 100
+uv run pricecomp taxonomy reparent --category <uuid> --parent <new-parent-uuid>
+```
+
+Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../docs/specs/substitutability-rubric.md).
+
 ### Environment variables
 
 | Variable | Used by | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker`, `ingest` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
 | `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/pricecomp_app` |
 | `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://pricecomp_phoenix:...@localhost:3021/pricecomp_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |

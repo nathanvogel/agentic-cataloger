@@ -2,7 +2,7 @@
 
 - **Date**: 2026-08-03
 - **Author**: plan-task, nathanvogel
-- **Status**: Draft
+- **Status**: Done
 - **Primary services**: `backend` (`pricecomp.taxonomy`, `pricecomp.platform`)
 - **Related specs / ADRs**: [architecture.md § Taxonomy](../specs/architecture.md), [2026-scope.md](../specs/2026-scope.md), [roadmap.md](roadmap.md) items **2.1** / **2.3** (+ nullable `preferred_comparable_unit` note)
 
@@ -272,3 +272,4 @@ HAND-OFF PROMPT
 ## 13. Changelog
 
 - 2026-08-03 — initial draft (2.1 + 2.3, re-assign=move)
+- 2026-08-03 — implemented (domain + migration + CLI + rubric + tests)

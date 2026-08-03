@@ -1,4 +1,4 @@
-"""Console entrypoint: ``pricecomp api | worker | migrate | ingest``."""
+"""Console entrypoint: ``pricecomp api | worker | migrate | ingest | taxonomy``."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(run_migrate())
     if command == "ingest":
         raise SystemExit(_run_ingest(args[1:]))
+    if command == "taxonomy":
+        raise SystemExit(_run_taxonomy(args[1:]))
     if command in {"-V", "--version"}:
         from importlib.metadata import version
 
@@ -134,15 +137,175 @@ def _run_ingest(argv: list[str]) -> int:
     return 0
 
 
+def _run_taxonomy(argv: list[str]) -> int:
+    """Dispatch ``pricecomp taxonomy <subcommand>``.
+
+    Args:
+        argv: Arguments after ``taxonomy``.
+
+    Returns:
+        Process exit code (0 on success).
+    """
+    parser = argparse.ArgumentParser(
+        prog="pricecomp taxonomy",
+        description=(
+            "Manage the substitutability category tree and product↔leaf "
+            "membership. Categories are identified by UUID (see ``show``). "
+            "Retailer source_category fields stay on catalog products only."
+        ),
+    )
+    sub = parser.add_subparsers(dest="subcommand", required=True)
+
+    create_p = sub.add_parser("create", help="Create a root or child category")
+    create_p.add_argument("--name", required=True, help="Category display name")
+    create_p.add_argument(
+        "--parent",
+        type=UUID,
+        default=None,
+        help="Parent category UUID (omit to create the root)",
+    )
+    create_p.add_argument(
+        "--unit",
+        default=None,
+        dest="preferred_comparable_unit",
+        help="Optional preferred_comparable_unit (stored, not validated)",
+    )
+
+    reparent_p = sub.add_parser("reparent", help="Move a category under a new parent")
+    reparent_p.add_argument(
+        "--category",
+        type=UUID,
+        required=True,
+        help="Category UUID to move",
+    )
+    reparent_p.add_argument(
+        "--parent",
+        type=UUID,
+        required=True,
+        help="New parent category UUID",
+    )
+
+    sub.add_parser("show", help="Print the rooted taxonomy tree")
+
+    assign_p = sub.add_parser(
+        "assign",
+        help="Assign a product to a leaf (moves on re-assign)",
+    )
+    assign_p.add_argument(
+        "--leaf",
+        type=UUID,
+        required=True,
+        help="Leaf category UUID",
+    )
+    assign_p.add_argument(
+        "--product-id",
+        type=UUID,
+        default=None,
+        help="Catalog product UUID",
+    )
+    assign_p.add_argument(
+        "--namespace",
+        default=None,
+        help="Source namespace (e.g. migros-ch); use with --source-product-id",
+    )
+    assign_p.add_argument(
+        "--source-product-id",
+        default=None,
+        help="Retailer product id; use with --namespace",
+    )
+    assign_p.add_argument(
+        "--variant",
+        default=None,
+        dest="source_variant_id",
+        help="Optional source variant id",
+    )
+
+    parsed = parser.parse_args(argv)
+
+    from pricecomp.taxonomy.errors import TaxonomyError
+
+    try:
+        return _dispatch_taxonomy(parsed)
+    except TaxonomyError as exc:
+        logger.warning("%s", exc)
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except (ValueError, LookupError, RuntimeError) as exc:
+        logger.exception("taxonomy command failed")
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
+    """Run one taxonomy subcommand.
+
+    Returns:
+        Process exit code (0 on success).
+
+    Raises:
+        ValueError: Unknown subcommand.
+    """
+    from pricecomp.platform.taxonomy.runner import (
+        ProductRef,
+        format_taxonomy_tree,
+        run_assign_product,
+        run_create_category,
+        run_reparent_category,
+        run_show_taxonomy,
+    )
+
+    if parsed.subcommand == "create":
+        result = run_create_category(
+            name=parsed.name,
+            parent_id=parsed.parent,
+            preferred_comparable_unit=parsed.preferred_comparable_unit,
+        )
+        cat = result.category
+        print(
+            f"created {cat.name} [{cat.id}] "
+            f"parent={cat.parent_id} unit={cat.preferred_comparable_unit}"
+        )
+        return 0
+    if parsed.subcommand == "reparent":
+        result = run_reparent_category(
+            category_id=parsed.category,
+            new_parent_id=parsed.parent,
+        )
+        cat = result.category
+        print(f"reparented {cat.name} [{cat.id}] parent={cat.parent_id}")
+        return 0
+    if parsed.subcommand == "show":
+        print(format_taxonomy_tree(run_show_taxonomy()))
+        return 0
+    if parsed.subcommand == "assign":
+        result = run_assign_product(
+            product=ProductRef(
+                product_id=parsed.product_id,
+                source_namespace=parsed.namespace,
+                source_product_id=parsed.source_product_id,
+                source_variant_id=parsed.source_variant_id,
+            ),
+            leaf_id=parsed.leaf,
+        )
+        membership = result.membership
+        moved = "moved" if result.moved else "assigned"
+        print(f"{moved} product={membership.product_id} leaf={membership.category_id}")
+        return 0
+
+    msg = f"unknown subcommand {parsed.subcommand!r}"
+    raise ValueError(msg)
+
+
 def _print_help() -> None:
     """Print CLI usage for supported commands."""
     print(
         "usage: pricecomp <command>\n\n"
         "commands:\n"
-        "  api      HTTP server on 0.0.0.0:3020 (/health, /ready)\n"
-        "  worker   long-running job consumer stub\n"
-        "  migrate  one-shot bootstrap (schema + vendor setup)\n"
-        "  ingest   import latest retailer CSVs into the catalog\n"
+        "  api       HTTP server on 0.0.0.0:3020 (/health, /ready)\n"
+        "  worker    long-running job consumer stub\n"
+        "  migrate   one-shot bootstrap (schema + vendor setup)\n"
+        "  ingest    import latest retailer CSVs into the catalog\n"
+        "  taxonomy  create|reparent|show|assign substitutability categories\n"
     )
 
 

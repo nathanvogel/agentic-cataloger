@@ -1,1 +1,1 @@
-"""Taxonomy domain package (seed)."""
+"""Taxonomy domain: substitutability tree, leaf membership, hygiene hooks."""

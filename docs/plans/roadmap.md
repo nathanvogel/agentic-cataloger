@@ -50,8 +50,8 @@ Upsert-on-source-identity is what makes re-import non-duplicating. That's a prop
 
 The taxonomy the agent will read and write, with no agent involved yet. All three are plain application commands, testable from the CLI.
 
-- [ ] **2.1** Build the rooted substitutability tree (no cycles, no self-parenting, no graph edges).
-- [ ] **2.3** Assign a product to exactly one leaf, enforced by DB uniqueness. Import/source categories stay ingest filters only. The prose rubric + few-shot pairs get written here; the agent consumes them in M2.
+- [x] **2.1** Build the rooted substitutability tree (no cycles, no self-parenting, no graph edges).
+- [x] **2.3** Assign a product to exactly one leaf, enforced by DB uniqueness. Import/source categories stay ingest filters only. The prose rubric + few-shot pairs get written here; the agent consumes them in M2.
 - [ ] **2.5** Search-backed category context over the command layer. **Hard token constraint, not an optimization** — no full-tree or subtree dump, ever. MVP exposes this to the agent as LangChain tools directly (MCP deferred).
 
 ## M2 — The agent
