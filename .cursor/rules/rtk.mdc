@@ -1,0 +1,12 @@
+---
+description: Use RTK for shell commands to cut token-heavy CLI output
+alwaysApply: true
+---
+
+# RTK (Rust Token Killer)
+
+This devcontainer ships [rtk](https://github.com/rtk-ai/rtk) v0.44.2. Cursor's Shell hook rewrites some commands automatically, but **Read, Grep, and Glob bypass RTK**. Prefer Shell + `rtk` when exploring the repo or running dev commands.
+
+## When raw output is needed
+
+Use unwrapped commands when RTK truncation hides the detail you need (e.g. full test tracebacks, exact diff hunks). RTK saves full output on failures under `~/.local/share/rtk/tee/`; read those files when a compact result points there.

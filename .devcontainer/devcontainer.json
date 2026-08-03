@@ -22,10 +22,10 @@
     "api"
   ],
   "postCreateCommand": "bash .devcontainer/postCreate.sh",
-  // Sync host Claude Code prefs/auth into the container (same account as on the Mac).
+  // Claude Code auth + user settings persist across rebuilds (Anthropic devcontainer pattern).
+  // Sign in once inside the container; host ~/.claude is separate. Project settings live in repo .claude/.
   "mounts": [
-    "source=${localEnv:HOME}/.claude,target=/root/.claude,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.claude.json,target=/root/.claude.json,type=bind,consistency=cached"
+    "source=claude-code-config-${devcontainerId},target=/root/.claude,type=volume"
   ],
   // Only forward ports the api container listens on. Postgres/Phoenix are sibling
   // compose services with their own host publishes (3021:5432, 3022:6006). If the
@@ -62,7 +62,8 @@
     "COMPOSE_PROFILES": "api",
     "CLAUDE_CONFIG_DIR": "/root/.claude",
     "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
-    "DATABASE_URL": "postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app"
+    "DATABASE_URL": "postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app",
+    "RTK_TELEMETRY_DISABLED": "1"
   },
   "remoteEnv": {
     "PATH": "/root/.local/bin:/workspaces/pricecomp/backend/.venv/bin:${containerEnv:PATH}"

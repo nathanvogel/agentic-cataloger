@@ -13,9 +13,28 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
 fi
 
 # Claude CLI is baked into the dev image (backend/Dockerfile dev stage).
-# Host ~/.claude is bind-mounted via devcontainer.json mounts (auth, settings, sessions).
-if [ -d "${CLAUDE_CONFIG_DIR:-/root/.claude}" ]; then
-  echo "postCreate: Claude config synced from host: ${CLAUDE_CONFIG_DIR:-/root/.claude}"
+# Auth + user settings persist in the named volume at CLAUDE_CONFIG_DIR (see devcontainer.json).
+CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-/root/.claude}"
+if [ -f "${CLAUDE_DIR}/.credentials.json" ]; then
+  echo "postCreate: Claude config volume present at ${CLAUDE_DIR}"
+else
+  echo "postCreate: run 'claude' once in the container to sign in (auth persists across rebuilds)"
+fi
+
+# RTK (https://github.com/rtk-ai/rtk) is baked into the dev image; hooks land in the Claude volume.
+if command -v rtk >/dev/null 2>&1; then
+  echo "postCreate: configuring rtk hooks for Claude Code..."
+  rtk init -g --auto-patch
+
+  # Cursor connects after postCreate, so ~/.cursor may not exist yet. RTK v0.44.2
+  # writes hooks.json via atomic temp files and fails without the parent dir.
+  echo "postCreate: configuring rtk hooks for Cursor..."
+  mkdir -p "${HOME}/.cursor"
+  if ! rtk init -g --agent cursor; then
+    echo "postCreate: rtk cursor hook setup failed — retry after opening Cursor: rtk init -g --agent cursor" >&2
+  fi
+else
+  echo "postCreate: rtk not found — rebuild the devcontainer image"
 fi
 
 echo "postCreate: syncing Python deps (uv sync)..."

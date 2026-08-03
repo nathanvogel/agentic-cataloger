@@ -1,4 +1,4 @@
-FROM python:3.14.6-slim-bookworm AS base
+FROM python:3.14.6-slim-trixie AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -56,6 +56,10 @@ RUN apt-get update \
 
 ARG CLAUDE_CODE_VERSION=2.1.220
 RUN curl -fsSL https://claude.ai/install.sh | bash -s "${CLAUDE_CODE_VERSION}"
+
+ARG RTK_VERSION=v0.44.2
+RUN RTK_VERSION="${RTK_VERSION}" \
+    curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
 
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
     PATH="/root/.local/bin:${PATH}"
