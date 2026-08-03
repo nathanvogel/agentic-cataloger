@@ -83,6 +83,8 @@ This document defines the standard Python coding style for all Python projects d
 ## 5. Type Hints
 - Function Signatures: Use type hints for all function and method parameters and return types except for `self` and `cls`.
 - Void Functions: Functions/methods that do not explicitly return a value must be annotated with `-> None`.
+- Protocol: Protocols must be typed as `typing.Protocol`; required methods use `...` as the body. Use Protocols to define application boundaries (ports).
+- Protocol adapters: Implementations inherit the protocol and are marked `@final`.
 
 ## 6. Error Handling
 - Use Exceptions: Use exceptions to signal errors, not return codes or `None`.

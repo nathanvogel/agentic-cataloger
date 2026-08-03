@@ -134,6 +134,11 @@ select = [
 # conflicts with §6 informative raise-site messages on small custom *Error types.
 ignore = ["raise-vanilla-args"]
 
+# `src` is cwd-relative (CLI runs from backend/; VS Code Ruff uses repo root).
+# Pin first-party so isort agrees in both places.
+[tool.ruff.lint.isort]
+known-first-party = ["pricecomp"]
+
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
@@ -159,6 +164,7 @@ docstring-code-line-length = "dynamic"
     "unspecified-encoding",  # encoding= on Path.read_text in tests
     "BLE",      # wait helpers intentionally catch broadly
     "T20",      # prints in tests are fine
+    "too-many-arguments",  # test helpers pack setup knobs
 ]
 "migrations/**" = [
     "D",

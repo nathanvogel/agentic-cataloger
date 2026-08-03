@@ -61,7 +61,7 @@ else
   psql -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" -f "${ROLES_SQL}"
 fi
 
-uv run pytest tests/domain -q \
+uv run pytest tests/domain \
   --cov=pricecomp \
   --cov-report=term-missing \
   --cov-report=xml:coverage-unit.xml
@@ -69,7 +69,7 @@ uv run pytest tests/domain -q \
 uv run pricecomp migrate
 uv run pricecomp migrate
 
-uv run pytest tests/integration -q \
+uv run pytest tests/integration \
   --cov=pricecomp \
   --cov-append \
   --cov-report=term-missing \

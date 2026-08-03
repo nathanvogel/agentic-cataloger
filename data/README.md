@@ -91,6 +91,10 @@ Subcategory fill rate in latest files:
 | Coop | ~6.5% |
 
 
+## Ingest into the Python catalog
+
+The active importer is `pricecomp ingest` (see [`backend/README.md`](../backend/README.md)). It registers an immutable snapshot per latest file and upserts products on `(source_namespace, source_product_id, source_variant_id?)` parsed from the product URL. New HF fields (`name_de`, `unified_*`, `original_*`) are stored as observations; `unified_*` remain import/source labels only.
+
 ## Per-retailer notes
 
 ### Coop

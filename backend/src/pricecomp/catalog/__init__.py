@@ -1,1 +1,1 @@
-"""Catalog domain package (seed)."""
+"""Catalog domain — source identity, snapshots, and product observations."""

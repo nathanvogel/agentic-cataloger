@@ -30,25 +30,25 @@ cd backend
 uv sync --group dev
 
 # Domain / unit (static + import smoke — no Postgres required)
-uv run pytest tests/domain -q   # -q = quiet (dots instead of each test name)
+uv run pytest tests/domain
 
 # Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
-uv run pytest tests/integration -q
+uv run pytest tests/integration
 
 # Everything under tests/
-uv run pytest -q
+uv run pytest
 
 # With coverage
-uv run pytest tests/domain -q --cov=pricecomp --cov-report=term-missing
-uv run pytest tests/integration -q --cov=pricecomp --cov-append --cov-report=term-missing
+uv run pytest tests/domain --cov=pricecomp --cov-report=term-missing
+uv run pytest tests/integration --cov=pricecomp --cov-append --cov-report=term-missing
 ```
 
 Pytest **markers** are labels on tests (`@pytest.mark.integration`, `@pytest.mark.proc`) so you can select subsets:
 
 ```bash
-uv run pytest -m integration -q
-uv run pytest -m proc -q
-uv run pytest -m "not proc" -q
+uv run pytest -m integration
+uv run pytest -m proc
+uv run pytest -m "not proc"
 ```
 
 `integration` = needs Postgres. `proc` = spawns a real `pricecomp <role>` subprocess.
@@ -80,7 +80,7 @@ npx --yes jscpd@4.0.5 backend/src --config .jscpd.json
 Not wired yet (add once packages have real code, not empty seeds):
 
 - **import-linter** — enforce hexagonal boundaries (`domain ↛ platform` / vendor adapters); vacuous today
-- **unused-export analyser** (e.g. vulture) — Knip-style dead public API; noisy until there is a public surface
+- **unused-export analyzer** (e.g. vulture) — Knip-style dead public API; noisy until there is a public surface
 
 ### Pre-commit
 
@@ -102,13 +102,26 @@ Same entrypoints in local dev, Docker, devcontainer, and CI:
 pricecomp migrate   # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
 pricecomp api       # FastAPI on 0.0.0.0:3020 — /health and /ready
 pricecomp worker    # long-running stub (advisory lock in Story 1.3)
+pricecomp ingest    # import latest CSV per retailer into catalog_snapshots / catalog_products
+```
+
+### Ingest
+
+Imports **only the latest** `YYYY/MM/DD-HH:MM.csv` under each `data/{retailer}-ch-products/` folder (or a subset via `--retailer`). Products upsert on durable source identity extracted from the product URL; name/URL changes update observations without creating duplicates. Rows without a trustworthy ID are deferred (no product row).
+
+Needs a migrated DB and the same `DATABASE_URL` as `api` (already set in the devcontainer / compose `api` service).
+
+```bash
+uv run pricecomp ingest --retailer denner
+uv run pricecomp ingest                  # all four retailers
+uv run pricecomp ingest --data-dir /path/to/data
 ```
 
 ### Environment variables
 
 | Variable | Used by | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
+| `DATABASE_URL` | `api`, `worker`, `ingest` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
 | `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/pricecomp_app` |
 | `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://pricecomp_phoenix:...@localhost:3021/pricecomp_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |

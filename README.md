@@ -44,6 +44,9 @@ uv run pricecomp migrate
 # API on port 3020
 export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app
 uv run pricecomp api
+
+# Catalog ingest (latest CSV per retailer under data/)
+uv run pricecomp ingest --retailer lidl
 ```
 
 Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`). On a **fresh volume**, bootstrap once before starting API:
