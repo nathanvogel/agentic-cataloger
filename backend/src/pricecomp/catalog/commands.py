@@ -9,11 +9,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import uuid7
 
-from pricecomp.catalog.errors import (
-    IdentityPolicyConflictError,
-    SourceIdentityCollisionError,
-    UntrustedSourceIdentityError,
-)
+from pricecomp.catalog.errors import IdentityPolicyConflictError
 from pricecomp.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
 from pricecomp.catalog.models import (
     CatalogSnapshot,
@@ -149,25 +145,8 @@ def import_snapshot(
     )
 
 
-def assert_no_collisions(result: ImportSnapshotResult) -> None:
-    """Raise when an import reported intra-snapshot identity collisions.
-
-    Args:
-        result: Import outcome.
-
-    Raises:
-        SourceIdentityCollisionError: If any colliding identities were skipped.
-    """
-    if result.collision_count:
-        raise SourceIdentityCollisionError(
-            f"{result.collision_count} intra-snapshot identity collision(s)"
-        )
-
-
 __all__ = [
     "CSV_ADAPTER_VERSION",
     "ImportSnapshotRequest",
-    "UntrustedSourceIdentityError",
-    "assert_no_collisions",
     "import_snapshot",
 ]
