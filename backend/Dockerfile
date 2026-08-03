@@ -21,7 +21,7 @@ RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH"
 
-ENTRYPOINT ["pricecomp"]
+ENTRYPOINT ["agentic-cataloger"]
 CMD ["api"]
 
 # Devcontainer only — Node (corepack/yarn) + shell tooling. Prod roles use `base`.

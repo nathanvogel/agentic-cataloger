@@ -10,12 +10,16 @@ from uuid import UUID
 
 import pytest
 
-from pricecomp.catalog.commands import ImportSnapshotRequest, import_snapshot
-from pricecomp.catalog.errors import IdentityPolicyConflictError
-from pricecomp.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
-from pricecomp.catalog.ingest_filter import IngestFilter
-from pricecomp.catalog.models import CatalogProduct, CatalogSnapshot, ProductObservation
-from pricecomp.catalog.ports import (
+from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
+from agentic_cataloger.catalog.errors import IdentityPolicyConflictError
+from agentic_cataloger.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import (
+    CatalogProduct,
+    CatalogSnapshot,
+    ProductObservation,
+)
+from agentic_cataloger.catalog.ports import (
     CatalogUnitOfWork,
     ProductRepository,
     SnapshotRepository,

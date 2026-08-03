@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from pricecomp.catalog.models import ProductObservation
+from agentic_cataloger.catalog.models import ProductObservation
 
 
 def _normalize(value: str | None) -> str | None:

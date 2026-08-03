@@ -10,8 +10,8 @@
 
 | n | Port | Service | Notes |
 |---|------|---------|-------|
-| 0 | **3020** | Python API | `pricecomp api` |
-| 1 | **3021** | PostgreSQL (new stack) | host → container `5432`; DBs `pricecomp_app`, `pricecomp_phoenix` |
+| 0 | **3020** | Python API | `agentic-cataloger api` |
+| 1 | **3021** | PostgreSQL (new stack) | host → container `5432`; DBs `agentic_cataloger_app`, `agentic_cataloger_phoenix` |
 | 2 | **3022** | Phoenix UI | host → container `6006` |
 | 3 | **3023** | Frontend dev | `frontend/` Vite server |
 
@@ -21,7 +21,7 @@
 
 | Port | Service |
 |------|---------|
-| 5532 | Postgres in `legacy/docker-compose.yml` (`pricecomp_db`) |
+| 5532 | Postgres in `legacy/docker-compose.yml` (`agentic_cataloger_db`) |
 | 3010 | Legacy NestJS API (`legacy/backend`) — frozen reference port |
 
 ## Repository layout (binding)
@@ -59,7 +59,7 @@ Husky `pre-commit` → `cd frontend && yarn lint-staged`.
 Per AD-28, `backend/` must contain:
 
 - `pyproject.toml`, `uv.lock`
-- `src/pricecomp/{contracts,catalog,taxonomy,enrichment,review,pipeline,comparison,evaluation,platform}/`
+- `src/agentic_cataloger/{contracts,catalog,taxonomy,enrichment,review,pipeline,comparison,evaluation,platform}/`
 - `migrations/`, `tests/{domain,integration,contract,evals}/`
 - No domain logic in the relocation/seed PR
 

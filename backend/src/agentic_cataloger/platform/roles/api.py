@@ -23,7 +23,7 @@ def create_app() -> FastAPI:
     Returns:
         Configured FastAPI application instance.
     """
-    app = FastAPI(title="pricecomp", version="0.1.0")
+    app = FastAPI(title="agentic-cataloger", version="0.1.0")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -69,7 +69,7 @@ def run_api() -> None:
     """
     port = int(os.environ.get("API_PORT", API_PORT))
     uvicorn.run(
-        "pricecomp.platform.roles.api:create_app",
+        "agentic_cataloger.platform.roles.api:create_app",
         factory=True,
         host=API_HOST,
         port=port,

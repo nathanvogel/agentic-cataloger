@@ -27,8 +27,8 @@ else
   PGPORT="${PGPORT:-3021}"
 fi
 
-MIGRATE_DATABASE_URL="${MIGRATE_DATABASE_URL:-postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/pricecomp_app}"
-DATABASE_URL="${DATABASE_URL:-postgresql://pricecomp_app:pricecomp_app_dev@${PGHOST}:${PGPORT}/pricecomp_app}"
+MIGRATE_DATABASE_URL="${MIGRATE_DATABASE_URL:-postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/agentic_cataloger_app}"
+DATABASE_URL="${DATABASE_URL:-postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@${PGHOST}:${PGPORT}/agentic_cataloger_app}"
 export MIGRATE_DATABASE_URL DATABASE_URL
 
 cd "${BACKEND}"
@@ -55,22 +55,22 @@ uv sync
 
 # Compose volumes already ran init SQL once; CI fresh Postgres still needs it.
 if psql -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" -d postgres -tAc \
-  "SELECT 1 FROM pg_roles WHERE rolname = 'pricecomp_app'" | grep -q 1; then
+  "SELECT 1 FROM pg_roles WHERE rolname = 'agentic_cataloger_app'" | grep -q 1; then
   echo "GATE-02 roles already present — skipping ${ROLES_SQL}"
 else
   psql -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" -f "${ROLES_SQL}"
 fi
 
 uv run pytest tests/domain \
-  --cov=pricecomp \
+  --cov=agentic_cataloger \
   --cov-report=term-missing \
   --cov-report=xml:coverage-unit.xml
 
-uv run pricecomp migrate
-uv run pricecomp migrate
+uv run agentic-cataloger migrate
+uv run agentic-cataloger migrate
 
 uv run pytest tests/integration \
-  --cov=pricecomp \
+  --cov=agentic_cataloger \
   --cov-append \
   --cov-report=term-missing \
   --cov-report=xml:coverage.xml

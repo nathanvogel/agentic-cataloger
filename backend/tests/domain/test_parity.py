@@ -51,5 +51,5 @@ def test_unit_003_devcontainer_ci_postgres_and_role_parity() -> None:
     assert "./scripts/ci/backend-test.sh" in workflow
 
     ci_script = CI_SCRIPT.read_text()
-    assert "pricecomp migrate" in ci_script
+    assert "agentic-cataloger migrate" in ci_script
     assert "pytest tests/integration" in ci_script

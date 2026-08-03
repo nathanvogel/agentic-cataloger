@@ -6,7 +6,7 @@ stepsCompleted:
   - step-04-ux-alignment
   - step-05-epic-quality-review
   - step-06-final-assessment
-project: pricecomp
+project: agentic-cataloger
 assessmentDate: 2026-08-01
 assessor: Implementation Readiness Workflow
 documentInventory:
@@ -14,22 +14,22 @@ documentInventory:
     path: _bmad-output/specs/spec-2026-agent-workflow/SPEC.md
     note: Stands in for PRD per operator confirmation
   architecture:
-    path: _bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md
+    path: _bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md
     excluded:
-      - architecture/architecture-pricecomp-2026-07-31/reviews/*.md
+      - architecture/architecture-agentic-cataloger-2026-07-31/reviews/*.md
     note: Review docs excluded per operator — not used in assessment
   epics:
     path: _bmad-output/planning-artifacts/epics.md
   ux:
-    design: _bmad-output/planning-artifacts/ux-designs/ux-pricecomp-2026-07-31/DESIGN.md
-    experience: _bmad-output/planning-artifacts/ux-designs/ux-pricecomp-2026-07-31/EXPERIENCE.md
-    mockup: _bmad-output/planning-artifacts/ux-designs/ux-pricecomp-2026-07-31/mockups/deferred-list.html
+    design: _bmad-output/planning-artifacts/ux-designs/ux-agentic-cataloger-2026-07-31/DESIGN.md
+    experience: _bmad-output/planning-artifacts/ux-designs/ux-agentic-cataloger-2026-07-31/EXPERIENCE.md
+    mockup: _bmad-output/planning-artifacts/ux-designs/ux-agentic-cataloger-2026-07-31/mockups/deferred-list.html
 ---
 
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-08-01  
-**Project:** pricecomp  
+**Project:** agentic-cataloger  
 **Assessor:** Implementation Readiness Workflow
 
 ---

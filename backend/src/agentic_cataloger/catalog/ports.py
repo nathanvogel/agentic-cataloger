@@ -6,8 +6,12 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from pricecomp.catalog.identity import SourceIdentity
-from pricecomp.catalog.models import CatalogProduct, CatalogSnapshot, ProductObservation
+from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.models import (
+    CatalogProduct,
+    CatalogSnapshot,
+    ProductObservation,
+)
 
 
 class CatalogUnitOfWork(Protocol):

@@ -7,20 +7,20 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-from pricecomp.catalog.commands import (
+from agentic_cataloger.catalog.commands import (
     CSV_ADAPTER_VERSION,
     ImportSnapshotRequest,
     import_snapshot,
 )
-from pricecomp.catalog.ingest_filter import IngestFilter
-from pricecomp.catalog.models import ImportSnapshotResult
-from pricecomp.platform.ingest.csv_source import (
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import ImportSnapshotResult
+from agentic_cataloger.platform.ingest.csv_source import (
     RETAILERS,
     find_latest_csv,
     iter_retailer_dirs,
     parse_csv_snapshot,
 )
-from pricecomp.platform.persistence.catalog_repo import (
+from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     PsycopgSnapshotRepository,
     PsycopgUnitOfWork,
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True, slots=True)
 class IngestRunSummary:
-    """Aggregate result of one ``pricecomp ingest`` invocation."""
+    """Aggregate result of one ``agentic-cataloger ingest`` invocation."""
 
     results: tuple[ImportSnapshotResult, ...]
 

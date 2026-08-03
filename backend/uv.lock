@@ -3,6 +3,77 @@ revision = 3
 requires-python = "==3.14.6"
 
 [[package]]
+name = "agentic-cataloger"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "fastapi" },
+    { name = "fastmcp" },
+    { name = "langchain-anthropic" },
+    { name = "langchain-core" },
+    { name = "langchain-openai" },
+    { name = "langgraph" },
+    { name = "langgraph-checkpoint-postgres" },
+    { name = "openinference-instrumentation-langchain" },
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-sdk" },
+    { name = "pgqueuer" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "psycopg-pool" },
+    { name = "pydantic" },
+    { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "uvicorn" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "httpx" },
+    { name = "pre-commit" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pyyaml" },
+    { name = "ruff" },
+    { name = "testcontainers" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = "==1.18.5" },
+    { name = "fastapi", specifier = "==0.141.1" },
+    { name = "fastmcp", specifier = "==3.4.5" },
+    { name = "langchain-anthropic", specifier = "==1.5.3" },
+    { name = "langchain-core", specifier = "==1.5.3" },
+    { name = "langchain-openai", specifier = "==1.4.1" },
+    { name = "langgraph", specifier = "==1.2.10" },
+    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.1" },
+    { name = "openinference-instrumentation-langchain", specifier = "==0.1.68" },
+    { name = "opentelemetry-api", specifier = "==1.44.0" },
+    { name = "opentelemetry-sdk", specifier = "==1.44.0" },
+    { name = "pgqueuer", specifier = "==1.3.2" },
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
+    { name = "psycopg-pool", specifier = "==3.3.1" },
+    { name = "pydantic", specifier = "==2.13.4" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.51" },
+    { name = "uvicorn", specifier = "==0.52.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "httpx", specifier = "==0.28.1" },
+    { name = "pre-commit", specifier = "==4.5.1" },
+    { name = "pyright", specifier = "==1.1.411" },
+    { name = "pytest", specifier = "==9.1.1" },
+    { name = "pytest-asyncio", specifier = "==1.3.0" },
+    { name = "pytest-cov", specifier = "==7.0.0" },
+    { name = "pyyaml", specifier = "==6.0.3" },
+    { name = "ruff", specifier = "==0.16.1" },
+    { name = "testcontainers", extras = ["postgres"], specifier = "==4.14.1" },
+]
+
+[[package]]
 name = "aiofile"
 version = "3.11.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1306,77 +1377,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/40/f1/6d86a29246dfd2e9b6237f0b5823717f60cad94d47ddc26afa916d21f525/pre_commit-4.5.1.tar.gz", hash = "sha256:eb545fcff725875197837263e977ea257a402056661f09dae08e4b149b030a61", size = 198232, upload-time = "2025-12-16T21:14:33.552Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/19/fd3ef348460c80af7bb4669ea7926651d1f95c23ff2df18b9d24bab4f3fa/pre_commit-4.5.1-py2.py3-none-any.whl", hash = "sha256:3b3afd891e97337708c1674210f8eba659b52a38ea5f822ff142d10786221f77", size = 226437, upload-time = "2025-12-16T21:14:32.409Z" },
-]
-
-[[package]]
-name = "pricecomp"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "fastapi" },
-    { name = "fastmcp" },
-    { name = "langchain-anthropic" },
-    { name = "langchain-core" },
-    { name = "langchain-openai" },
-    { name = "langgraph" },
-    { name = "langgraph-checkpoint-postgres" },
-    { name = "openinference-instrumentation-langchain" },
-    { name = "opentelemetry-api" },
-    { name = "opentelemetry-sdk" },
-    { name = "pgqueuer" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "psycopg-pool" },
-    { name = "pydantic" },
-    { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "uvicorn" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx" },
-    { name = "pre-commit" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pyyaml" },
-    { name = "ruff" },
-    { name = "testcontainers" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = "==1.18.5" },
-    { name = "fastapi", specifier = "==0.141.1" },
-    { name = "fastmcp", specifier = "==3.4.5" },
-    { name = "langchain-anthropic", specifier = "==1.5.3" },
-    { name = "langchain-core", specifier = "==1.5.3" },
-    { name = "langchain-openai", specifier = "==1.4.1" },
-    { name = "langgraph", specifier = "==1.2.10" },
-    { name = "langgraph-checkpoint-postgres", specifier = "==3.1.1" },
-    { name = "openinference-instrumentation-langchain", specifier = "==0.1.68" },
-    { name = "opentelemetry-api", specifier = "==1.44.0" },
-    { name = "opentelemetry-sdk", specifier = "==1.44.0" },
-    { name = "pgqueuer", specifier = "==1.3.2" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
-    { name = "psycopg-pool", specifier = "==3.3.1" },
-    { name = "pydantic", specifier = "==2.13.4" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.51" },
-    { name = "uvicorn", specifier = "==0.52.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "httpx", specifier = "==0.28.1" },
-    { name = "pre-commit", specifier = "==4.5.1" },
-    { name = "pyright", specifier = "==1.1.411" },
-    { name = "pytest", specifier = "==9.1.1" },
-    { name = "pytest-asyncio", specifier = "==1.3.0" },
-    { name = "pytest-cov", specifier = "==7.0.0" },
-    { name = "pyyaml", specifier = "==6.0.3" },
-    { name = "ruff", specifier = "==0.16.1" },
-    { name = "testcontainers", extras = ["postgres"], specifier = "==4.14.1" },
 ]
 
 [[package]]

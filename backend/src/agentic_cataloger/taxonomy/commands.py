@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid7
 
-from pricecomp.taxonomy.errors import (
+from agentic_cataloger.taxonomy.errors import (
     CategoryNotFoundError,
     CycleError,
     NonLeafHasMembersError,
@@ -16,7 +16,7 @@ from pricecomp.taxonomy.errors import (
     RootAlreadyExistsError,
     SelfParentError,
 )
-from pricecomp.taxonomy.models import (
+from agentic_cataloger.taxonomy.models import (
     AssignProductResult,
     Category,
     CreateCategoryResult,
@@ -24,13 +24,13 @@ from pricecomp.taxonomy.models import (
     ReparentCategoryResult,
     TaxonomyTree,
 )
-from pricecomp.taxonomy.ports import (
+from agentic_cataloger.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
     ProductExistence,
     TaxonomyUnitOfWork,
 )
-from pricecomp.taxonomy.tree import is_leaf, parent_map, would_create_cycle
+from agentic_cataloger.taxonomy.tree import is_leaf, parent_map, would_create_cycle
 
 logger = logging.getLogger(__name__)
 

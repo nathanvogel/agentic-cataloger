@@ -38,7 +38,7 @@ else
 fi
 
 echo "postCreate: syncing Python deps (uv sync)..."
-cd /workspaces/pricecomp/backend
+cd /workspaces/agentic-cataloger/backend
 uv sync
 # Install git hooks (Ruff + Pyright). Safe to re-run; no-op if already linked.
 echo "postCreate: installing pre-commit hooks..."
@@ -46,7 +46,7 @@ uv run pre-commit install
 
 # Frontend deps — vendored Yarn 4 in .yarn/releases.
 echo "postCreate: installing frontend deps (yarn)..."
-cd /workspaces/pricecomp/frontend
+cd /workspaces/agentic-cataloger/frontend
 export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 node .yarn/releases/yarn-4.11.0.cjs install
 
@@ -55,13 +55,13 @@ node .yarn/releases/yarn-4.11.0.cjs install
 echo "postCreate: checking postgres for migrations..."
 if docker compose ps --status running postgres 2>/dev/null | grep -q postgres; then
   echo "postCreate: running database migrations..."
-  export MIGRATE_DATABASE_URL="postgresql://postgres:postgres@postgres:5432/pricecomp_app"
-  export PHOENIX_DATABASE_URL="postgresql://pricecomp_phoenix:pricecomp_phoenix_dev@postgres:5432/pricecomp_phoenix"
+  export MIGRATE_DATABASE_URL="postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app"
+  export PHOENIX_DATABASE_URL="postgresql://agentic_cataloger_phoenix:agentic_cataloger_phoenix_dev@postgres:5432/agentic_cataloger_phoenix"
   export PHOENIX_HOST=phoenix
   export PHOENIX_PORT=6006
-  if ! uv run pricecomp migrate; then
+  if ! uv run agentic-cataloger migrate; then
     echo "migrate failed — if auth errors mention missing roles, reset the postgres volume:" >&2
-    echo "  docker compose down && docker volume rm pricecomp_postgres18_data" >&2
+    echo "  docker compose down && docker volume rm agentic_cataloger_postgres18_data" >&2
     exit 1
   fi
 else

@@ -16,7 +16,7 @@ from urllib.request import urlopen
 import psycopg
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
-from pricecomp.platform.errors import (
+from agentic_cataloger.platform.errors import (
     BootstrapError,
     DatabaseNotReadyError,
     MigrateError,
@@ -25,7 +25,7 @@ from pricecomp.platform.errors import (
 BACKEND_ROOT = Path(__file__).resolve().parents[4]
 PGQUEUER_SCHEMA = "pgqueuer"
 LANGGRAPH_SCHEMA = "langgraph"
-APP_ROLE = "pricecomp_app"
+APP_ROLE = "agentic_cataloger_app"
 HTTP_OK = 200
 HTTP_REDIRECT = 300
 
@@ -93,7 +93,7 @@ def _wait_for_database(
 
 
 def _verify_databases_exist(migrate_url: str) -> None:
-    """Fail when ``pricecomp_app`` or ``pricecomp_phoenix`` is missing.
+    """Fail when ``agentic_cataloger_app`` or ``agentic_cataloger_phoenix`` is missing.
 
     Args:
         migrate_url: Superuser connection URL used for catalog queries.
@@ -104,10 +104,10 @@ def _verify_databases_exist(migrate_url: str) -> None:
     with psycopg.connect(migrate_url, autocommit=True) as conn:
         rows = conn.execute(
             "SELECT datname FROM pg_database "
-            "WHERE datname IN ('pricecomp_app', 'pricecomp_phoenix')"
+            "WHERE datname IN ('agentic_cataloger_app', 'agentic_cataloger_phoenix')"
         ).fetchall()
     names = {row[0] for row in rows}
-    missing = {"pricecomp_app", "pricecomp_phoenix"} - names
+    missing = {"agentic_cataloger_app", "agentic_cataloger_phoenix"} - names
     if missing:
         raise BootstrapError(f"missing databases after init: {sorted(missing)}")
 

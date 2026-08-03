@@ -6,13 +6,13 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from pricecomp.catalog.errors import UntrustedSourceIdentityError
-from pricecomp.catalog.identity import (
+from agentic_cataloger.catalog.errors import UntrustedSourceIdentityError
+from agentic_cataloger.catalog.identity import (
     IDENTITY_POLICY_VERSION,
     extract_source_identity,
     namespace_for_retailer,
 )
-from pricecomp.catalog.timeutil import ensure_utc
+from agentic_cataloger.catalog.timeutil import ensure_utc
 
 
 def test_extract_migros_product_id() -> None:

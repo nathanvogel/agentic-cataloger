@@ -10,14 +10,18 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import DictRow, dict_row
 
-from pricecomp.catalog.identity import SourceIdentity
-from pricecomp.catalog.models import CatalogProduct, CatalogSnapshot, ProductObservation
-from pricecomp.catalog.ports import (
+from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.models import (
+    CatalogProduct,
+    CatalogSnapshot,
+    ProductObservation,
+)
+from agentic_cataloger.catalog.ports import (
     CatalogUnitOfWork,
     ProductRepository,
     SnapshotRepository,
 )
-from pricecomp.taxonomy.ports import ProductExistence
+from agentic_cataloger.taxonomy.ports import ProductExistence
 
 
 @final
@@ -271,7 +275,7 @@ def connect_app(database_url: str) -> psycopg.Connection[DictRow]:
     """Open an app-role connection with dict rows and autocommit off.
 
     Args:
-        database_url: ``postgresql://…`` URL for ``pricecomp_app``.
+        database_url: ``postgresql://…`` URL for ``agentic_cataloger_app``.
 
     Returns:
         Open psycopg connection.

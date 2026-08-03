@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from pricecomp.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.models import Category, Membership
 
 
 class TaxonomyUnitOfWork(Protocol):

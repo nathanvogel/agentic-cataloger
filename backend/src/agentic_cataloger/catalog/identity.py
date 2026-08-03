@@ -10,7 +10,7 @@ import re
 from dataclasses import dataclass
 from urllib.parse import parse_qs, urlparse
 
-from pricecomp.catalog.errors import UntrustedSourceIdentityError
+from agentic_cataloger.catalog.errors import UntrustedSourceIdentityError
 
 # Versioned normalization policy recorded on every import (1.5-UNIT-002 / 1.5-INT-007).
 IDENTITY_POLICY_VERSION = "yelinz-csv-identity@1"

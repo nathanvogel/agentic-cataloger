@@ -27,7 +27,7 @@ def test_int_002_migrate_is_idempotent(
     migrate_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Running migrate twice against the same DB exits zero both times."""
-    from pricecomp.platform.roles.migrate import run_migrate
+    from agentic_cataloger.platform.roles.migrate import run_migrate
 
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
     assert run_migrate() == 0

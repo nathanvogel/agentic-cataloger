@@ -27,12 +27,12 @@ from psycopg import sql
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 REPO_ROOT = BACKEND_ROOT.parent
 POSTGRES_IMAGE = "postgres:18.4"
-APP_PASSWORD = "pricecomp_app_dev"
-PHOENIX_PASSWORD = "pricecomp_phoenix_dev"
-APP_DB = "pricecomp_app"
-PHOENIX_DB = "pricecomp_phoenix"
-APP_DB_TEST = "pricecomp_app_test"
-PHOENIX_DB_TEST = "pricecomp_phoenix_test"
+APP_PASSWORD = "agentic_cataloger_app_dev"
+PHOENIX_PASSWORD = "agentic_cataloger_phoenix_dev"
+APP_DB = "agentic_cataloger_app"
+PHOENIX_DB = "agentic_cataloger_phoenix"
+APP_DB_TEST = "agentic_cataloger_app_test"
+PHOENIX_DB_TEST = "agentic_cataloger_phoenix_test"
 
 
 @dataclass(frozen=True)
@@ -57,29 +57,33 @@ class PostgresHarness:
     @property
     def app_url(self) -> str:
         """Runtime app-role URL for the app database under test."""
-        return self.url("pricecomp_app", APP_PASSWORD, self.app_database)
+        return self.url("agentic_cataloger_app", APP_PASSWORD, self.app_database)
 
     @property
     def phoenix_url(self) -> str:
         """Runtime Phoenix-role URL for the Phoenix database under test."""
-        return self.url("pricecomp_phoenix", PHOENIX_PASSWORD, self.phoenix_database)
+        return self.url(
+            "agentic_cataloger_phoenix", PHOENIX_PASSWORD, self.phoenix_database
+        )
 
     @property
     def app_on_phoenix_url(self) -> str:
         """App role pointed at the Phoenix DB under test (must be denied)."""
-        return self.url("pricecomp_app", APP_PASSWORD, self.phoenix_database)
+        return self.url("agentic_cataloger_app", APP_PASSWORD, self.phoenix_database)
 
 
 def bootstrap_gate02_roles(host: str, port: int, *, password: str = "test") -> None:
     """Mirror docker/postgres/init/01-roles.sql without psql meta-commands."""
     admin = f"postgresql://postgres:{password}@{host}:{port}/postgres"
     with psycopg.connect(admin, autocommit=True) as conn:
-        conn.execute(f"CREATE ROLE pricecomp_app LOGIN PASSWORD '{APP_PASSWORD}'")
         conn.execute(
-            f"CREATE ROLE pricecomp_phoenix LOGIN PASSWORD '{PHOENIX_PASSWORD}'"
+            f"CREATE ROLE agentic_cataloger_app LOGIN PASSWORD '{APP_PASSWORD}'"
+        )
+        conn.execute(
+            f"CREATE ROLE agentic_cataloger_phoenix LOGIN PASSWORD '{PHOENIX_PASSWORD}'"
         )
         _create_database(conn, APP_DB)
-        _create_database(conn, PHOENIX_DB, owner="pricecomp_phoenix")
+        _create_database(conn, PHOENIX_DB, owner="agentic_cataloger_phoenix")
         _apply_database_connect_grants(conn, APP_DB, PHOENIX_DB)
 
     _grant_app_schema_privileges(host, port, password, APP_DB)
@@ -90,7 +94,7 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
     """Create isolated ``*_test`` DBs on shared Postgres; leave live DBs alone."""
     admin = harness.url("postgres", harness.password, "postgres")
     with psycopg.connect(admin, autocommit=True) as conn:
-        for role in ("pricecomp_app", "pricecomp_phoenix"):
+        for role in ("agentic_cataloger_app", "agentic_cataloger_phoenix"):
             row = conn.execute(
                 "SELECT 1 FROM pg_roles WHERE rolname = %s", (role,)
             ).fetchone()
@@ -102,7 +106,9 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
                 raise RuntimeError(msg)
 
         _create_database(conn, harness.app_database)
-        _create_database(conn, harness.phoenix_database, owner="pricecomp_phoenix")
+        _create_database(
+            conn, harness.phoenix_database, owner="agentic_cataloger_phoenix"
+        )
         _apply_database_connect_grants(
             conn, harness.app_database, harness.phoenix_database
         )
@@ -149,12 +155,12 @@ def _apply_database_connect_grants(
             )
         )
     conn.execute(
-        sql.SQL("GRANT CONNECT ON DATABASE {} TO pricecomp_app").format(
+        sql.SQL("GRANT CONNECT ON DATABASE {} TO agentic_cataloger_app").format(
             sql.Identifier(app_database)
         )
     )
     conn.execute(
-        sql.SQL("GRANT CONNECT ON DATABASE {} TO pricecomp_phoenix").format(
+        sql.SQL("GRANT CONNECT ON DATABASE {} TO agentic_cataloger_phoenix").format(
             sql.Identifier(phoenix_database)
         )
     )
@@ -165,14 +171,14 @@ def _grant_app_schema_privileges(
 ) -> None:
     app_admin = f"postgresql://postgres:{password}@{host}:{port}/{database}"
     with psycopg.connect(app_admin, autocommit=True) as conn:
-        conn.execute("GRANT USAGE ON SCHEMA public TO pricecomp_app")
+        conn.execute("GRANT USAGE ON SCHEMA public TO agentic_cataloger_app")
         conn.execute(
             "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
-            "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pricecomp_app"
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO agentic_cataloger_app"
         )
         conn.execute(
             "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
-            "GRANT USAGE, SELECT ON SEQUENCES TO pricecomp_app"
+            "GRANT USAGE, SELECT ON SEQUENCES TO agentic_cataloger_app"
         )
 
 
@@ -181,14 +187,14 @@ def _grant_phoenix_schema_privileges(
 ) -> None:
     phoenix_admin = f"postgresql://postgres:{password}@{host}:{port}/{database}"
     with psycopg.connect(phoenix_admin, autocommit=True) as conn:
-        conn.execute("GRANT ALL ON SCHEMA public TO pricecomp_phoenix")
+        conn.execute("GRANT ALL ON SCHEMA public TO agentic_cataloger_phoenix")
         conn.execute(
             "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
-            "GRANT ALL ON TABLES TO pricecomp_phoenix"
+            "GRANT ALL ON TABLES TO agentic_cataloger_phoenix"
         )
         conn.execute(
             "ALTER DEFAULT PRIVILEGES IN SCHEMA public "
-            "GRANT ALL ON SEQUENCES TO pricecomp_phoenix"
+            "GRANT ALL ON SEQUENCES TO agentic_cataloger_phoenix"
         )
 
 
@@ -297,7 +303,7 @@ def migrated_database(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[str]:
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
-    from pricecomp.platform.roles.migrate import run_migrate
+    from agentic_cataloger.platform.roles.migrate import run_migrate
 
     assert run_migrate() == 0
     yield migrate_url
@@ -308,18 +314,18 @@ def spawn_role(
     *,
     env: dict[str, str] | None = None,
 ) -> subprocess.Popen[str]:
-    """Spawn a `pricecomp <role>` process for PROC-level tests."""
+    """Spawn a `agentic-cataloger <role>` process for PROC-level tests."""
     merged = os.environ.copy()
     if env:
         merged.update(env)
-    pricecomp = BACKEND_ROOT / ".venv" / "bin" / "pricecomp"
+    cli_bin = BACKEND_ROOT / ".venv" / "bin" / "agentic-cataloger"
     command = (
-        [str(pricecomp), role]
-        if pricecomp.exists()
+        [str(cli_bin), role]
+        if cli_bin.exists()
         else [
             sys.executable,
             "-m",
-            "pricecomp.platform.cli",
+            "agentic_cataloger.platform.cli",
             role,
         ]
     )

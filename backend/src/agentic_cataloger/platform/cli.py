@@ -1,4 +1,7 @@
-"""Console entrypoint: ``pricecomp api | worker | migrate | ingest | taxonomy``."""
+"""Console entrypoint.
+
+``agentic-cataloger api | worker | migrate | ingest | taxonomy``.
+"""
 
 from __future__ import annotations
 
@@ -20,7 +23,7 @@ def _configure_logging() -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Dispatch ``pricecomp <command>`` to roles or application commands.
+    """Dispatch ``agentic-cataloger <command>`` to roles or application commands.
 
     Args:
         argv: CLI arguments. When ``None``, uses ``sys.argv[1:]``.
@@ -36,17 +39,17 @@ def main(argv: list[str] | None = None) -> None:
 
     command = args[0]
     if command == "api":
-        from pricecomp.platform.roles.api import run_api
+        from agentic_cataloger.platform.roles.api import run_api
 
         run_api()
         return
     if command == "worker":
-        from pricecomp.platform.roles.worker import run_worker
+        from agentic_cataloger.platform.roles.worker import run_worker
 
         run_worker()
         return
     if command == "migrate":
-        from pricecomp.platform.roles.migrate import run_migrate
+        from agentic_cataloger.platform.roles.migrate import run_migrate
 
         raise SystemExit(run_migrate())
     if command == "ingest":
@@ -56,7 +59,7 @@ def main(argv: list[str] | None = None) -> None:
     if command in {"-V", "--version"}:
         from importlib.metadata import version
 
-        print(version("pricecomp"))
+        print(version("agentic-cataloger"))
         raise SystemExit(0)
 
     logger.error("Unknown command: %s", command)
@@ -74,7 +77,7 @@ def _run_ingest(argv: list[str]) -> int:
         Process exit code (0 on success).
     """
     parser = argparse.ArgumentParser(
-        prog="pricecomp ingest",
+        prog="agentic-cataloger ingest",
         description=(
             "Register immutable catalog snapshots and upsert products from the "
             "latest CSV per retailer under data/."
@@ -108,12 +111,12 @@ def _run_ingest(argv: list[str]) -> int:
     )
     parsed = parser.parse_args(argv)
 
-    from pricecomp.catalog.ingest_filter import IngestFilter
-    from pricecomp.platform.ingest.runner import run_ingest
+    from agentic_cataloger.catalog.ingest_filter import IngestFilter
+    from agentic_cataloger.platform.ingest.runner import run_ingest
 
     data_dir = parsed.data_dir
     if data_dir is None:
-        # backend/src/pricecomp/platform/cli.py → parents[4] = repo root
+        # backend/src/agentic_cataloger/platform/cli.py → parents[4] = repo root
         data_dir = Path(__file__).resolve().parents[4] / "data"
 
     retailers = tuple(parsed.retailers) if parsed.retailers else None
@@ -138,7 +141,7 @@ def _run_ingest(argv: list[str]) -> int:
 
 
 def _run_taxonomy(argv: list[str]) -> int:
-    """Dispatch ``pricecomp taxonomy <subcommand>``.
+    """Dispatch ``agentic-cataloger taxonomy <subcommand>``.
 
     Args:
         argv: Arguments after ``taxonomy``.
@@ -147,7 +150,7 @@ def _run_taxonomy(argv: list[str]) -> int:
         Process exit code (0 on success).
     """
     parser = argparse.ArgumentParser(
-        prog="pricecomp taxonomy",
+        prog="agentic-cataloger taxonomy",
         description=(
             "Manage the substitutability category tree and product↔leaf "
             "membership. Categories are identified by UUID (see ``show``). "
@@ -222,7 +225,7 @@ def _run_taxonomy(argv: list[str]) -> int:
 
     parsed = parser.parse_args(argv)
 
-    from pricecomp.taxonomy.errors import TaxonomyError
+    from agentic_cataloger.taxonomy.errors import TaxonomyError
 
     try:
         return _dispatch_taxonomy(parsed)
@@ -245,7 +248,7 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
     Raises:
         ValueError: Unknown subcommand.
     """
-    from pricecomp.platform.taxonomy.runner import (
+    from agentic_cataloger.platform.taxonomy.runner import (
         ProductRef,
         format_taxonomy_tree,
         run_assign_product,
@@ -299,7 +302,7 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
 def _print_help() -> None:
     """Print CLI usage for supported commands."""
     print(
-        "usage: pricecomp <command>\n\n"
+        "usage: agentic-cataloger <command>\n\n"
         "commands:\n"
         "  api       HTTP server on 0.0.0.0:3020 (/health, /ready)\n"
         "  worker    long-running job consumer stub\n"

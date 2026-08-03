@@ -7,7 +7,7 @@ nextStep: ''
 lastSaved: '2026-08-01'
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
-  - _bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md
+  - _bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md
   - _bmad-output/specs/spec-2026-agent-workflow/SPEC.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
   - _bmad-output/implementation-artifacts/gates/GATE-01-bootstrap.md
@@ -23,7 +23,7 @@ inputDocuments:
   - .claude/skills/bmad-testarch-test-design/resources/knowledge/nfr-criteria.md
 ---
 
-# Test Design Progress — pricecomp
+# Test Design Progress — agentic-cataloger
 
 ## Step 01: Mode Detection & Prerequisites
 
@@ -44,7 +44,7 @@ stories 1-2 through 1-11 are at `backlog`. All other epics (2–6) are `backlog`
 | Requirement | Source | Status |
 | --- | --- | --- |
 | Epic/story requirements with acceptance criteria | `_bmad-output/planning-artifacts/epics.md` (2417 lines) | Available |
-| Architecture context | `_bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md` (422 lines) | Available |
+| Architecture context | `_bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md` (422 lines) | Available |
 | Spec kernel | `_bmad-output/specs/spec-2026-agent-workflow/SPEC.md` (116 lines) | Available |
 | Implementation gates | `_bmad-output/implementation-artifacts/gates/GATE-01..04` | Available |
 | Sprint tracking | `_bmad-output/implementation-artifacts/sprint-status.yaml` | Available |
@@ -162,7 +162,7 @@ Thresholds: 1–3 DOCUMENT · 4–5 MONITOR · 6–8 MITIGATE · 9 BLOCK.
 | DATA-002 | DATA | Idempotency records are reaped before queue/checkpoint replay, so replayed work applies business effects twice | 2 | 3 | 6 | MITIGATE |
 | DATA-003 | DATA | Source identity silently synthesised from name/URL when the stable ID is missing or untrustworthy | 2 | 3 | 6 | MITIGATE |
 | DATA-004 | DATA | Ingest treats a filtered selection as a full sync and deactivates/deletes unobserved products | 2 | 3 | 6 | MITIGATE |
-| SEC-001 | SEC | `pricecomp_app` over-granted — can `CREATE DATABASE`, run DDL, or reach `pricecomp_phoenix` | 2 | 2 | 4 | MONITOR |
+| SEC-001 | SEC | `agentic_cataloger_app` over-granted — can `CREATE DATABASE`, run DDL, or reach `agentic_cataloger_phoenix` | 2 | 2 | 4 | MONITOR |
 | OPS-001 | OPS | One-shot bootstrap is not idempotent on re-run; second `up` corrupts or half-applies schema state | 2 | 2 | 4 | MONITOR |
 | DATA-005 | DATA | Snapshot immutability enforced only in the command handler, bypassable by any adapter reaching the repository | 2 | 2 | 4 | MONITOR |
 | DATA-006 | DATA | Manifest-replay "equivalence" is undefined against generated UUIDv7 identities and timestamps — assertion is unwritable as stated | 2 | 2 | 4 | MONITOR |
@@ -280,7 +280,7 @@ evidence exists.
 | Reliability | Yes | Work states exactly `pending`/`running`/`retry_wait`/`completed`/`failed`/`cancelled` | AD-22 | Enum contract test + state-transition integration test |
 | Reliability | Yes | `invalid`/`defer` never infrastructure-retry | AD-22 | Negative integration test |
 | Reliability | Yes | Second worker exit code — **UNKNOWN**, "distinct non-zero" is unspecified | Story 1.3 AC | Clarification item CL-1 |
-| Security | Yes | `pricecomp_app` cannot `CREATE DATABASE`; cannot write `pricecomp_phoenix` | GATE-02 | Two negative integration tests (named in GATE-02 checklist) |
+| Security | Yes | `agentic_cataloger_app` cannot `CREATE DATABASE`; cannot write `agentic_cataloger_phoenix` | GATE-02 | Two negative integration tests (named in GATE-02 checklist) |
 | Security | Yes | Migrate-role credentials absent from `api`/`worker` environment | GATE-02 | Compose/env assertion test |
 | Security | Deferred | External authN/authZ — out of initiative scope | AD-32 | None; AD-32 prohibits public exposure |
 | Security | Yes | Secret handling and log redaction — **UNKNOWN** | Deferred: "Configuration and secrets contract" | Clarification item CL-2 |
@@ -368,10 +368,10 @@ scoping is left to review rather than automated — asserting on a git hook cost
 | 1.2-PROC-003 | PROC | `migrate` role runs one-shot and exits 0 | P0 | — |
 | 1.2-INT-001 | INT | Bootstrap executes in order: db/role → Alembic → PgQueuer → LangGraph → Phoenix → readiness | P0 | OPS-001 |
 | 1.2-INT-002 | INT | Every bootstrap step is idempotent — second run is a clean no-op | P0 | OPS-001 |
-| 1.2-INT-003 | INT | `pricecomp_app` cannot `CREATE DATABASE` | P0 | SEC-001 |
-| 1.2-INT-004 | INT | `pricecomp_app` cannot write to `pricecomp_phoenix` | P0 | SEC-001 |
+| 1.2-INT-003 | INT | `agentic_cataloger_app` cannot `CREATE DATABASE` | P0 | SEC-001 |
+| 1.2-INT-004 | INT | `agentic_cataloger_app` cannot write to `agentic_cataloger_phoenix` | P0 | SEC-001 |
 | 1.2-INT-005 | INT | PostgreSQL 18.x on host 3021, durable volume at `/var/lib/postgresql` | P1 | OPS-002 |
-| 1.2-INT-006 | INT | Phoenix `version-19.11.1` on 3022, `PHOENIX_SQL_DATABASE_URL` → `pricecomp_phoenix` | P1 | OPS-002 |
+| 1.2-INT-006 | INT | Phoenix `version-19.11.1` on 3022, `PHOENIX_SQL_DATABASE_URL` → `agentic_cataloger_phoenix` | P1 | OPS-002 |
 | 1.2-INT-007 | INT | `api` binds host 3020 when started | P1 | OPS-002 |
 | 1.2-INT-008 | INT | App role has USE+EXECUTE but no DDL on `pgqueuer` and `langgraph` schemas | P1 | SEC-001 |
 | 1.2-INT-009 | INT | Migrate/elevated credentials absent from `api` and `worker` environments | P1 | SEC-001 |
@@ -623,7 +623,7 @@ reopens, that work is largely lost, which is the second argument for running it 
 | P2/P3 | Tracked, non-blocking |
 | High-risk mitigation | Both BLOCK risks (TECH-001, TECH-002) closed before the epic is called done |
 | Score-6 risks | All five MITIGATE risks have a green owning test |
-| Line coverage | ≥ 80% on `src/pricecomp/`, measured once `pytest-cov` exists |
+| Line coverage | ≥ 80% on `src/agentic_cataloger/`, measured once `pytest-cov` exists |
 | Mandatory tests | AD-31's D6 regression (1.8-INT-001) and GATE-03 P1–P8 green on Linux CI + PostgreSQL 18 |
 | NFR evidence | Every in-scope NFR category has a named evidence artifact; UNKNOWN thresholds resolved or explicitly accepted |
 | Clarifications | CL-1 through CL-5 resolved, or their dependent ACs formally deferred |

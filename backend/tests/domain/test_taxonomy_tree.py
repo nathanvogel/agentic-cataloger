@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from pricecomp.taxonomy.commands import (
+from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
     CreateCategoryRequest,
     ReparentCategoryRequest,
@@ -18,21 +18,21 @@ from pricecomp.taxonomy.commands import (
     reparent_category,
     show_taxonomy,
 )
-from pricecomp.taxonomy.errors import (
+from agentic_cataloger.taxonomy.errors import (
     CycleError,
     NonLeafHasMembersError,
     NotLeafError,
     RootAlreadyExistsError,
     SelfParentError,
 )
-from pricecomp.taxonomy.models import Category, Membership
-from pricecomp.taxonomy.ports import (
+from agentic_cataloger.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
     ProductExistence,
     TaxonomyUnitOfWork,
 )
-from pricecomp.taxonomy.tree import is_leaf, would_create_cycle
+from agentic_cataloger.taxonomy.tree import is_leaf, would_create_cycle
 
 
 @final

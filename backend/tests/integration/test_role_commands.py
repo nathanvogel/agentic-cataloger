@@ -13,7 +13,7 @@ from tests.conftest import resolve_api_test_port, spawn_role, wait_for_http
 def test_proc_001_migrate_exits_zero(
     migrate_url: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Spawned `pricecomp migrate` exits 0 on a ready database."""
+    """Spawned `agentic-cataloger migrate` exits 0 on a ready database."""
     monkeypatch.setenv("MIGRATE_DATABASE_URL", migrate_url)
     proc = spawn_role("migrate")
     stdout, stderr = proc.communicate(timeout=120)

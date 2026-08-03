@@ -13,7 +13,7 @@ COMPOSE_FILE = REPO_ROOT / "docker-compose.yml"
 FORBIDDEN_TOKENS = (
     "legacy/",
     "5532",
-    "pricecomp_db",
+    "agentic_cataloger_db",
     "legacy/docker-compose",
 )
 

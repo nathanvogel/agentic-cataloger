@@ -8,9 +8,12 @@ from uuid import UUID
 
 import psycopg
 
-from pricecomp.platform.persistence.catalog_repo import PsycopgUnitOfWork, connect_app
-from pricecomp.taxonomy.models import Category, Membership
-from pricecomp.taxonomy.ports import (
+from agentic_cataloger.platform.persistence.catalog_repo import (
+    PsycopgUnitOfWork,
+    connect_app,
+)
+from agentic_cataloger.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
     TaxonomyUnitOfWork,

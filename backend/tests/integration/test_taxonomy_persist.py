@@ -11,20 +11,20 @@ from uuid import UUID, uuid4
 import psycopg
 import pytest
 
-from pricecomp.catalog.commands import ImportSnapshotRequest, import_snapshot
-from pricecomp.catalog.identity import SourceIdentity
-from pricecomp.catalog.models import ProductObservation
-from pricecomp.platform.persistence.catalog_repo import (
+from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
+from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.models import ProductObservation
+from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     PsycopgSnapshotRepository,
     PsycopgUnitOfWork,
     connect_app,
 )
-from pricecomp.platform.persistence.taxonomy_repo import (
+from agentic_cataloger.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
     PsycopgMembershipRepository,
 )
-from pricecomp.platform.taxonomy.runner import (
+from agentic_cataloger.platform.taxonomy.runner import (
     ProductRef,
     format_taxonomy_tree,
     run_assign_product,
@@ -32,14 +32,14 @@ from pricecomp.platform.taxonomy.runner import (
     run_reparent_category,
     run_show_taxonomy,
 )
-from pricecomp.taxonomy.commands import (
+from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
     CreateCategoryRequest,
     assign_product_to_leaf,
     create_category,
 )
-from pricecomp.taxonomy.errors import CycleError, NotLeafError
-from pricecomp.taxonomy.ports import ProductExistence
+from agentic_cataloger.taxonomy.errors import CycleError, NotLeafError
+from agentic_cataloger.taxonomy.ports import ProductExistence
 
 
 def _clear_taxonomy(conn: psycopg.Connection[Any]) -> None:

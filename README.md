@@ -1,6 +1,6 @@
-# Swiss Grocery Price Comparison
+# agentic-cataloger
 
-Compare prices across Swiss supermarkets: Migros, Lidl, Coop, and Denner.
+A multi-stage LLM agent that builds a product category tree and assigns SKUs to it. LangGraph, per-stage evals in Phoenix, and a defer-to-human queue. Running against a 30k-row dataset of Swiss grocery products (Migros, Lidl, Coop, Denner).
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Active host ports follow GATE-01 (`3020 + n`):
 
 | Port | Service |
 |------|---------|
-| **3020** | Python API (`pricecomp api`) |
+| **3020** | Python API (`agentic-cataloger api`) |
 | **3021** | New Postgres |
 | **3022** | Phoenix |
 | **3023** | Frontend Vite |
@@ -37,16 +37,16 @@ docker compose up -d postgres phoenix
 
 # Bootstrap schemas (one-shot, idempotent)
 cd backend
-export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/pricecomp_app
+export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
 uv sync
-uv run pricecomp migrate
+uv run agentic-cataloger migrate
 
 # API on port 3020
-export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app
-uv run pricecomp api
+export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
+uv run agentic-cataloger api
 
 # Catalog ingest (latest CSV per retailer under data/)
-uv run pricecomp ingest --retailer lidl
+uv run agentic-cataloger ingest --retailer lidl
 ```
 
 Compose profile alternative (`api` + `worker` built from `backend/Dockerfile`). On a **fresh volume**, bootstrap once before starting API:
@@ -112,10 +112,10 @@ docker compose -f legacy/docker-compose.yml logs -f postgres
 Connect:
 
 ```bash
-docker exec -it pricecomp-db psql -U pricecomp_user -d pricecomp_db
+docker exec -it agentic-cataloger-db psql -U agentic_cataloger_user -d agentic_cataloger_db
 ```
 
-Or any PostgreSQL client: `localhost:5532` / `pricecomp_db` / `pricecomp_user` / `abc`.
+Or any PostgreSQL client: `localhost:5532` / `agentic_cataloger_db` / `agentic_cataloger_user` / `abc`.
 
 Stop:
 

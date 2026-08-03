@@ -25,10 +25,10 @@ def run_worker() -> None:
     signal.signal(signal.SIGTERM, _handle_sigterm)
     signal.signal(signal.SIGINT, _handle_sigterm)
 
-    logger.info("pricecomp worker started (stub — no queue consumer yet)")
+    logger.info("agentic-cataloger worker started (stub — no queue consumer yet)")
     while not is_stopping:
         time.sleep(1)
-    logger.info("pricecomp worker shutting down")
+    logger.info("agentic-cataloger worker shutting down")
     raise SystemExit(0)
 
 

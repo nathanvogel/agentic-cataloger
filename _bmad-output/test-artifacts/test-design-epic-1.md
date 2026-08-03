@@ -16,7 +16,7 @@ mode: 'epic-level'
 epic_num: 1
 inputDocuments:
   - _bmad-output/planning-artifacts/epics.md
-  - _bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md
+  - _bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md
   - _bmad-output/specs/spec-2026-agent-workflow/SPEC.md
   - _bmad-output/implementation-artifacts/sprint-status.yaml
   - _bmad-output/implementation-artifacts/gates/GATE-01-bootstrap.md
@@ -114,7 +114,7 @@ verification and is budgeted accordingly.
 
 | Risk ID | Category | Description | P | I | Score | Mitigation | Owner |
 | --- | --- | --- | :-: | :-: | :-: | --- | --- |
-| SEC-001 | SEC | `pricecomp_app` over-granted — can `CREATE DATABASE`, run DDL, or reach `pricecomp_phoenix` | 2 | 2 | 4 | Two negative integration tests named in the GATE-02 checklist, plus vendor-schema DDL denial | Dev |
+| SEC-001 | SEC | `agentic_cataloger_app` over-granted — can `CREATE DATABASE`, run DDL, or reach `agentic_cataloger_phoenix` | 2 | 2 | 4 | Two negative integration tests named in the GATE-02 checklist, plus vendor-schema DDL denial | Dev |
 | OPS-001 | OPS | One-shot bootstrap not idempotent on re-run; second `up` half-applies schema state | 2 | 2 | 4 | Run bootstrap twice in CI and assert the second run is a clean no-op | Dev |
 | DATA-005 | DATA | Snapshot immutability enforced only in the command handler, bypassable by any adapter reaching the repository | 2 | 2 | 4 | Enforce and assert at the database level, not just the application layer | Dev |
 | DATA-006 | DATA | Manifest-replay "equivalence" undefined against generated UUIDv7 identities and timestamps — assertion unwritable as stated | 2 | 2 | 4 | Resolve CL-4: define a comparison excluding generated identity and time fields | Architect |
@@ -166,13 +166,13 @@ and the following is what this plan knowingly accepts:
 | Reliability | Deterministic `invalid`/`defer` never infrastructure-retries | — | INT negative test | pytest report |
 | Reliability | Durable dispatch survives restart (GATE-03 P1–P8) | TECH-001 | INT + PROC | GATE-03 suite green on Linux CI + PG18 |
 | Reliability | Second worker fails at boot with reserved non-zero code | TECH-003 | PROC | Process exit codes + worker logs |
-| Security | `pricecomp_app` cannot `CREATE DATABASE`; cannot write `pricecomp_phoenix` | SEC-001 | INT negative tests | pytest report; GATE-02 checklist ticked |
+| Security | `agentic_cataloger_app` cannot `CREATE DATABASE`; cannot write `agentic_cataloger_phoenix` | SEC-001 | INT negative tests | pytest report; GATE-02 checklist ticked |
 | Security | App role has USE+EXECUTE but no DDL on `pgqueuer`/`langgraph` schemas | SEC-001 | INT | pytest report |
 | Security | Elevated migrate credentials absent from `api`/`worker` environments | SEC-001 | INT | Environment assertion output |
 | Performance | **UNKNOWN** — no ingest latency or throughput budget exists | PERF-001 | INT benchmark, non-gating | Recorded baseline number in CI artifact |
 | Scalability | Exactly one worker; more is a boot failure (deliberate ceiling, not a gap) | TECH-003 | PROC | Single-writer evidence above |
 | Maintainability | Domain packages import no FastAPI/Pydantic/SQLAlchemy/LangGraph/LangChain/PgQueuer/Phoenix/OTel | TECH-004 | Static import-boundary check in CI | CI job result |
-| Maintainability | ≥80% line coverage on `src/pricecomp/` | TECH-002 | `pytest-cov` | Coverage report |
+| Maintainability | ≥80% line coverage on `src/agentic_cataloger/` | TECH-002 | `pytest-cov` | Coverage report |
 | Observability | W3C trace context propagates onto job spans | TECH-001 | INT via Phoenix | Phoenix span inspection (GATE-03 P7) |
 | Observability | Phoenix raw-trace retention 30 days; product telemetry disabled | OPS-003 | INT | Settings assertion output |
 | Recoverability | Recovery is manifest re-import; no restore drill required | DATA-006 | E2E | Replay run logs + state comparison |
@@ -214,7 +214,7 @@ and the following is what this plan knowingly accepts:
 - [ ] AD-31 mandatory D6 regression (1.8-INT-001) green
 - [ ] GATE-03 P1–P8 green on Linux CI against PostgreSQL 18
 - [ ] GATE-01 and GATE-02 story checklists fully ticked
-- [ ] ≥80% line coverage on `src/pricecomp/`
+- [ ] ≥80% line coverage on `src/agentic_cataloger/`
 - [ ] Every in-scope NFR category has a named evidence artifact
 - [ ] CL-1 through CL-5 resolved or explicitly accepted as deferred
 
@@ -411,7 +411,7 @@ behind it. GATE-03 is ~20–30 h and is entirely at risk if TECH-001 materialise
 
 ### Coverage Targets
 
-- **Line coverage on `src/pricecomp/`**: ≥80%
+- **Line coverage on `src/agentic_cataloger/`**: ≥80%
 - **Security scenarios (SEC-001)**: 100%
 - **Data-integrity scenarios (DATA-001…007)**: 100% — this is the epic's thesis
 - **Edge cases**: ≥50%
@@ -610,7 +610,7 @@ DATA-001.
 | **Legacy NestJS API (`legacy/backend`, port 3010)** | Must remain reachable and **read-only** throughout the rebuild (AD-15) | 1.11-INT-002; no new-stack component may write to it. No legacy test execution required (GATE-01) |
 | **Legacy PostgreSQL (port 5532)** | Must stay fully separate from the new stack — no shared volume, `depends_on`, or connection string (GATE-02) | 1.2-UNIT-001 static compose parse; OPS-002 |
 | **Frontend (`frontend/`, port 3023)** | Continues consuming the legacy API; unaffected by Epic 1 | No frontend regression suite in this epic; revisit at Epic 5 |
-| **Phoenix (`pricecomp_phoenix`, port 3022)** | New dependency; owns its own database, no cross-DB access from the app | 1.2-INT-004 (app cannot write it), 1.2-INT-010 (retention/telemetry), GATE-03 P7 |
+| **Phoenix (`agentic_cataloger_phoenix`, port 3022)** | New dependency; owns its own database, no cross-DB access from the app | 1.2-INT-004 (app cannot write it), 1.2-INT-010 (retention/telemetry), GATE-03 P7 |
 | **PgQueuer (`pgqueuer` schema)** | Vendor-owned tables inside the application database | 1.2-INT-008 (no DDL from app role); full GATE-03 suite |
 | **LangGraph checkpointer (`langgraph` schema)** | Vendor-owned tables inside the application database | 1.2-INT-008; GATE-03 P5 resume |
 | **`data/` catalog CSVs** | Source input for snapshot registration and manifest replay | Fixtures must not mutate `data/`; replay tests read-only |
@@ -630,7 +630,7 @@ DATA-001.
 ### Related Documents
 
 - Epic: `_bmad-output/planning-artifacts/epics.md` (Epic 1, lines 336–711)
-- Architecture: `_bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md`
+- Architecture: `_bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md`
 - Spec: `_bmad-output/specs/spec-2026-agent-workflow/SPEC.md`
 - Gates: `_bmad-output/implementation-artifacts/gates/GATE-01-bootstrap.md`,
   `GATE-02-db-privileges.md`, `GATE-03-pgqueuer-proof.md`

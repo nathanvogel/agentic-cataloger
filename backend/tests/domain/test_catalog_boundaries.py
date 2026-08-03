@@ -5,7 +5,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-CATALOG_ROOT = Path(__file__).resolve().parents[2] / "src" / "pricecomp" / "catalog"
+CATALOG_ROOT = (
+    Path(__file__).resolve().parents[2] / "src" / "agentic_cataloger" / "catalog"
+)
 FORBIDDEN = {
     "psycopg",
     "sqlalchemy",
@@ -35,13 +37,13 @@ def test_catalog_has_no_adapter_imports() -> None:
             elif isinstance(node, ast.ImportFrom) and node.module:
                 names = [node.module.split(".")[0]]
             for name in names:
-                if name in FORBIDDEN or name == "pricecomp.platform":
+                if name in FORBIDDEN or name == "agentic_cataloger.platform":
                     offenders.append(f"{path.name}: {name}")
                 if (
-                    name == "pricecomp"
+                    name == "agentic_cataloger"
                     and isinstance(node, ast.ImportFrom)
                     and node.module
-                    and node.module.startswith("pricecomp.platform")
+                    and node.module.startswith("agentic_cataloger.platform")
                 ):
                     offenders.append(f"{path.name}: {node.module}")
     assert offenders == []

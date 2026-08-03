@@ -27,7 +27,7 @@ Condensed from BMAD's architecture spine (now deleted). Companion to [2026-scope
 
 ```text
 backend/
-  src/pricecomp/
+  src/agentic_cataloger/
     contracts/     # framework-free v1 values, stage envelopes, errors
     catalog/       # source identity, imported facts, shelf price
     taxonomy/      # category tree, membership, hygiene

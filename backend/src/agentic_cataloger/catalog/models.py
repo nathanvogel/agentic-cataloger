@@ -7,7 +7,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pricecomp.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.identity import SourceIdentity
 
 
 @dataclass(frozen=True, slots=True)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from uuid import UUID
 
-from pricecomp.taxonomy.models import Category
+from agentic_cataloger.taxonomy.models import Category
 
 
 def parent_map(categories: Sequence[Category]) -> dict[UUID, UUID | None]:

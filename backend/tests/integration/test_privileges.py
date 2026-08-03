@@ -44,10 +44,10 @@ def test_int_009_migrate_credentials_absent_from_api_worker_env(
     monkeypatch.delenv("MIGRATE_DATABASE_URL", raising=False)
     monkeypatch.setenv("DATABASE_URL", app_database_url)
     api_source = (
-        BACKEND_ROOT / "src" / "pricecomp" / "platform" / "roles" / "api.py"
+        BACKEND_ROOT / "src" / "agentic_cataloger" / "platform" / "roles" / "api.py"
     ).read_text()
     worker_source = (
-        BACKEND_ROOT / "src" / "pricecomp" / "platform" / "roles" / "worker.py"
+        BACKEND_ROOT / "src" / "agentic_cataloger" / "platform" / "roles" / "worker.py"
     ).read_text()
     compose = (REPO_ROOT / "docker-compose.yml").read_text()
     assert "MIGRATE_DATABASE_URL" not in api_source

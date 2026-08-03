@@ -1,4 +1,4 @@
-# pricecomp backend
+# agentic-cataloger backend
 
 Python monolith.
 
@@ -39,8 +39,8 @@ uv run pytest tests/integration
 uv run pytest
 
 # With coverage
-uv run pytest tests/domain --cov=pricecomp --cov-report=term-missing
-uv run pytest tests/integration --cov=pricecomp --cov-append --cov-report=term-missing
+uv run pytest tests/domain --cov=agentic_cataloger --cov-report=term-missing
+uv run pytest tests/integration --cov=agentic_cataloger --cov-append --cov-report=term-missing
 ```
 
 Pytest **markers** are labels on tests (`@pytest.mark.integration`, `@pytest.mark.proc`) so you can select subsets:
@@ -51,7 +51,7 @@ uv run pytest -m proc
 uv run pytest -m "not proc"
 ```
 
-`integration` = needs Postgres. `proc` = spawns a real `pricecomp <role>` subprocess.
+`integration` = needs Postgres. `proc` = spawns a real `agentic-cataloger <role>` subprocess.
 
 ## Lint & typecheck
 
@@ -99,11 +99,11 @@ uv run --directory backend pre-commit run --all-files
 Same entrypoints in local dev, Docker, devcontainer, and CI:
 
 ```bash
-pricecomp migrate    # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
-pricecomp api        # FastAPI on 0.0.0.0:3020, /health and /ready
-pricecomp worker     # long-running stub (advisory lock in Story 1.3)
-pricecomp ingest     # import latest CSV per retailer into catalog_snapshots / catalog_products
-pricecomp taxonomy   # create|reparent|show|assign substitutability categories
+agentic-cataloger migrate    # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
+agentic-cataloger api        # FastAPI on 0.0.0.0:3020, /health and /ready
+agentic-cataloger worker     # long-running stub (advisory lock in Story 1.3)
+agentic-cataloger ingest     # import latest CSV per retailer into catalog_snapshots / catalog_products
+agentic-cataloger taxonomy   # create|reparent|show|assign substitutability categories
 ```
 
 ### Ingest
@@ -121,11 +121,11 @@ Non-matching products are left untouched.
 Needs a migrated DB and the same `DATABASE_URL` as `api` (already set in the devcontainer / compose `api` service).
 
 ```bash
-uv run pricecomp ingest --retailer denner
-uv run pricecomp ingest                  # all four retailers
-uv run pricecomp ingest --data-dir /path/to/data
-uv run pricecomp ingest --source-category "Milchprodukte" --retailer migros
-uv run pricecomp ingest --keyword "litschi" --retailer denner
+uv run agentic-cataloger ingest --retailer denner
+uv run agentic-cataloger ingest                  # all four retailers
+uv run agentic-cataloger ingest --data-dir /path/to/data
+uv run agentic-cataloger ingest --source-category "Milchprodukte" --retailer migros
+uv run agentic-cataloger ingest --keyword "litschi" --retailer denner
 ```
 
 ### Taxonomy
@@ -137,13 +137,13 @@ ingest filter only — never an assign target. Categories are identified by UUID
 accepts leaves; create/reparent refuse demoting a membered node to a non-leaf.
 
 ```bash
-uv run pricecomp taxonomy create --name "Dairy" --unit L
-uv run pricecomp taxonomy create --name "Cow milk" --parent <root-uuid>
-uv run pricecomp taxonomy show
-uv run pricecomp taxonomy assign --leaf <leaf-uuid> --product-id <product-uuid>
-uv run pricecomp taxonomy assign --leaf <leaf-uuid> \
+uv run agentic-cataloger taxonomy create --name "Dairy" --unit L
+uv run agentic-cataloger taxonomy create --name "Cow milk" --parent <root-uuid>
+uv run agentic-cataloger taxonomy show
+uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> --product-id <product-uuid>
+uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> \
   --namespace migros-ch --source-product-id 100
-uv run pricecomp taxonomy reparent --category <uuid> --parent <new-parent-uuid>
+uv run agentic-cataloger taxonomy reparent --category <uuid> --parent <new-parent-uuid>
 ```
 
 Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../docs/specs/substitutability-rubric.md).
@@ -152,9 +152,9 @@ Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../
 
 | Variable | Used by | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app` |
-| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/pricecomp_app` |
-| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://pricecomp_phoenix:...@localhost:3021/pricecomp_phoenix` |
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app` |
+| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app` |
+| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@localhost:3021/agentic_cataloger_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
 
 Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
@@ -168,10 +168,10 @@ From repo root:
 ```bash
 docker compose up -d postgres phoenix
 cd backend
-export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/pricecomp_app
-uv run pricecomp migrate
-export DATABASE_URL=postgresql://pricecomp_app:pricecomp_app_dev@localhost:3021/pricecomp_app
-uv run pricecomp api
+export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
+uv run agentic-cataloger migrate
+export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
+uv run agentic-cataloger api
 ```
 
 Or build and run API via Compose profile (run migrate once on a fresh volume first):
@@ -186,7 +186,7 @@ docker compose --profile api up -d
 | Port | Service |
 |------|---------|
 | **3020** | Python API |
-| **3021** | PostgreSQL 18.4 (`pricecomp_app`, `pricecomp_phoenix`) |
+| **3021** | PostgreSQL 18.4 (`agentic_cataloger_app`, `agentic_cataloger_phoenix`) |
 | **3022** | Phoenix UI |
 
 ## Inspect DB from the host
@@ -194,5 +194,5 @@ docker compose --profile api up -d
 Superuser URL (GUI/`psql`, SSL off):
 
 ```
-postgresql://postgres:postgres@127.0.0.1:3021/pricecomp_app?sslmode=disable
+postgresql://postgres:postgres@127.0.0.1:3021/agentic_cataloger_app?sslmode=disable
 ```

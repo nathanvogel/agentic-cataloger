@@ -6,16 +6,16 @@ import importlib
 from pathlib import Path
 
 SEED_PACKAGES = (
-    "pricecomp",
-    "pricecomp.contracts",
-    "pricecomp.catalog",
-    "pricecomp.taxonomy",
-    "pricecomp.enrichment",
-    "pricecomp.review",
-    "pricecomp.pipeline",
-    "pricecomp.comparison",
-    "pricecomp.evaluation",
-    "pricecomp.platform",
+    "agentic_cataloger",
+    "agentic_cataloger.contracts",
+    "agentic_cataloger.catalog",
+    "agentic_cataloger.taxonomy",
+    "agentic_cataloger.enrichment",
+    "agentic_cataloger.review",
+    "agentic_cataloger.pipeline",
+    "agentic_cataloger.comparison",
+    "agentic_cataloger.evaluation",
+    "agentic_cataloger.platform",
 )
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]

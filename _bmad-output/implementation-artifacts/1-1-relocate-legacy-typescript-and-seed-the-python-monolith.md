@@ -35,7 +35,7 @@ so that Python implementation can begin against the architecture's structural se
 3. **Python structural seed (AD-28)**
    - **Given** the relocated repository
    - **When** `backend/` is seeded per AD-28
-   - **Then** it contains `pyproject.toml`, `uv.lock`, and `src/pricecomp/` with empty-but-present packages: `contracts/`, `catalog/`, `taxonomy/`, `enrichment/`, `review/`, `pipeline/`, `comparison/`, `evaluation/`, `platform/`
+   - **Then** it contains `pyproject.toml`, `uv.lock`, and `src/agentic_cataloger/` with empty-but-present packages: `contracts/`, `catalog/`, `taxonomy/`, `enrichment/`, `review/`, `pipeline/`, `comparison/`, `evaluation/`, `platform/`
    - **And** `migrations/` and `tests/domain/`, `tests/integration/`, `tests/contract/`, `tests/evals/` exist
    - **And** no Python domain logic is included — structural seed only
 
@@ -67,7 +67,7 @@ so that Python implementation can begin against the architecture's structural se
   - [x] Extend root `.gitignore` for Python (`.venv/`, `__pycache__/`, `.ruff_cache/`, `.pytest_cache/`, `*.egg-info/`, etc.)
 
 - [x] **Seed `backend/` structural tree** (AC: #3)
-  - [x] Create `backend/src/pricecomp/` with the nine empty packages (each `__init__.py` only — no domain modules)
+  - [x] Create `backend/src/agentic_cataloger/` with the nine empty packages (each `__init__.py` only — no domain modules)
   - [x] Create `backend/migrations/` (empty Alembic home; minimal placeholder OK — **no** migration revisions or `env.py` domain wiring required beyond “folder exists”; full Alembic wire-up is Story 1.2+)
   - [x] Create `backend/tests/{domain,integration,contract,evals}/` (placeholders / `.gitkeep` / empty `__init__` as needed so dirs are tracked)
   - [x] **Do not** create a `retrieval/` package (AD-35 retired)
@@ -86,7 +86,7 @@ so that Python implementation can begin against the architecture's structural se
   - [x] Exclude LangGraph **Server/CLI** extras from dependency specs
   - [x] Exclude any Pydantic V1 / `pydantic.v1` application model usage (none should appear)
   - [x] Run `uv sync` with uv 0.12.1 and commit the resulting `uv.lock`
-  - [x] Package layout: src layout (`backend/src/pricecomp`); project name / import package `pricecomp`
+  - [x] Package layout: src layout (`backend/src/agentic_cataloger`); project name / import package `agentic-cataloger`
 
 - [x] **Update root documentation** (AC: #4)
   - [x] Update root `README.md` project structure: active `frontend/` + `data/`, new `backend/` Python seed, `legacy/` reference-only
@@ -150,7 +150,7 @@ backend/
   pyproject.toml
   uv.lock
   .python-version          # recommended: 3.14.6
-  src/pricecomp/
+  src/agentic_cataloger/
     __init__.py
     contracts/             # framework-free contracts (empty)
     catalog/
@@ -214,7 +214,7 @@ No `project-context.md` exists yet. Prefer this story file + GATE-01 + Architect
 
 - [Source: `_bmad-output/planning-artifacts/epics.md` — Epic 1 / Story 1.1]
 - [Source: `_bmad-output/implementation-artifacts/gates/GATE-01-bootstrap.md`]
-- [Source: `_bmad-output/planning-artifacts/architecture/architecture-pricecomp-2026-07-31/ARCHITECTURE-SPINE.md` — AD-27, AD-28, §Structural Seed, §Stack]
+- [Source: `_bmad-output/planning-artifacts/architecture/architecture-agentic-cataloger-2026-07-31/ARCHITECTURE-SPINE.md` — AD-27, AD-28, §Structural Seed, §Stack]
 - [Source: `_bmad-output/planning-artifacts/epics.md` — NFR17]
 - [Source: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-08-01.md` — Epic 1 / GATE-01]
 - [Source: commit `a1c1463`]
@@ -258,16 +258,16 @@ Cursor Grok 4.5
 - `backend/pyproject.toml`
 - `backend/uv.lock`
 - `backend/migrations/.gitkeep`
-- `backend/src/pricecomp/__init__.py`
-- `backend/src/pricecomp/catalog/__init__.py`
-- `backend/src/pricecomp/comparison/__init__.py`
-- `backend/src/pricecomp/contracts/__init__.py`
-- `backend/src/pricecomp/enrichment/__init__.py`
-- `backend/src/pricecomp/evaluation/__init__.py`
-- `backend/src/pricecomp/pipeline/__init__.py`
-- `backend/src/pricecomp/platform/__init__.py`
-- `backend/src/pricecomp/review/__init__.py`
-- `backend/src/pricecomp/taxonomy/__init__.py`
+- `backend/src/agentic_cataloger/__init__.py`
+- `backend/src/agentic_cataloger/catalog/__init__.py`
+- `backend/src/agentic_cataloger/comparison/__init__.py`
+- `backend/src/agentic_cataloger/contracts/__init__.py`
+- `backend/src/agentic_cataloger/enrichment/__init__.py`
+- `backend/src/agentic_cataloger/evaluation/__init__.py`
+- `backend/src/agentic_cataloger/pipeline/__init__.py`
+- `backend/src/agentic_cataloger/platform/__init__.py`
+- `backend/src/agentic_cataloger/review/__init__.py`
+- `backend/src/agentic_cataloger/taxonomy/__init__.py`
 - `backend/tests/__init__.py`
 - `backend/tests/contract/.gitkeep`
 - `backend/tests/domain/test_structural_seed.py`

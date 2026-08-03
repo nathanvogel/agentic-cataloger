@@ -12,10 +12,10 @@ Two facts drove the reorder:
 ## Done when
 
 ```
-pricecomp ingest --source-category "Milchprodukte"     # products land with stable identity
-pricecomp run --source-category "Milchprodukte"        # agent builds tree + assigns
-pricecomp taxonomy show                                # a real tree, sane leaves
-pricecomp deferred list                                # what it refused to guess
+agentic-cataloger ingest --source-category "Milchprodukte"     # products land with stable identity
+agentic-cataloger run --source-category "Milchprodukte"        # agent builds tree + assigns
+agentic-cataloger taxonomy show                                # a real tree, sane leaves
+agentic-cataloger deferred list                                # what it refused to guess
 # and Phoenix shows two separately-scored stages per product, with cost
 ```
 

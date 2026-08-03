@@ -3,7 +3,7 @@
 - **Date**: 2026-08-03
 - **Author**: plan-task, nathanvogel
 - **Status**: Done
-- **Primary services**: `backend` (`pricecomp.taxonomy`, `pricecomp.platform`)
+- **Primary services**: `backend` (`agentic_cataloger.taxonomy`, `agentic_cataloger.platform`)
 - **Related specs / ADRs**: [architecture.md § Taxonomy](../specs/architecture.md), [2026-scope.md](../specs/2026-scope.md), [roadmap.md](roadmap.md) items **2.1** / **2.3** (+ nullable `preferred_comparable_unit` note)
 
 ## 1. Problem
@@ -35,7 +35,7 @@ M0 put products in the DB. The MVP agent still has nowhere to put them: no subst
 - When I create/reparent such that a category with memberships would stop being a leaf, the command fails until those products are moved.
 - When I `taxonomy assign --product-id <uuid> --leaf <uuid>`, membership lands only if the target is a leaf; a second assign for the same product moves it to the new leaf.
 - DB rejects a second membership row for the same product (UNIQUE on `product_id`).
-- Re-running `pricecomp ingest` does not delete or alter taxonomy membership rows (separate table; no catalog upsert touch).
+- Re-running `agentic-cataloger ingest` does not delete or alter taxonomy membership rows (separate table; no catalog upsert touch).
 - Artifact: `docs/specs/substitutability-rubric.md` with prose definition + ≥3 same / ≥3 not-same few-shot pairs (Swiss grocery examples fine).
 - Validation: domain tests (fakes) + integration tests (migrated Postgres) + manual CLI smoke on a local DB.
 
@@ -49,7 +49,7 @@ SCOPE LOCK-IN (approved)
   doc for M2.
 - In scope: 2.1 tree; 2.3 one-leaf membership + uniqueness; CLI
   taxonomy create|reparent|show|assign; migration(s); domain commands in
-  pricecomp.taxonomy; rubric markdown under docs/specs/.
+  agentic_cataloger.taxonomy; rubric markdown under docs/specs/.
 - Out of scope: 2.5 search; 2.7 hygiene; 2.2 unit validation; LLM/agent/
   pipeline; advisory lock; FastAPI/MCP.
 - Primary packages/services: backend (taxonomy, platform CLI/persistence, Alembic)
@@ -63,7 +63,7 @@ Mirror the catalog hexagonal pattern: pure `taxonomy/` domain (models, errors, p
 
 ```mermaid
 flowchart LR
-  CLI["pricecomp taxonomy …"] --> Runner
+  CLI["agentic-cataloger taxonomy …"] --> Runner
   Runner --> Cmds["taxonomy.commands"]
   Cmds --> Ports["CategoryRepository / MembershipRepository / UoW"]
   Ports -.-> Repo["platform/persistence/taxonomy_repo.py"]
@@ -84,13 +84,13 @@ flowchart LR
 **Create**
 
 - `backend/migrations/versions/003_taxonomy_tree.py`
-- `backend/src/pricecomp/taxonomy/models.py` — `Category`, `Membership`, command results
-- `backend/src/pricecomp/taxonomy/errors.py` — cycle, self-parent, not-leaf, missing, non-leaf-has-members, etc.
-- `backend/src/pricecomp/taxonomy/ports.py` — `TaxonomyUnitOfWork`, category + membership repos
-- `backend/src/pricecomp/taxonomy/commands.py` — `create_category`, `reparent_category`, `show_taxonomy`, `assign_product_to_leaf`
-- `backend/src/pricecomp/taxonomy/tree.py` — pure helpers: would-cycle?, is-leaf?, ancestor walk (no I/O)
-- `backend/src/pricecomp/platform/persistence/taxonomy_repo.py`
-- `backend/src/pricecomp/platform/taxonomy/runner.py` — wire DB → commands (mirror `platform/ingest/runner.py`)
+- `backend/src/agentic_cataloger/taxonomy/models.py` — `Category`, `Membership`, command results
+- `backend/src/agentic_cataloger/taxonomy/errors.py` — cycle, self-parent, not-leaf, missing, non-leaf-has-members, etc.
+- `backend/src/agentic_cataloger/taxonomy/ports.py` — `TaxonomyUnitOfWork`, category + membership repos
+- `backend/src/agentic_cataloger/taxonomy/commands.py` — `create_category`, `reparent_category`, `show_taxonomy`, `assign_product_to_leaf`
+- `backend/src/agentic_cataloger/taxonomy/tree.py` — pure helpers: would-cycle?, is-leaf?, ancestor walk (no I/O)
+- `backend/src/agentic_cataloger/platform/persistence/taxonomy_repo.py`
+- `backend/src/agentic_cataloger/platform/taxonomy/runner.py` — wire DB → commands (mirror `platform/ingest/runner.py`)
 - `backend/tests/domain/test_taxonomy_boundaries.py` — clone catalog AST guard for `taxonomy/`
 - `backend/tests/domain/test_taxonomy_tree.py` — cycle / leaf / move semantics with fakes
 - `backend/tests/integration/test_taxonomy_tree.py` — migrate + CLI-shaped command path + UNIQUE
@@ -98,8 +98,8 @@ flowchart LR
 
 **Modify**
 
-- `backend/src/pricecomp/taxonomy/__init__.py` — package docstring
-- `backend/src/pricecomp/platform/cli.py` — `taxonomy` top-level command + help text
+- `backend/src/agentic_cataloger/taxonomy/__init__.py` — package docstring
+- `backend/src/agentic_cataloger/platform/cli.py` — `taxonomy` top-level command + help text
 - `backend/README.md` — document `taxonomy` subcommands
 - `docs/plans/roadmap.md` — mark **2.1** and **2.3** done when implementation lands (executor, not this planning commit)
 
@@ -242,7 +242,7 @@ Manual: migrate → create root/children → show → assign one real ingested p
 
 ## 10. Rollout and rollback
 
-- Dev/local only. Run `pricecomp migrate` after pull.
+- Dev/local only. Run `agentic-cataloger migrate` after pull.
 - No backfill (empty tree).
 - Rollback: `alembic downgrade` drops memberships then categories; no catalog data loss.
 - Revert commit safe if migrate not applied in shared envs (there are none yet beyond local).
@@ -256,8 +256,8 @@ Manual: migrate → create root/children → show → assign one real ingested p
 ```
 HAND-OFF PROMPT
 - Plan: docs/plans/20260803-backend-taxonomy-tree.md
-- Primary packages/services: backend (pricecomp.taxonomy, platform CLI/persistence, Alembic)
-- Start by reading: this plan, then backend/src/pricecomp/catalog/{commands,ports,models}.py,
+- Primary packages/services: backend (agentic_cataloger.taxonomy, platform CLI/persistence, Alembic)
+- Start by reading: this plan, then backend/src/agentic_cataloger/catalog/{commands,ports,models}.py,
   platform/persistence/catalog_repo.py, platform/cli.py, migrations/versions/002_catalog_ingest.py,
   docs/specs/architecture.md § Taxonomy, docs/specs/code_style_python.md
 - Non-negotiables:

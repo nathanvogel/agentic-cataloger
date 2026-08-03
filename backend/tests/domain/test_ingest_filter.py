@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pricecomp.catalog.identity import SourceIdentity
-from pricecomp.catalog.ingest_filter import IngestFilter
-from pricecomp.catalog.models import ProductObservation
+from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import ProductObservation
 
 
 def _obs(

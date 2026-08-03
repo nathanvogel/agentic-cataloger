@@ -59,7 +59,7 @@ so that queue selection is confirmed or reopened before Stories 1.4–1.9 accumu
 
 - [ ] **P6–P8 envelope gaps** (AC: #1 — highest risk)
   - [ ] P6 Cancellation — run reaches `cancelled` at a safe boundary
-  - [ ] P7 Trace propagation — W3C trace context visible on job spans in Phoenix (`pricecomp_phoenix` / port 3022)
+  - [ ] P7 Trace propagation — W3C trace context visible on job spans in Phoenix (`agentic_cataloger_phoenix` / port 3022)
   - [ ] P8 Exhausted retries — state `failed`, row inspectable, manual requeue works (≤5 attempts, 15-min cap; `invalid`/`defer` never infra-retry)
 
 - [ ] **CI + gate evidence** (AC: #1, #4)

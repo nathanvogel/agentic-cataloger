@@ -6,7 +6,7 @@
 
 # Core Configuration Values
 user_name: Nathan
-project_name: pricecomp
+project_name: agentic-cataloger
 communication_language: English
 document_output_language: English
 output_folder: "{project-root}/_bmad-output"

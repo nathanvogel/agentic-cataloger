@@ -13,21 +13,21 @@ import psycopg
 import pytest
 from tests.conftest import REPO_ROOT
 
-from pricecomp.catalog.commands import (
+from agentic_cataloger.catalog.commands import (
     CSV_ADAPTER_VERSION,
     ImportSnapshotRequest,
     import_snapshot,
 )
-from pricecomp.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
-from pricecomp.catalog.ingest_filter import IngestFilter
-from pricecomp.catalog.models import ProductObservation
-from pricecomp.platform.ingest.csv_source import (
+from agentic_cataloger.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import ProductObservation
+from agentic_cataloger.platform.ingest.csv_source import (
     find_latest_csv,
     parse_csv_snapshot,
     parse_snapshot_timestamp,
 )
-from pricecomp.platform.ingest.runner import run_ingest
-from pricecomp.platform.persistence.catalog_repo import (
+from agentic_cataloger.platform.ingest.runner import run_ingest
+from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     PsycopgSnapshotRepository,
     PsycopgUnitOfWork,

@@ -1,5 +1,5 @@
 {
-  "name": "pricecomp",
+  "name": "agentic-cataloger",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
@@ -14,7 +14,7 @@
     "docker-compose.dev.yml"
   ],
   "service": "api",
-  "workspaceFolder": "/workspaces/pricecomp",
+  "workspaceFolder": "/workspaces/agentic-cataloger",
   "shutdownAction": "stopCompose",
   "runServices": [
     "postgres",
@@ -41,7 +41,7 @@
   ],
   "portsAttributes": {
     "3020": {
-      "label": "Python API (pricecomp api)"
+      "label": "Python API (agentic-cataloger api)"
     },
     "3021": {
       "label": "PostgreSQL 18.4",
@@ -62,18 +62,18 @@
     "COMPOSE_PROFILES": "api",
     "CLAUDE_CONFIG_DIR": "/root/.claude",
     "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
-    "DATABASE_URL": "postgresql://pricecomp_app:pricecomp_app_dev@postgres:5432/pricecomp_app",
+    "DATABASE_URL": "postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app",
     "RTK_TELEMETRY_DISABLED": "1"
   },
   "remoteEnv": {
-    "PATH": "/root/.local/bin:/workspaces/pricecomp/backend/.venv/bin:${containerEnv:PATH}"
+    "PATH": "/root/.local/bin:/workspaces/agentic-cataloger/backend/.venv/bin:${containerEnv:PATH}"
   },
   "customizations": {
     "vscode": {
       "settings": {
         "editor.formatOnSave": true,
         "files.eol": "\n",
-        "python.defaultInterpreterPath": "/workspaces/pricecomp/backend/.venv/bin/python",
+        "python.defaultInterpreterPath": "/workspaces/agentic-cataloger/backend/.venv/bin/python",
         "terminal.integrated.defaultProfile.linux": "zsh"
       },
       "extensions": [

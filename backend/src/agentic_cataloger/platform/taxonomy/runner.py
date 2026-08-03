@@ -10,15 +10,15 @@ from uuid import UUID
 
 import psycopg
 
-from pricecomp.catalog.identity import SourceIdentity
-from pricecomp.platform.persistence.catalog_repo import PsycopgProductRepository
-from pricecomp.platform.persistence.taxonomy_repo import (
+from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.platform.persistence.catalog_repo import PsycopgProductRepository
+from agentic_cataloger.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
     PsycopgMembershipRepository,
     PsycopgUnitOfWork,
     connect_app,
 )
-from pricecomp.taxonomy.commands import (
+from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
     CreateCategoryRequest,
     ReparentCategoryRequest,
@@ -27,14 +27,14 @@ from pricecomp.taxonomy.commands import (
     reparent_category,
     show_taxonomy,
 )
-from pricecomp.taxonomy.models import (
+from agentic_cataloger.taxonomy.models import (
     AssignProductResult,
     Category,
     CreateCategoryResult,
     ReparentCategoryResult,
     TaxonomyTree,
 )
-from pricecomp.taxonomy.tree import children_map
+from agentic_cataloger.taxonomy.tree import children_map
 
 logger = logging.getLogger(__name__)
 

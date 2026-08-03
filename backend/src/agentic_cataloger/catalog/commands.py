@@ -9,20 +9,20 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import uuid7
 
-from pricecomp.catalog.errors import IdentityPolicyConflictError
-from pricecomp.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
-from pricecomp.catalog.ingest_filter import IngestFilter
-from pricecomp.catalog.models import (
+from agentic_cataloger.catalog.errors import IdentityPolicyConflictError
+from agentic_cataloger.catalog.identity import IDENTITY_POLICY_VERSION, SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import (
     CatalogSnapshot,
     ImportSnapshotResult,
     ProductObservation,
 )
-from pricecomp.catalog.ports import (
+from agentic_cataloger.catalog.ports import (
     CatalogUnitOfWork,
     ProductRepository,
     SnapshotRepository,
 )
-from pricecomp.catalog.timeutil import ensure_utc
+from agentic_cataloger.catalog.timeutil import ensure_utc
 
 logger = logging.getLogger(__name__)
 

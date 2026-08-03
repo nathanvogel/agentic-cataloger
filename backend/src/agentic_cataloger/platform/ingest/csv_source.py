@@ -11,9 +11,12 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-from pricecomp.catalog.errors import UntrustedSourceIdentityError
-from pricecomp.catalog.identity import extract_source_identity, namespace_for_retailer
-from pricecomp.catalog.models import ProductObservation
+from agentic_cataloger.catalog.errors import UntrustedSourceIdentityError
+from agentic_cataloger.catalog.identity import (
+    extract_source_identity,
+    namespace_for_retailer,
+)
+from agentic_cataloger.catalog.models import ProductObservation
 
 RETAILERS = ("migros", "lidl", "coop", "denner")
 _SNAPSHOT_NAME = re.compile(
