@@ -172,10 +172,10 @@ class PsycopgProductRepository(ProductRepository):
             The persisted catalog product.
 
         Raises:
-            RuntimeError: If the upsert cannot be read back.
+            RuntimeError: If ``RETURNING`` yields no row.
         """
         identity = observation.identity
-        self._conn.execute(
+        row = self._conn.execute(
             """
             INSERT INTO catalog_products (
                 id, source_namespace, source_product_id, source_variant_id,
@@ -218,6 +218,7 @@ class PsycopgProductRepository(ProductRepository):
                 identity_policy_version = EXCLUDED.identity_policy_version,
                 last_snapshot_id = EXCLUDED.last_snapshot_id,
                 updated_at = EXCLUDED.updated_at
+            RETURNING *
             """,
             (
                 product_id,
@@ -246,12 +247,11 @@ class PsycopgProductRepository(ProductRepository):
                 now,
                 now,
             ),
-        )
-        loaded = self.get_by_source_identity(identity)
-        if loaded is None:
+        ).fetchone()
+        if row is None:
             msg = f"Upsert did not persist product for {identity}"
             raise RuntimeError(msg)
-        return loaded
+        return _product_from_row(row)
 
 
 def connect_app(database_url: str) -> psycopg.Connection[DictRow]:

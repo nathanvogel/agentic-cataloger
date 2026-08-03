@@ -120,10 +120,9 @@ def import_snapshot(
 
     upserted = 0
     for observation in unique_observations:
-        existing_product = products.get_by_source_identity(observation.identity)
-        product_id = existing_product.id if existing_product is not None else uuid7()
+        # Always mint a UUIDv7; ON CONFLICT keeps the existing row id.
         products.upsert_observation(
-            product_id=product_id,
+            product_id=uuid7(),
             observation=observation,
             snapshot_id=snapshot.id,
             identity_policy_version=identity_policy_version,

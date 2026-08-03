@@ -73,8 +73,10 @@ class _FakeProducts(ProductRepository):
         identity_policy_version: str,
         now: datetime,
     ) -> CatalogProduct:
+        existing = self.by_identity.get(observation.identity)
+        # Match Postgres: ON CONFLICT keeps the existing row id.
         product = CatalogProduct(
-            id=product_id,
+            id=existing.id if existing is not None else product_id,
             identity=observation.identity,
             name=observation.name,
             product_url=observation.product_url,
