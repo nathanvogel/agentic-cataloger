@@ -38,7 +38,7 @@
 
 - Token efficiency: 1 large LLM call vs many small LLM calls? (also ties into caching, as large calls have more variance) 
 - Token efficiency: Entire category taxonomy dumped into model context
-- Accurary and error rate? Large prompt does 1 LLM call to handle (1) check against existing categories (2) category creation and (3) product assignment. Harder to evaluate (designing an eval, measuring token usage per item, ...) and compare performance (e.g. across models).
+- Accuracy and error rate? Large prompt does 1 LLM call to handle (1) check against existing categories (2) category creation and (3) product assignment. Harder to evaluate (designing an eval, measuring token usage per item, ...) and compare performance (e.g. across models).
 - How to handle updates of a single modified source record?
 - Traits and units extraction is split across the codebase (partially done deterministically at import time, useful for debug , but potentially not saving any tokens as verified by LLM anyway)
 - Observability: custom built, not easily reviewable at scale, not fed back into the agent. 
@@ -47,7 +47,7 @@
 - TypeScript is quite verbose for this workload compared to Python.
 - data-importer and backend are split - unifying could increase reuse and correctness.
 - Unit extraction fails often.
-- No possibilty for the LLM to flag/defer a decision for human review
+- No possibility for the LLM to flag/defer a decision for human review
 - Unclear policy regarding which traits go in which category
 - "category" ambiguous term. Should be clarified that import category are used exclusively to filter imports (useful in development)
 - **Hard requirement (D6):** Bug: Importer writes attributes with deterministic flags (bio, fairtrade, …) and on upsert replaces the whole column, so re-imports will wipe LLM extracted attributes — must merge, never wipe
