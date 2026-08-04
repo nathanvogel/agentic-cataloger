@@ -1,0 +1,31 @@
+# Dev-only overrides: bind-mount the full repo for live edit (not used in CI/production).
+# Use `.` not `..` — compose resolves relative paths from the project dir (repo root).
+services:
+  api:
+    build:
+      target: dev
+    working_dir: /workspaces/agentic-cataloger/backend
+    volumes:
+      - .:/workspaces/agentic-cataloger
+    # Image ENTRYPOINT is already `agentic-cataloger`; devcontainer lifecycle wrapper appends it again.
+    command: ["api"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app
+
+  worker:
+    working_dir: /workspaces/agentic-cataloger/backend
+    volumes:
+      - .:/workspaces/agentic-cataloger
+    command: ["worker"]
+
+  migrate:
+    working_dir: /workspaces/agentic-cataloger/backend
+    volumes:
+      - .:/workspaces/agentic-cataloger
+    command: ["migrate"]
+    environment:
+      MIGRATE_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app
+      PHOENIX_DATABASE_URL: postgresql://agentic_cataloger_phoenix:agentic_cataloger_phoenix_dev@postgres:5432/agentic_cataloger_phoenix
+      PHOENIX_HOST: phoenix
+      PHOENIX_PORT: "6006"

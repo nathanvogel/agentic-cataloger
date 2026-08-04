@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: pricecomp-db
+    environment:
+      POSTGRES_DB: pricecomp_db
+      POSTGRES_USER: pricecomp_user
+      POSTGRES_PASSWORD: abc
+    ports:
+      - "5532:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./db/migrations:/docker-entrypoint-initdb.d/migrations
+      - ./db/backups:/docker-entrypoint-initdb.d/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pricecomp_user -d pricecomp_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

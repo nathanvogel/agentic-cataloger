@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Tomato Codex — BMad Brainstorm 2026-07-30</title>
+<style>
+  :root {
+    --ink: #0f1419;
+    --slate: #1a2332;
+    --mist: #c8d4e0;
+    --paper: #e8eef4;
+    --tomato: #d44a3a;
+    --tomato-bright: #f05a45;
+    --leaf: #3d8b6e;
+    --leaf-bright: #5cb88a;
+    --gold: #d4a84b;
+    --cyan: #4ecdc4;
+    --ash: #6b7585;
+    --kill: #8b4557;
+    --library: #8b6914;
+    --glow: rgba(240, 90, 69, 0.35);
+    --font-display: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", Consolas, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--paper);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    overflow-x: hidden;
+  }
+
+  /* ── Atmosphere ── */
+  .sky {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 10%, rgba(61, 139, 110, 0.12), transparent),
+      radial-gradient(ellipse 60% 40% at 85% 20%, rgba(212, 168, 75, 0.08), transparent),
+      radial-gradient(ellipse 50% 60% at 50% 100%, rgba(240, 90, 69, 0.1), transparent),
+      var(--ink);
+  }
+
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  main { position: relative; z-index: 2; }
+
+  /* ── Nav ── */
+  nav.toc {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  nav.toc a {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mist);
+    text-decoration: none;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    background: rgba(15, 20, 25, 0.7);
+    backdrop-filter: blur(6px);
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  nav.toc a:hover { color: var(--tomato-bright); border-color: var(--tomato); }
+
+  @media (max-width: 720px) {
+    nav.toc { display: none; }
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1.5rem 4rem;
+    position: relative;
+  }
+
+  .hero-tomatoes {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .tomato-orb {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--tomato-bright), var(--tomato) 55%, #8b2e22);
+    box-shadow: inset -8px -8px 20px rgba(0,0,0,0.35), 0 0 40px var(--glow);
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .tomato-orb::after {
+    content: "";
+    position: absolute;
+    top: -6%;
+    left: 42%;
+    width: 18%;
+    height: 14%;
+    background: var(--leaf);
+    border-radius: 40% 60% 50% 50%;
+    transform: rotate(-20deg);
+  }
+
+  .t1 { width: 120px; height: 120px; top: 12%; left: 8%; animation-delay: 0s; opacity: 0.85; }
+  .t2 { width: 70px; height: 70px; top: 22%; right: 14%; animation-delay: -2s; opacity: 0.7; }
+  .t3 { width: 95px; height: 95px; bottom: 18%; left: 18%; animation-delay: -4s; opacity: 0.6; }
+  .t4 { width: 55px; height: 55px; bottom: 28%; right: 10%; animation-delay: -1.5s; opacity: 0.75; }
+  .t5 { width: 40px; height: 40px; top: 48%; left: 5%; animation-delay: -3s; opacity: 0.5; }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-18px) rotate(6deg); }
+  }
+
+  .stamp {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 0.35rem 0.9rem;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.8rem, 8vw, 5.5rem);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    color: var(--paper);
+    opacity: 0;
+    animation: fadeUp 0.9s 0.4s forwards;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--tomato-bright);
+  }
+
+  .hero-sub {
+    margin-top: 1.25rem;
+    max-width: 36rem;
+    font-size: 1.05rem;
+    color: var(--mist);
+    opacity: 0;
+    animation: fadeUp 0.9s 0.6s forwards;
+  }
+
+  .hero-meta {
+    margin-top: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--ash);
+    opacity: 0;
+    animation: fadeUp 0.9s 0.8s forwards;
+  }
+
+  .hero-meta span { color: var(--leaf-bright); }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ash);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ── Sections shared ── */
+  section {
+    padding: 5rem 1.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  section h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 4vw, 2.8rem);
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 0.75rem;
+  }
+
+  .lede {
+    max-width: 38rem;
+    color: var(--mist);
+    margin-bottom: 2.5rem;
+    font-size: 1.05rem;
+  }
+
+  /* ═══════════════════════════════════════
+     FIRST PRINCIPLES — botanical dissection
+     ═══════════════════════════════════════ */
+  #first-principles { max-width: 100%; padding-left: 0; padding-right: 0; }
+
+  .fp-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .fp-label { color: var(--leaf-bright); }
+
+  .fp-stage {
+    background: linear-gradient(160deg, #152018 0%, var(--slate) 100%);
+    border: 1px solid rgba(61, 139, 110, 0.35);
+    border-radius: 4px;
+    padding: 2.5rem 1.5rem 3rem;
+    margin-top: 1rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fp-stage::before {
+    content: "";
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 50%;
+    height: 80%;
+    background: radial-gradient(circle, rgba(61, 139, 110, 0.15), transparent 70%);
+    pointer-events: none;
+  }
+
+  .comparison-motif {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 640px) {
+    .comparison-motif { grid-template-columns: 1fr; text-align: center; }
+    .vs-badge { margin: 0.5rem auto; }
+  }
+
+  .produce-card {
+    background: rgba(15, 20, 25, 0.55);
+    border: 1px solid rgba(200, 212, 224, 0.15);
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.35s, border-color 0.35s;
+  }
+
+  .produce-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--tomato);
+  }
+
+  .produce-card.wrong { opacity: 0.45; }
+  .produce-card.wrong .produce-name { text-decoration: line-through; color: var(--ash); }
+
+  .produce-svg { width: 80px; height: 80px; margin: 0 auto 0.75rem; }
+
+  .produce-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .produce-meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ash);
+  }
+
+  .produce-meta .price { color: var(--gold); display: block; margin-top: 0.4rem; font-size: 0.85rem; }
+
+  .vs-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--tomato);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--tomato-bright);
+    background: var(--ink);
+  }
+
+  .row-anatomy {
+    position: relative;
+    z-index: 1;
+  }
+
+  .row-anatomy h3 {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--leaf-bright);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .anatomy-layers {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 720px) {
+    .anatomy-layers { grid-template-columns: 1fr 1fr; }
+  }
+
+  .layer {
+    background: rgba(15, 20, 25, 0.7);
+    border-top: 3px solid var(--leaf);
+    padding: 1.1rem 1rem;
+    cursor: default;
+    transition: background 0.3s;
+  }
+
+  .layer:nth-child(2) { border-top-color: var(--tomato); }
+  .layer:nth-child(3) { border-top-color: var(--gold); }
+  .layer:nth-child(4) { border-top-color: var(--cyan); }
+
+  .layer:hover { background: rgba(26, 35, 50, 0.95); }
+
+  .layer-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--ash);
+    margin-bottom: 0.4rem;
+  }
+
+  .layer strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 400;
+    margin-bottom: 0.35rem;
+  }
+
+  .layer p { font-size: 0.8rem; color: var(--mist); }
+
+  .fp-insights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 2rem;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .chip {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid rgba(61, 139, 110, 0.4);
+    color: var(--leaf-bright);
+    background: rgba(61, 139, 110, 0.08);
+    border-radius: 2px;
+  }
+
+  /* ═══════════════════════════════════════
+     REVERSE BRAINSTORMING — failure gallery
+     ═══════════════════════════════════════ */
+  #reverse .section-label { color: var(--tomato-bright); }
+
+  .failure-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    perspective: 1200px;
+  }
+
+  .fail-card {
+    min-height: 180px;
+    position: relative;
+    cursor: pointer;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.4, 0.2, 0.2, 1);
+  }
+
+  .fail-card.flipped { transform: rotateY(180deg); }
+
+  .fail-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    border-radius: 3px;
+  }
+
+  .fail-front {
+    background: linear-gradient(145deg, #2a1520, #1a1018);
+    border: 1px solid rgba(212, 74, 58, 0.4);
+  }
+
+  .fail-back {
+    background: linear-gradient(145deg, #152820, #101a18);
+    border: 1px solid rgba(61, 139, 110, 0.45);
+    transform: rotateY(180deg);
+  }
+
+  .fail-tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--tomato-bright);
+    margin-bottom: 0.6rem;
+  }
+
+  .fail-back .fail-tag { color: var(--leaf-bright); }
+
+  .fail-face h3 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+
+  .fail-face p {
+    font-size: 0.82rem;
+    color: var(--mist);
+    flex: 1;
+  }
+
+  .fail-hint {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--ash);
+    margin-top: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .evidence-banner {
+    margin-top: 2.5rem;
+    padding: 1.5rem 1.75rem;
+    background: rgba(212, 168, 75, 0.08);
+    border-left: 3px solid var(--gold);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .evidence-banner code {
+    font-family: var(--font-mono);
+    color: var(--gold);
+    font-size: 0.95rem;
+  }
+
+  .evidence-banner p { flex: 1; min-width: 200px; font-size: 0.9rem; color: var(--mist); }
+
+  /* ═══════════════════════════════════════
+     MORPHOLOGICAL — explorables
+     ═══════════════════════════════════════ */
+  #morph .section-label { color: var(--cyan); }
+
+  .morph-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .morph-filters button {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--ash);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .morph-filters button:hover,
+  .morph-filters button.active {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(78, 205, 196, 0.1);
+  }
+
+  .morph-filters button[data-f="mvp"].active { border-color: var(--gold); color: var(--gold); background: rgba(212,168,75,0.12); }
+  .morph-filters button[data-f="kill"].active { border-color: var(--kill); color: #e89; background: rgba(139,69,87,0.15); }
+  .morph-filters button[data-f="mat"].active { border-color: var(--leaf-bright); color: var(--leaf-bright); background: rgba(61,139,110,0.12); }
+
+  .morph-board {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .morph-cell {
+    padding: 0.85rem 0.7rem;
+    background: var(--slate);
+    border: 1px solid rgba(200, 212, 224, 0.1);
+    border-radius: 2px;
+    cursor: default;
+    transition: opacity 0.3s, transform 0.25s, border-color 0.25s;
+    position: relative;
+  }
+
+  .morph-cell:hover {
+    transform: scale(1.03);
+    z-index: 2;
+    border-color: var(--cyan);
+  }
+
+  .morph-cell .mid {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--ash);
+    margin-bottom: 0.25rem;
+  }
+
+  .morph-cell .id {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .morph-cell .opt {
+    font-size: 0.72rem;
+    color: var(--mist);
+    line-height: 1.35;
+  }
+
+  .morph-cell.mvp { border-left: 3px solid var(--gold); }
+  .morph-cell.mvp .id { color: var(--gold); }
+  .morph-cell.viable { border-left: 3px solid var(--cyan); }
+  .morph-cell.viable .id { color: var(--cyan); }
+  .morph-cell.mat { border-left: 3px solid var(--leaf-bright); }
+  .morph-cell.mat .id { color: var(--leaf-bright); }
+  .morph-cell.kill {
+    border-left: 3px solid var(--kill);
+    opacity: 0.45;
+  }
+  .morph-cell.kill .id { color: #c07080; text-decoration: line-through; }
+
+  .morph-cell.dimmed { opacity: 0.12; pointer-events: none; transform: scale(0.97); }
+
+  .morph-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    color: var(--ash);
+  }
+
+  .morph-legend i {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 0.35rem;
+    vertical-align: middle;
+  }
+
+  .morph-legend .l-mvp { background: var(--gold); }
+  .morph-legend .l-v { background: var(--cyan); }
+  .morph-legend .l-mat { background: var(--leaf-bright); }
+  .morph-legend .l-k { background: var(--kill); }
+
+  /* ═══════════════════════════════════════
+     CROSS-POLLINATION — library shelves
+     ═══════════════════════════════════════ */
+  #cross .section-label { color: var(--library); }
+
+  .library {
+    background:
+      linear-gradient(180deg, #1c160e 0%, #12100c 100%);
+    border: 1px solid rgba(139, 105, 20, 0.4);
+    border-radius: 4px;
+    padding: 2rem 1.5rem 2.5rem;
+    position: relative;
+  }
+
+  .library::before {
+    content: "AUTHORITY CONTROL";
+    position: absolute;
+    top: -0.6rem;
+    left: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    background: #1c160e;
+    padding: 0 0.5rem;
+  }
+
+  .shelves {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .shelf {
+    position: relative;
+    padding-bottom: 0.5rem;
+  }
+
+  .shelf-wood {
+    height: 8px;
+    background: linear-gradient(180deg, #6b4f1a, #3d2e0e);
+    border-radius: 1px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    margin-top: 0.35rem;
+  }
+
+  .shelf-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.6rem;
+  }
+
+  .books {
+    display: flex;
+    gap: 0.35rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    padding: 0 0.25rem;
+  }
+
+  .book {
+    width: 42px;
+    min-height: 70px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0.4rem 0.15rem;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    letter-spacing: 0.04em;
+    color: var(--paper);
+    border-radius: 2px 2px 0 0;
+    cursor: pointer;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+  }
+
+  .book:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  }
+
+  .book.provisional {
+    border: 1px dashed rgba(212, 168, 75, 0.6);
+    background: transparent !important;
+    color: var(--gold);
+    min-height: 55px;
+  }
+
+  .book.dlq {
+    background: linear-gradient(180deg, #5a3040, #3a1828) !important;
+    opacity: 0.7;
+  }
+
+  .book.b1 { background: linear-gradient(180deg, #4a6741, #2d4030); height: 85px; }
+  .book.b2 { background: linear-gradient(180deg, #8b4513, #5a2e0c); height: 95px; }
+  .book.b3 { background: linear-gradient(180deg, #2c4a6e, #1a2e45); height: 78px; }
+  .book.b4 { background: linear-gradient(180deg, #6b3a5a, #3d2035); height: 90px; }
+  .book.b5 { background: linear-gradient(180deg, #3d5a4a, #243830); height: 72px; }
+  .book.b6 { background: linear-gradient(180deg, #7a5a2a, #4a3518); height: 88px; }
+
+  .mapping-arrows {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-top: 2.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .mapping-arrows { grid-template-columns: 1fr; }
+  }
+
+  .map-card {
+    padding: 1.25rem;
+    background: rgba(15, 20, 25, 0.6);
+    border: 1px solid rgba(139, 105, 20, 0.3);
+  }
+
+  .map-card .lib-term {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: var(--gold);
+    margin-bottom: 0.4rem;
+  }
+
+  .map-card .arrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--ash);
+    margin: 0.5rem 0;
+  }
+
+  .map-card .agentic-cataloger-term {
+    font-size: 0.88rem;
+    color: var(--paper);
+  }
+
+  .map-card .agentic-cataloger-term strong {
+    color: var(--cyan);
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  /* ═══════════════════════════════════════
+     SYNTHESIS — climax
+     ═══════════════════════════════════════ */
+  #synthesis {
+    max-width: 100%;
+    padding: 5rem 0 3rem;
+  }
+
+  .synth-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  #synthesis .section-label { color: var(--gold); }
+
+  .climax-banner {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .climax-banner h2 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+  }
+
+  .climax-banner .lede {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .triptych {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+
+  @media (max-width: 800px) {
+    .triptych { grid-template-columns: 1fr; }
+  }
+
+  .tri-panel {
+    padding: 1.5rem 1.25rem;
+    border-radius: 3px;
+    min-height: 320px;
+  }
+
+  .tri-panel.commit {
+    background: linear-gradient(165deg, rgba(212, 168, 75, 0.15), rgba(26, 35, 50, 0.9));
+    border: 1px solid rgba(212, 168, 75, 0.45);
+  }
+
+  .tri-panel.explore {
+    background: linear-gradient(165deg, rgba(78, 205, 196, 0.12), rgba(26, 35, 50, 0.9));
+    border: 1px solid rgba(78, 205, 196, 0.4);
+  }
+
+  .tri-panel.kill {
+    background: linear-gradient(165deg, rgba(139, 69, 87, 0.18), rgba(26, 20, 25, 0.95));
+    border: 1px solid rgba(139, 69, 87, 0.45);
+  }
+
+  .tri-panel h3 {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 400;
+    margin-bottom: 0.35rem;
+  }
+
+  .tri-panel.commit h3 { color: var(--gold); }
+  .tri-panel.explore h3 { color: var(--cyan); }
+  .tri-panel.kill h3 { color: #d08090; }
+
+  .tri-sub {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ash);
+    margin-bottom: 1.1rem;
+  }
+
+  .tri-panel ul {
+    list-style: none;
+    font-size: 0.8rem;
+  }
+
+  .tri-panel li {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(200, 212, 224, 0.08);
+    color: var(--mist);
+  }
+
+  .tri-panel li code {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--paper);
+  }
+
+  .tri-panel.kill li { text-decoration: line-through; opacity: 0.7; }
+
+  /* Bakeoff arena */
+  .bakeoff {
+    margin: 3rem 0;
+    padding: 2.5rem 1.5rem;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(240, 90, 69, 0.12), transparent 55%),
+      var(--slate);
+    border: 1px solid rgba(240, 90, 69, 0.3);
+    border-radius: 4px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bakeoff::before,
+  .bakeoff::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: repeating-linear-gradient(
+      180deg,
+      var(--tomato) 0 8px,
+      transparent 8px 16px
+    );
+  }
+
+  .bakeoff::before { left: 12px; }
+  .bakeoff::after { right: 12px; }
+
+  .bakeoff h3 {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+  }
+
+  .bakeoff .arena-sub {
+    color: var(--mist);
+    max-width: 32rem;
+    margin: 0 auto 2rem;
+    font-size: 0.95rem;
+  }
+
+  .arena-rings {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+
+  .ring {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 2px dashed var(--tomato);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: spinSlow 40s linear infinite;
+    position: relative;
+  }
+
+  .ring:nth-child(2) {
+    border-color: var(--cyan);
+    animation-direction: reverse;
+    animation-duration: 50s;
+  }
+
+  .ring-inner {
+    animation: spinSlow 40s linear infinite reverse;
+    text-align: center;
+  }
+
+  .ring:nth-child(2) .ring-inner {
+    animation-direction: normal;
+    animation-duration: 50s;
+  }
+
+  @keyframes spinSlow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .ring-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ash);
+    margin-bottom: 0.3rem;
+  }
+
+  .ring-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+  }
+
+  .ring-ids {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--tomato-bright);
+    margin-top: 0.25rem;
+  }
+
+  .ring:nth-child(2) .ring-ids { color: var(--cyan); }
+
+  .eval-metrics {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .eval-metrics span {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(212, 168, 75, 0.4);
+    color: var(--gold);
+  }
+
+  /* Pipeline sketch */
+  .pipeline {
+    margin-top: 3rem;
+    padding: 2rem 1.5rem;
+    background: rgba(15, 20, 25, 0.5);
+    border: 1px solid rgba(200, 212, 224, 0.12);
+  }
+
+  .pipeline h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 400;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+
+  .pipe-flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .pipe-node {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    padding: 0.65rem 0.85rem;
+    background: var(--slate);
+    border: 1px solid rgba(78, 205, 196, 0.3);
+    color: var(--paper);
+    max-width: 140px;
+    text-align: center;
+    line-height: 1.35;
+  }
+
+  .pipe-node.committed { border-color: var(--gold); }
+  .pipe-node.explore-n { border-color: var(--cyan); border-style: dashed; }
+
+  .pipe-arrow {
+    color: var(--ash);
+    font-size: 1rem;
+  }
+
+  /* Closing */
+  .closing {
+    text-align: center;
+    padding: 4rem 1.5rem 5rem;
+    max-width: 40rem;
+    margin: 0 auto;
+  }
+
+  .closing blockquote {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(1.2rem, 3vw, 1.55rem);
+    line-height: 1.45;
+    color: var(--paper);
+    margin-bottom: 1.5rem;
+  }
+
+  .closing .attrib {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ash);
+  }
+
+  .closing .status {
+    margin-top: 2.5rem;
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--leaf-bright);
+    border: 1px solid var(--leaf);
+    padding: 0.5rem 1.25rem;
+  }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--ash);
+    letter-spacing: 0.08em;
+  }
+
+  /* Reveal on scroll */
+  .reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="toc" aria-label="Sections">
+  <a href="#first-principles">Principles</a>
+  <a href="#reverse">Reverse</a>
+  <a href="#morph">Morphology</a>
+  <a href="#cross">Library</a>
+  <a href="#synthesis">Synthesis</a>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-tomatoes" aria-hidden="true">
+      <div class="tomato-orb t1"></div>
+      <div class="tomato-orb t2"></div>
+      <div class="tomato-orb t3"></div>
+      <div class="tomato-orb t4"></div>
+      <div class="tomato-orb t5"></div>
+    </div>
+    <div class="stamp">BMad · Facilitator · Complete</div>
+    <h1>The <em>Tomato</em> Codex</h1>
+    <p class="hero-sub">
+      A keepsake from the 2026 agent-workflow brainstorm —
+      how agentic-cataloger builds a comparison-ready product catalog
+      for Swiss groceries, one substitutable row at a time.
+    </p>
+    <div class="hero-meta">
+      <div>Session <span>2026-07-30</span></div>
+      <div>Topic <span>Agent pipeline &amp; tooling</span></div>
+      <div>Techniques <span>4</span></div>
+      <div>Status <span>complete</span></div>
+    </div>
+    <div class="scroll-cue">Descend</div>
+  </header>
+
+  <!-- FIRST PRINCIPLES -->
+  <section id="first-principles">
+    <div class="fp-wrap reveal">
+      <p class="section-label fp-label">Technique I · First Principles</p>
+      <h2>Strip away the supermarket. Keep the comparison.</h2>
+      <p class="lede">
+        Near-term product is not a shopper app — it is a structured product DB:
+        categories by consumer substitutability, traits, shelf price, and
+        normalized price-per-unit. Fresh tomatoes are not dried tomatoes.
+        Retailer taxonomies must bend to ours.
+      </p>
+    </div>
+
+    <div class="fp-stage reveal">
+      <div class="comparison-motif">
+        <div class="produce-card">
+          <svg class="produce-svg" viewBox="0 0 80 80" aria-hidden="true">
+            <circle cx="40" cy="44" r="28" fill="#f05a45"/>
+            <ellipse cx="40" cy="20" rx="8" ry="5" fill="#3d8b6e" transform="rotate(-15 40 20)"/>
+            <path d="M40 16 Q36 10 32 14" stroke="#2a6048" fill="none" stroke-width="2"/>
+          </svg>
+          <div class="produce-name">Fresh tomato</div>
+          <div class="produce-meta">
+            Migros · barquette 500g
+            <span class="price">CHF 2.80 → CHF 5.60/kg</span>
+          </div>
+        </div>
+        <div class="vs-badge">≠</div>
+        <div class="produce-card wrong">
+          <svg class="produce-svg" viewBox="0 0 80 80" aria-hidden="true">
+            <ellipse cx="40" cy="48" rx="22" ry="10" fill="#8b4557"/>
+            <rect x="22" y="28" width="36" height="22" rx="4" fill="#a85a4a"/>
+            <text x="40" y="44" text-anchor="middle" fill="#e8eef4" font-size="8" font-family="monospace">dried</text>
+          </svg>
+          <div class="produce-name">Dried tomato</div>
+          <div class="produce-meta">
+            Different category · different unit logic
+            <span class="price">Not interchangeable</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row-anatomy">
+        <h3>The comparison-ready row — four primitives</h3>
+        <div class="anatomy-layers">
+          <div class="layer">
+            <div class="layer-num">01</div>
+            <strong>Substitutability category</strong>
+            <p>Would a shopper swap these for an everyday purchase? LLM-suited assignment; our taxonomy, not theirs.</p>
+          </div>
+          <div class="layer">
+            <div class="layer-num">02</div>
+            <strong>Traits</strong>
+            <p>Organic, premium, and more — Galaxus-like facets for queries that actually filter.</p>
+          </div>
+          <div class="layer">
+            <div class="layer-num">03</div>
+            <strong>Shelf price</strong>
+            <p>What you pay for the purchasable unit on the shelf — the human-facing number.</p>
+          </div>
+          <div class="layer">
+            <div class="layer-num">04</div>
+            <strong>Normalized unit price</strong>
+            <p>Price per weight/volume. Agents infer barquettes into grams. Category unit protocol optional.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="fp-insights">
+        <span class="chip">Python monolith · settled</span>
+        <span class="chip">Automation maximized</span>
+        <span class="chip">Generic beyond Swiss CSV</span>
+        <span class="chip">Portfolio = visible quality</span>
+        <span class="chip">Eval subset for bakeoffs</span>
+        <span class="chip">Inspectable agent runs</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVERSE BRAINSTORMING -->
+  <section id="reverse">
+    <div class="reveal">
+      <p class="section-label">Technique II · Reverse Brainstorming</p>
+      <h2>How does this fail spectacularly?</h2>
+      <p class="lede">
+        Flip each failure. Tap a card to reveal the safeguard that survived the night.
+        Security was explicitly left out of scope — everything else earned a countermeasure.
+      </p>
+    </div>
+
+    <div class="failure-grid reveal">
+      <div class="fail-card" tabindex="0" role="button" aria-label="Flip failure card">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>LLM cost kills the solo project</h3>
+          <p>Per-product or per-catalog calls make the economics unviable.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Safeguard</span>
+          <h3>Eval + cost/item metric</h3>
+          <p>Token-cost-per-item as a first-class metric (E3). Explore supply strategies under the same harness — don’t preload the whole catalog.</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Wrong substitutability groups</h3>
+          <p>Poor categorization accuracy breaks every downstream comparison query.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Safeguard</span>
+          <h3>Search, don’t dump</h3>
+          <p>Agent queries existing categories (C2). Embedding neighbors put ~90% of likely members in context before assignment.</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Duplicate categories spawn</h3>
+          <p>Agent creates new instead of reusing — taxonomy fragments into chaos.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Safeguard</span>
+          <h3>Hygiene + prefer-match</h3>
+          <p>Periodic taxonomy-hygiene agent (M2) and post-bulk reconciliation (M5). Prefer match-existing stays viable (I7).</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Confident hallucinations</h3>
+          <p>Model invents attribute values with no unknown signal — comparisons lie.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Decision</span>
+          <h3>evidence_span mandatory</h3>
+          <p>Every trait ships value + verbatim source substring. Deterministic validator rejects uncited non-nulls. Unknown → DLQ.</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Unit extraction drifts</h3>
+          <p>Inconsistent conversions within a category — price-per-kg comparisons rot silently.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Safeguard</span>
+          <h3>Gate + validators</h3>
+          <p>Unit extraction gated against category standards. Deterministic post-validators (R6) on unit consistency.</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Eval measures the wrong thing</h3>
+          <p>Metrics look great; real comparisons remain meaningless.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Safeguard</span>
+          <h3>Split evals + bakeoff</h3>
+          <p>Separate assign / create / traits / units (E2). Same golden set for model + context strategy bakeoffs (E5).</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Portfolio looks dated</h3>
+          <p>Working code, yesterday’s agentic stack — showcase fails its own ambition.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Direction</span>
+          <h3>Explore O1–O5 under eval</h3>
+          <p>Tools, CLI, Code Mode, LangGraph, hybrid — all viable. Only pure prompt chains (O6) die. Bakeoff is the showcase.</p>
+        </div>
+      </div>
+
+      <div class="fail-card" tabindex="0" role="button">
+        <div class="fail-face fail-front">
+          <span class="fail-tag">Failure</span>
+          <h3>Wrong build-vs-buy</h3>
+          <p>Reinvent wheels, or miss tools that would have saved months.</p>
+          <span class="fail-hint">click to flip →</span>
+        </div>
+        <div class="fail-face fail-back">
+          <span class="fail-tag">Direction</span>
+          <h3>CLI over MCP bloat</h3>
+          <p>Tooling refs noted: CLI-like interfaces, MCP context-window cost, Cloudflare Code Mode — compare, don’t guess.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="evidence-banner reveal">
+      <code>evidence_span</code>
+      <p>
+        Adopted as law: every trait is a pair — value + verbatim source substring.
+        Uncited non-null values are rejected. Hallucination control leans on the
+        eval set in development; runtime unknown/defer remains open to invention.
+      </p>
+    </div>
+  </section>
+
+  <!-- MORPHOLOGICAL -->
+  <section id="morph">
+    <div class="reveal">
+      <p class="section-label">Technique III · Morphological Analysis</p>
+      <h2>Twelve axes. No exclusive stack.</h2>
+      <p class="lede">
+        Ratings are commitments and explore budget — not a single architecture pick.
+        Filter the matrix. Dim what you don’t need. The kill pile is as important as the gold.
+      </p>
+    </div>
+
+    <div class="morph-filters reveal" role="group" aria-label="Filter by rating">
+      <button type="button" class="active" data-f="all">All</button>
+      <button type="button" data-f="mvp">MVP</button>
+      <button type="button" data-f="viable">Explore</button>
+      <button type="button" data-f="mat">Mature</button>
+      <button type="button" data-f="kill">Kill</button>
+    </div>
+
+    <div class="morph-board reveal" id="morph-board"></div>
+
+    <div class="morph-legend reveal">
+      <span><i class="l-mvp"></i> mvp — ship / assume</span>
+      <span><i class="l-v"></i> viable — explore in evals</span>
+      <span><i class="l-mat"></i> mature — at scale</span>
+      <span><i class="l-k"></i> kill — do not build toward</span>
+    </div>
+  </section>
+
+  <!-- CROSS-POLLINATION -->
+  <section id="cross">
+    <div class="reveal">
+      <p class="section-label">Technique IV · Cross-Pollination</p>
+      <h2>Libraries already solved catalog chaos.</h2>
+      <p class="lede">
+        Authority control. Provisional records. Deferred cataloging queues.
+        Map the librarian’s craft onto the agent pipeline — search before create,
+        draft categories, unknown traits to the DLQ.
+      </p>
+    </div>
+
+    <div class="library reveal">
+      <div class="shelves">
+        <div class="shelf">
+          <div class="shelf-label">Established authorities — search before create</div>
+          <div class="books">
+            <div class="book b1" title="Fresh tomato">Fresh tomato</div>
+            <div class="book b2" title="Cherry tomato">Cherry</div>
+            <div class="book b3" title="Beefsteak">Beefsteak</div>
+            <div class="book b4" title="Passata">Passata</div>
+            <div class="book b5" title="Sun-dried">Sun-dried</div>
+            <div class="book b6" title="Tomato sauce">Sauce</div>
+          </div>
+          <div class="shelf-wood"></div>
+        </div>
+        <div class="shelf">
+          <div class="shelf-label">Provisional records — draft until hygiene</div>
+          <div class="books">
+            <div class="book provisional" title="Draft: roma-ish">roma-ish?</div>
+            <div class="book provisional" title="Draft: cocktail mix">cocktail…</div>
+            <div class="book provisional" title="Draft: vine cluster">vine?</div>
+          </div>
+          <div class="shelf-wood"></div>
+        </div>
+        <div class="shelf">
+          <div class="shelf-label">Deferred cataloging — unknown → DLQ</div>
+          <div class="books">
+            <div class="book dlq" title="No evidence span">uncited</div>
+            <div class="book dlq" title="Unknown unit">barquette?</div>
+            <div class="book dlq" title="Ambiguous trait">bio??</div>
+          </div>
+          <div class="shelf-wood"></div>
+        </div>
+      </div>
+
+      <div class="mapping-arrows">
+        <div class="map-card">
+          <div class="lib-term">Authority control</div>
+          <div class="arrow">maps to →</div>
+          <div class="agentic-cataloger-term">
+            <strong>C2</strong> agent search via MCP/CLI<br />
+            Prefer match over create · mature <strong>C4</strong> embed shortlist
+          </div>
+        </div>
+        <div class="map-card">
+          <div class="lib-term">Provisional records</div>
+          <div class="arrow">maps to →</div>
+          <div class="agentic-cataloger-term">
+            Eager create <strong>N1</strong> + hygiene <strong>M2/M5</strong><br />
+            Merge suggestions to UI later <strong>M6</strong>
+          </div>
+        </div>
+        <div class="map-card">
+          <div class="lib-term">Deferred queue</div>
+          <div class="arrow">maps to →</div>
+          <div class="agentic-cataloger-term">
+            <strong>H2</strong> unknown → DLQ / review<br />
+            Non-blocking dashboard <strong>H1</strong> only
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SYNTHESIS -->
+  <section id="synthesis">
+    <div class="synth-inner">
+      <div class="climax-banner reveal">
+        <p class="section-label">Climax · Synthesis</p>
+        <h2>The product is the row.<br />The pipeline is the means.</h2>
+        <p class="lede">
+          Comparison-ready rows are the deliverable. The agent pipeline is how we get there.
+          Eval bakeoffs on orchestration and product supply are the portfolio showcase.
+          Library authority-control is the metaphor that keeps taxonomy honest.
+        </p>
+      </div>
+
+      <div class="triptych reveal">
+        <div class="tri-panel commit">
+          <h3>Commitments</h3>
+          <p class="tri-sub">MVP · ship these</p>
+          <ul>
+            <li><code>C2</code> — agent search for category context</li>
+            <li><code>S1+S2</code> — prose rubric + few-shot pairs</li>
+            <li><code>I3+I9</code> — evidence_span + staged prompts</li>
+            <li><code>D6</code> — merge upsert (never wipe)</li>
+            <li><code>N1</code> — eager create during discovery</li>
+            <li><code>M2+M5</code> — hygiene + post-bulk reconcile</li>
+            <li><code>E1–E3+E5</code> — golden set → split → cost → bakeoff</li>
+            <li><code>U1–U4</code> — bulk / single / filtered · same pipeline</li>
+          </ul>
+        </div>
+        <div class="tri-panel explore">
+          <h3>Explore set</h3>
+          <p class="tri-sub">Viable · compare, don’t pre-pick</p>
+          <ul>
+            <li><code>O1–O5</code> — full orchestration space</li>
+            <li><code>P2/P3/P4/P9/P10</code> — product supply strategies</li>
+            <li><code>H1+H2</code> — async dashboard + DLQ</li>
+            <li><code>R1/R2/R5/R6</code> — parse &amp; validate paths</li>
+            <li><code>D1+D2</code> — agent save vs orchestrator</li>
+            <li><code>A2+A3</code> — assign after confirm / deferred</li>
+            <li><code>G2/G5/G6</code> — consumer-fine · facets · hierarchy</li>
+            <li><code>T1/T2/T4/T5</code> — trait &amp; unit policies</li>
+          </ul>
+        </div>
+        <div class="tri-panel kill">
+          <h3>Kill pile</h3>
+          <p class="tri-sub">Do not build toward</p>
+          <ul>
+            <li><code>C1/C5/C6</code> — full dumps &amp; fuzzy-only</li>
+            <li><code>P1/P5–P8</code> — blind batches &amp; misframed P7</li>
+            <li><code>O6</code> — pure prompt chain</li>
+            <li><code>H3–H6</code> — blocking HITL &amp; no-loop</li>
+            <li><code>A1</code> — same-call assign+create</li>
+            <li><code>R3/R4</code> — brittle free-text parse</li>
+            <li><code>D3–D5</code> — text-save · staging · event log</li>
+            <li><code>G1/G3/G4 · T3 · S3/S7</code> — wrong grain</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="bakeoff reveal">
+        <h3>Eval Bakeoff Arena</h3>
+        <p class="arena-sub">
+          Orchestration (O) and product supply (P) are the main dimensions.
+          Same eval harness. Shareable metrics. Portfolio-grade visibility.
+        </p>
+        <div class="arena-rings">
+          <div class="ring">
+            <div class="ring-inner">
+              <div class="ring-label">Axis A</div>
+              <div class="ring-title">Orchestration</div>
+              <div class="ring-ids">O1 – O5</div>
+            </div>
+          </div>
+          <div class="ring">
+            <div class="ring-inner">
+              <div class="ring-label">Axis B</div>
+              <div class="ring-title">Product supply</div>
+              <div class="ring-ids">P2 · P3 · P4 · P9 · P10</div>
+            </div>
+          </div>
+        </div>
+        <div class="eval-metrics">
+          <span>E1 assign golden</span>
+          <span>E2 split evals</span>
+          <span>E3 cost / item</span>
+          <span>E5 model × context</span>
+        </div>
+      </div>
+
+      <div class="pipeline reveal">
+        <h3>Implied architecture · commitments only</h3>
+        <div class="pipe-flow">
+          <div class="pipe-node committed">Ingest<br />U1–U4</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node committed">Staged prompts<br />I9 · N1</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node committed">Search context<br />C2 → C4</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node explore-n">Supply P*<br />under eval</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node explore-n">Orch O1–O5<br />under eval</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node committed">evidence_span<br />I3 · R6 · H2</div>
+          <span class="pipe-arrow">→</span>
+          <div class="pipe-node committed">Merge upsert<br />D6 · M2/M5</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="closing reveal">
+    <blockquote>
+      “Chosen directions: Python monolith; non-blocking HITL only;
+      evidence_span and unknown; staged prompts; merge upsert;
+      same pipeline for every ingest mode; explore orchestration and
+      supply under the eval harness; mature toward embed shortlist.”
+    </blockquote>
+    <p class="attrib">Session synthesis · 2026-07-31</p>
+    <div class="status">Session complete</div>
+  </div>
+</main>
+
+<footer>
+  agentic-cataloger · BMad brainstorm keepsake · agent workflow 2026-07-30 · self-contained
+</footer>
+
+<script>
+(function () {
+  /* Morph cells — curated from morphological-matrix.md */
+  var cells = [
+    { id: "C1", mid: "Category context", opt: "Parent-subtree dump", r: "kill" },
+    { id: "C2", mid: "Category context", opt: "Agent search MCP/CLI", r: "mvp" },
+    { id: "C3", mid: "Category context", opt: "Embed-similar fetch", r: "viable" },
+    { id: "C4", mid: "Category context", opt: "Embed shortlist + search", r: "mat" },
+    { id: "C5", mid: "Category context", opt: "Dump entire taxonomy", r: "kill" },
+    { id: "C6", mid: "Category context", opt: "Keyword/fuzzy only", r: "kill" },
+    { id: "P1", mid: "Product supply", opt: "Entire current batch", r: "kill" },
+    { id: "P2", mid: "Product supply", opt: "One product at a time", r: "viable" },
+    { id: "P3", mid: "Product supply", opt: "Embedding neighbors", r: "viable" },
+    { id: "P4", mid: "Product supply", opt: "Agent search on demand", r: "viable" },
+    { id: "P5", mid: "Product supply", opt: "Entire catalog names", r: "kill" },
+    { id: "P6", mid: "Product supply", opt: "All in source category", r: "kill" },
+    { id: "P7", mid: "Product supply", opt: "Include assigned siblings", r: "kill" },
+    { id: "P8", mid: "Product supply", opt: "Exclude existing DB", r: "kill" },
+    { id: "P9", mid: "Product supply", opt: "Neighbors + agent search", r: "viable" },
+    { id: "P10", mid: "Product supply", opt: "Cluster batch per call", r: "viable" },
+    { id: "O1", mid: "Orchestration", opt: "Tool-calling agent", r: "viable" },
+    { id: "O2", mid: "Orchestration", opt: "CLI-like interface", r: "viable" },
+    { id: "O3", mid: "Orchestration", opt: "Code Mode", r: "viable" },
+    { id: "O4", mid: "Orchestration", opt: "LangGraph / state-machine", r: "viable" },
+    { id: "O5", mid: "Orchestration", opt: "Hybrid graph + tools", r: "viable" },
+    { id: "O6", mid: "Orchestration", opt: "Pure prompt chain", r: "kill" },
+    { id: "H1", mid: "Human loop", opt: "Low-confidence dashboard", r: "viable" },
+    { id: "H2", mid: "Human loop", opt: "Unknown → DLQ", r: "viable" },
+    { id: "H3", mid: "Human loop", opt: "Blocking wait-for-human", r: "kill" },
+    { id: "S1", mid: "Substitutability", opt: "Prose rubric in prompt", r: "mvp" },
+    { id: "S2", mid: "Substitutability", opt: "Few-shot labeled pairs", r: "mvp" },
+    { id: "S3", mid: "Substitutability", opt: "Embed-cluster then label", r: "kill" },
+    { id: "I3", mid: "Prompt constraints", opt: "Mandatory evidence_span", r: "mvp" },
+    { id: "I9", mid: "Prompt constraints", opt: "Separate prompts / stage", r: "mvp" },
+    { id: "R1", mid: "Parse", opt: "Structured JSON Schema", r: "viable" },
+    { id: "R2", mid: "Parse", opt: "Tool/CLI args as SoT", r: "viable" },
+    { id: "R3", mid: "Parse", opt: "Brittle free-text parse", r: "kill" },
+    { id: "R5", mid: "Parse", opt: "Reject + retry on fail", r: "viable" },
+    { id: "R6", mid: "Parse", opt: "Deterministic validators", r: "viable" },
+    { id: "D1", mid: "Persist", opt: "Agent explicit save", r: "viable" },
+    { id: "D2", mid: "Persist", opt: "Orchestrator after validate", r: "viable" },
+    { id: "D6", mid: "Persist", opt: "Merge upsert attributes", r: "mvp" },
+    { id: "A1", mid: "Assign timing", opt: "Same call as create", r: "kill" },
+    { id: "A2", mid: "Assign timing", opt: "After category confirmed", r: "viable" },
+    { id: "A3", mid: "Assign timing", opt: "Deferred batch assign", r: "viable" },
+    { id: "N1", mid: "Category create", opt: "Eager during discovery", r: "mvp" },
+    { id: "M2", mid: "Category merge", opt: "Periodic hygiene agent", r: "mvp" },
+    { id: "M5", mid: "Category merge", opt: "Post-bulk reconciliation", r: "mvp" },
+    { id: "E1", mid: "Eval", opt: "Golden set assign slice", r: "mvp" },
+    { id: "E2", mid: "Eval", opt: "Separate stage evals", r: "mvp" },
+    { id: "E3", mid: "Eval", opt: "Token-cost-per-item", r: "mvp" },
+    { id: "E5", mid: "Eval", opt: "Model × context bakeoff", r: "mvp" },
+    { id: "U1", mid: "Ingest", opt: "Bulk full catalog", r: "mvp" },
+    { id: "U2", mid: "Ingest", opt: "Single product upsert", r: "mvp" },
+    { id: "U3", mid: "Ingest", opt: "Filtered subset", r: "mvp" },
+    { id: "U4", mid: "Ingest", opt: "Same pipeline all modes", r: "mvp" },
+    { id: "G2", mid: "Granularity", opt: "Consumer-fine (fresh tomato)", r: "viable" },
+    { id: "G5", mid: "Granularity", opt: "Category + facets hybrid", r: "viable" },
+    { id: "T3", mid: "Units", opt: "Category-primary only", r: "kill" }
+  ];
+
+  var board = document.getElementById("morph-board");
+  cells.forEach(function (c) {
+    var el = document.createElement("div");
+    el.className = "morph-cell " + c.r;
+    el.setAttribute("data-r", c.r);
+    el.innerHTML =
+      '<div class="mid">' + c.mid + "</div>" +
+      '<div class="id">' + c.id + "</div>" +
+      '<div class="opt">' + c.opt + "</div>";
+    board.appendChild(el);
+  });
+
+  document.querySelectorAll(".morph-filters button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll(".morph-filters button").forEach(function (b) {
+        b.classList.remove("active");
+      });
+      btn.classList.add("active");
+      var f = btn.getAttribute("data-f");
+      document.querySelectorAll(".morph-cell").forEach(function (cell) {
+        if (f === "all") {
+          cell.classList.remove("dimmed");
+        } else {
+          cell.classList.toggle("dimmed", cell.getAttribute("data-r") !== f);
+        }
+      });
+    });
+  });
+
+  /* Flip failure cards */
+  document.querySelectorAll(".fail-card").forEach(function (card) {
+    function flip() { card.classList.toggle("flipped"); }
+    card.addEventListener("click", flip);
+    card.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        flip();
+      }
+    });
+  });
+
+  /* Scroll reveals */
+  var reveals = document.querySelectorAll(".reveal");
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            en.target.classList.add("visible");
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" }
+    );
+    reveals.forEach(function (el) { io.observe(el); });
+  } else {
+    reveals.forEach(function (el) { el.classList.add("visible"); });
+  }
+})();
+</script>
+</body>
+</html>

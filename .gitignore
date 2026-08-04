@@ -3,3 +3,30 @@ dist/
 .env
 *.log
 .DS_Store
+tmp/
+*.local.*
+
+# Python (backend/)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.eggs/
+*.egg
+build/
+.coverage
+.coverage.*
+coverage*.xml
+htmlcov/
+.python-version.local
+
+# jscpd duplication reports
+report/
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/

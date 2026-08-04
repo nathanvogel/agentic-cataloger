@@ -1,109 +1,199 @@
-# Product Categorization Backend
+# agentic-cataloger backend
 
-NestJS backend for the LLM-powered product categorization system.
+Python monolith.
 
-## Features
+## Toolchain
 
-- **LLM Client Service**: Model-agnostic interface for OpenAI, Anthropic, and Google
-  - **Retry Logic**: Exponential backoff for rate limits and transient errors
-  - **Structured Output**: Type-safe JSON responses using Zod schemas
-  - **Request/Response Logging**: Full logging of LLM interactions
-  - **Model Configuration**: Per-operation model defaults with override support
-
-## Installation
+- **CPython** (non-free-threaded, not `3.14t`)
+- **uv** (required for lock generation / sync)
+- **pytest** integration harness (testcontainers PostgreSQL 18.4)
+- **Ruff** (format + lint, including Bandit `S` + McCabe `C901`), **Pyright** (types), and **jscpd** (duplication), see [`docs/specs/code_style_python.md`](../docs/specs/code_style_python.md)
 
 ```bash
-yarn install
+cd backend
+uv sync
 ```
 
-## Configuration
+## Tests
 
-Copy `.env.example` to `.env` and configure it.
-
-## Usage
-
-### LLM Client Service
-
-The `LLMClientService` provides a model-agnostic interface for LLM interactions:
-
-```typescript
-import { LLMClientService, LLMProvider } from "./llm";
-import { z } from "zod";
-
-// Define response schema
-const CategorySchema = z.object({
-  name: z.string(),
-  displayName: z.string(),
-  productIds: z.array(z.number()),
-});
-
-// Call LLM with explicit provider
-const response = await llmClient.complete(
-  "Categorize these products...",
-  CategorySchema,
-  {
-    provider: LLMProvider.OPENAI,
-    model: "gpt-4o",
-    temperature: 0.7,
-    maxTokens: 4096,
-    retries: 3,
-    timeout: 60000,
-  },
-);
-
-console.log(response.data); // Typed as { name: string, displayName: string, productIds: number[] }
-console.log(response.usage); // Token usage
-console.log(response.provider); // 'openai', 'anthropic', or 'google'
-```
-
-### Model Configuration
-
-Override via environment variables or options:
-
-```typescript
-import { ModelConfigService, LLMOperation, LLMProvider } from './llm';
-
-// Inject the service
-constructor(private modelConfigService: ModelConfigService) {}
-
-// Get default config
-const config = this.modelConfigService.getModelConfig(LLMOperation.CATEGORY_DISCOVERY);
-
-// Override with custom provider/model
-const customConfig = this.modelConfigService.getModelConfig(
-  LLMOperation.CATEGORY_DISCOVERY,
-  {
-    provider: LLMProvider.GOOGLE,
-    model: 'gemini-2.0-flash-exp',
-  }
-);
-```
-
-## Development
+Prefer the portable CI script from repo root when you want the full gate (unit → migrate twice → integration → live `/health` + `/ready`):
 
 ```bash
-# Build
-yarn build
-
-# Run in development mode
-yarn start:dev
-
-# Run tests
-yarn test
-
-# Run tests in watch mode
-yarn test:watch
+# Needs Postgres on localhost:3021 (compose or CI service)
+./scripts/ci/backend-test.sh
 ```
 
-## Architecture
+Or run pytest directly from `backend/`:
 
-### LLM Module Structure
+```bash
+cd backend
+uv sync --group dev
+
+# Domain / unit (static + import smoke, no Postgres required)
+uv run pytest tests/domain
+
+# Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
+uv run pytest tests/integration
+
+# Everything under tests/
+uv run pytest
+
+# With coverage
+uv run pytest tests/domain --cov=agentic_cataloger --cov-report=term-missing
+uv run pytest tests/integration --cov=agentic_cataloger --cov-append --cov-report=term-missing
+```
+
+Pytest **markers** are labels on tests (`@pytest.mark.integration`, `@pytest.mark.proc`) so you can select subsets:
+
+```bash
+uv run pytest -m integration
+uv run pytest -m proc
+uv run pytest -m "not proc"
+```
+
+`integration` = needs Postgres. `proc` = spawns a real `agentic-cataloger <role>` subprocess.
+
+## Lint & typecheck
+
+Config is in `pyproject.toml` (`[tool.ruff]`, `[tool.pyright]`). Prefer the portable script from repo root:
+
+```bash
+./scripts/ci/backend-lint.sh
+```
+
+Or run the tools directly from `backend/`:
+
+```bash
+cd backend
+uv sync --group dev
+
+uv run ruff format .          # rewrite formatting
+uv run ruff format --check .  # CI-style: fail if rewrite needed
+uv run ruff check .           # lint (includes S security + C901 complexity)
+uv run ruff check --fix .     # lint + apply safe autofixes
+uv run pyright                # static types
+
+# from repo root, needs Node/npx
+npx --yes jscpd@4.0.5 backend/src --config .jscpd.json
+```
+
+Not wired yet (add once packages have real code, not empty seeds):
+
+- **import-linter**: enforce hexagonal boundaries (`domain ↛ platform` / vendor adapters); vacuous today
+- **unused-export analyzer** (e.g. vulture): Knip-style dead public API; noisy until there is a public surface
+
+### Pre-commit
+
+Hooks live in the repo-root [`.pre-commit-config.yaml`](../.pre-commit-config.yaml) (Ruff format, Ruff check, Pyright). They call `uv run --directory backend …`, so sync the backend venv first.
+
+```bash
+# one-time (repo root)
+uv run --directory backend pre-commit install
+
+# run all hooks on the whole tree
+uv run --directory backend pre-commit run --all-files
+```
+
+## Role commands
+
+Same entrypoints in local dev, Docker, devcontainer, and CI:
+
+```bash
+agentic-cataloger migrate    # one-shot bootstrap (Alembic + PgQueuer + LangGraph schemas)
+agentic-cataloger api        # FastAPI on 0.0.0.0:3020, /health and /ready
+agentic-cataloger worker     # long-running stub (advisory lock in Story 1.3)
+agentic-cataloger ingest     # import latest CSV per retailer into catalog_snapshots / catalog_products
+agentic-cataloger taxonomy   # create|reparent|show|assign substitutability categories
+```
+
+### Ingest
+
+Imports **only the latest** `YYYY/MM/DD-HH:MM.csv` under each `data/{retailer}-ch-products/` folder (or a subset via `--retailer`). Products upsert on durable source identity extracted from the product URL; name/URL changes update observations without creating duplicates. Rows without a trustworthy ID are deferred (no product row).
+
+Optional **ingest filter**:
+
+- `--source-category NEEDLE`: case-insensitive substring of retailer `source_category`, or exact match of `unified_category` (e.g. `Milchprodukte` or `dairy`)
+- `--keyword NEEDLE`: case-insensitive substring of `name` / `name_de`
+- Both set → AND. Neither set → bulk (all rows)
+
+Non-matching products are left untouched.
+
+Needs a migrated DB and the same `DATABASE_URL` as `api` (already set in the devcontainer / compose `api` service).
+
+```bash
+uv run agentic-cataloger ingest --retailer denner
+uv run agentic-cataloger ingest                  # all four retailers
+uv run agentic-cataloger ingest --data-dir /path/to/data
+uv run agentic-cataloger ingest --source-category "Milchprodukte" --retailer migros
+uv run agentic-cataloger ingest --keyword "litschi" --retailer denner
+```
+
+### Taxonomy
+
+Rooted substitutability tree (`taxonomy_categories`) plus one leaf per product
+(`taxonomy_memberships`). Retailer `source_category` on catalog products is an
+ingest filter only — never an assign target. Categories are identified by UUID
+(`taxonomy show` prints them). Re-assign **moves** membership; assign only
+accepts leaves; create/reparent refuse demoting a membered node to a non-leaf.
+
+```bash
+uv run agentic-cataloger taxonomy create --name "Root"
+uv run agentic-cataloger taxonomy create --name "Dairy" --parent <root-uuid>
+uv run agentic-cataloger taxonomy create --name "Cow milk" --unit L --parent <dairy-uuid>
+uv run agentic-cataloger taxonomy show
+uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> --product-id <product-uuid>
+uv run agentic-cataloger taxonomy assign --leaf <leaf-uuid> \
+  --namespace migros-ch --source-product-id 204009100800
+uv run agentic-cataloger taxonomy reparent --category <uuid> --parent <new-parent-uuid>
+```
+
+Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../docs/specs/substitutability-rubric.md).
+
+### Environment variables
+
+| Variable | Used by | Example |
+|----------|---------|---------|
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app` |
+| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app` |
+| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@localhost:3021/agentic_cataloger_phoenix` |
+| `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
+
+Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
+
+**Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
+
+## Local stack (with root Compose)
+
+From repo root:
+
+```bash
+docker compose up -d postgres phoenix
+cd backend
+export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
+uv run agentic-cataloger migrate
+export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
+uv run agentic-cataloger api
+```
+
+Or build and run API via Compose profile (run migrate once on a fresh volume first):
+
+```bash
+docker compose --profile roles run --rm migrate
+docker compose --profile api up -d
+```
+
+## Ports (GATE-01)
+
+| Port | Service |
+|------|---------|
+| **3020** | Python API |
+| **3021** | PostgreSQL 18.4 (`agentic_cataloger_app`, `agentic_cataloger_phoenix`) |
+| **3022** | Phoenix UI |
+
+## Inspect DB from the host
+
+Superuser URL (GUI/`psql`, SSL off):
 
 ```
-src/llm/
-├── interfaces/
-│   └── llm-client.interface.ts    # TypeScript interfaces
-├── llm-client.service.ts          # Main LLM client implementation
-├── llm.module.ts                  # NestJS module
-└── index.ts                       # Exports
+postgresql://postgres:postgres@127.0.0.1:3021/agentic_cataloger_app?sslmode=disable
 ```

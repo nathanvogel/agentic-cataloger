@@ -1,0 +1,197 @@
+[project]
+name = "agentic-cataloger"
+version = "0.1.0"
+description = "Multi-stage LLM agent for product category trees and SKU assignment"
+readme = "README.md"
+requires-python = "==3.14.6"
+dependencies = [
+    # NFR17 runtime pins — lockfile is the compatibility authority (AD-27)
+    "langgraph==1.2.10",
+    "langgraph-checkpoint-postgres==3.1.1",
+    "pgqueuer==1.3.2",
+    "sqlalchemy[asyncio]==2.0.51",
+    "alembic==1.18.5",
+    "psycopg[binary]==3.3.4",
+    "psycopg-pool==3.3.1",
+    "fastapi==0.141.1",
+    "fastmcp==3.4.5",
+    "uvicorn==0.52.0",
+    "langchain-core==1.5.3",
+    "langchain-openai==1.4.1",
+    "langchain-anthropic==1.5.3",
+    "pydantic==2.13.4",
+    "opentelemetry-api==1.44.0",
+    "opentelemetry-sdk==1.44.0",
+    "openinference-instrumentation-langchain==0.1.68",
+]
+
+[project.scripts]
+agentic-cataloger = "agentic_cataloger.platform.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_cataloger"]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "pytest-asyncio==1.3.0",
+    "pytest-cov==7.0.0",
+    "testcontainers[postgres]==4.14.1",
+    "httpx==0.28.1",
+    "pyyaml==6.0.3",
+    "ruff==0.16.1",
+    "pyright==1.1.411",
+    "pre-commit==4.5.1",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: tests requiring disposable PostgreSQL",
+    "proc: process-spawn role command tests",
+]
+
+[tool.coverage.run]
+source = ["src/agentic_cataloger"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
+[tool.uv]
+# Generate/sync this lockfile with uv 0.12.1 (AD-27 / GATE-01).
+# Do not add LangGraph Server/CLI extras. Pydantic V2 only (no pydantic.v1 models).
+
+# ---------------------------------------------------------------------------
+# Lint / typecheck — see docs/specs/code_style_python.md
+# CLI: ./scripts/ci/backend-lint.sh  (or the commands in backend/README.md)
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+# Match runtime pin (requires-python == 3.14.6). Style guide sample used py313.
+target-version = "py314"
+src = ["src"]
+
+[tool.ruff.lint]
+# Enable linters:
+# E: pycodestyle (style errors)
+# F: Pyflakes (logical errors)
+# DOC: pydoclint (docstring ↔ signature; preview)
+# D: pydocstyle (docstring content)
+# I: isort (import sorting)
+# N: naming (variable/function naming)
+# B: flake8-bugbear (bug detection)
+# C4: flake8-comprehensions (list/dict comprehension improvements)
+# ARG: flake8-unused-arguments (unused function arguments)
+# SIM: flake8-simplify (code simplification)
+# TID: flake8-tidy-imports (import organization)
+# TD: flake8-todos (TODO comments)
+# PL: Pylint (general Python linting)
+# RUF: Ruff-specific rules
+# PERF: Perflint (performance optimizations)
+# ERA: eradicate (commented-out code detection)
+# FAST: FastAPI-specific rules
+# G: flake8-logging-format (logging best practices)
+# S: flake8-bandit (security)
+# C901: mccabe cyclomatic complexity
+# BLE: blind-except (no bare `except Exception`)
+# TRY: tryceratops (exception anti-patterns; see ignore for TRY003)
+# T20: flake8-print (no print/pprint — use logging; CLI stdout is excepted)
+preview = true
+select = [
+    "E",
+    "F",
+    "DOC",
+    "D",
+    "I",
+    "N",
+    "B",
+    "C4",
+    "ARG",
+    "SIM",
+    "TID",
+    "TD",
+    "PL",
+    "RUF",
+    "PERF",
+    "ERA",
+    "FAST",
+    "G",
+    "S",
+    "complex-structure",
+    "BLE",
+    "TRY",
+    "T20",
+]
+# raise-vanilla-args (TRY003) wants messages baked into exception __init__;
+# conflicts with §6 informative raise-site messages on small custom *Error types.
+ignore = ["raise-vanilla-args"]
+
+# `src` is cwd-relative (CLI runs from backend/; VS Code Ruff uses repo root).
+# Pin first-party so isort agrees in both places.
+[tool.ruff.lint.isort]
+known-first-party = ["agentic_cataloger"]
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["unused-import"]
+"**/tests/**" = [
+    "module-import-not-at-top-of-file",
+    "D",
+    "DOC",
+    "S",        # asserts / test fixtures trip bandit hard
+    "line-too-long",     # long assertion / URL strings
+    "magic-value-comparison",  # magic values in assertions are fine
+    "ARG",      # fixtures / unused params in test signatures
+    "import-outside-top-level",  # deferred imports in fixtures / test helpers
+    "multiple-with-statements",   # nested with pytest.raises + connect is clearer
+    "unspecified-encoding",  # encoding= on Path.read_text in tests
+    "BLE",      # wait helpers intentionally catch broadly
+    "T20",      # prints in tests are fine
+    "too-many-arguments",  # test helpers pack setup knobs
+]
+"migrations/**" = [
+    "D",
+    "DOC",
+    "implicit-namespace-package",
+]
+# Use **/… so ignores match both CLI (cwd=backend) and the VS Code Ruff
+# extension (cwd=repo root → paths look like backend/src/…).
+"**/platform/cli.py" = [
+    "import-outside-top-level",  # lazy role imports keep unused roles unloaded
+    "T20",  # help/version are intentional CLI stdout (§7)
+]
+"**/platform/roles/api.py" = [
+    "hardcoded-bind-all-interfaces",  # bind 0.0.0.0 — intentional for container/host publish
+]
+"**/platform/roles/migrate.py" = [
+    "import-outside-top-level",  # pgqueuer import deferred until install step
+    "too-many-statements-in-try-clause",  # bootstrap try wraps the full ordered sequence
+    "suspicious-subprocess-import",  # subprocess used to invoke alembic with fixed argv
+    "subprocess-without-shell-equals-true",  # subprocess.run with trusted fixed command list
+]
+
+[tool.pyright]
+include = ["src", "tests", "migrations"]
+exclude = ["**/__pycache__", ".venv", "dist"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.14"
+pythonPlatform = "Linux"
+reportMissingSuperCall = "error"
+reportMissingParameterType = "error"
