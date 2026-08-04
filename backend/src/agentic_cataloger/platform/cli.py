@@ -1,11 +1,12 @@
 """Console entrypoint.
 
-``agentic-cataloger api | worker | migrate | ingest | taxonomy | telemetry``.
+``agentic-cataloger api | worker | migrate | ingest | taxonomy | review | telemetry``.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import signal
 import sys
@@ -93,6 +94,8 @@ def _dispatch_command(args: list[str], telemetry: Telemetry) -> None:
         raise SystemExit(_run_ingest(args[1:]))
     if command == "taxonomy":
         raise SystemExit(_run_taxonomy(args[1:]))
+    if command == "review":
+        raise SystemExit(_run_review(args[1:]))
     if command == "telemetry":
         raise SystemExit(_run_telemetry(args[1:], telemetry))
     if command in {"-V", "--version"}:
@@ -431,6 +434,153 @@ def _do_assign_product(parsed: argparse.Namespace) -> int:
     return 0
 
 
+def _run_review(argv: list[str]) -> int:
+    """Dispatch ``agentic-cataloger review <subcommand>``.
+
+    Args:
+        argv: Arguments after ``review``.
+
+    Returns:
+        Process exit code (0 on success).
+    """
+    parser = argparse.ArgumentParser(
+        prog="agentic-cataloger review",
+        description=(
+            "Record and list deferred_items — products an agent stage "
+            "won't guess about, awaiting human review."
+        ),
+    )
+    sub = parser.add_subparsers(dest="subcommand", required=True)
+
+    defer_p = sub.add_parser(
+        "defer", help="Record that an agent stage won't guess about a product"
+    )
+    defer_p.add_argument(
+        "--product-id", type=UUID, required=True, help="Catalog product UUID"
+    )
+    defer_p.add_argument(
+        "--stage",
+        required=True,
+        choices=("discover_create", "assign"),
+        help="Pipeline stage that deferred",
+    )
+    defer_p.add_argument(
+        "--reason-code",
+        required=True,
+        choices=("unknown", "defer", "low_confidence"),
+        help="Why the stage declined to produce an outcome",
+    )
+    defer_p.add_argument(
+        "--attempt-count",
+        type=int,
+        required=True,
+        help="How many attempts led to this deferral (>= 1)",
+    )
+    defer_p.add_argument(
+        "--payload",
+        required=True,
+        help="JSON object: stage-specific payload snapshot",
+    )
+    defer_p.add_argument(
+        "--evidence-span",
+        default=None,
+        help="Optional source-text evidence span",
+    )
+    defer_p.add_argument(
+        "--trace-id",
+        default=None,
+        help="Optional Phoenix/OpenTelemetry trace id",
+    )
+
+    sub.add_parser("list", help="List every open deferred item")
+
+    parsed = parser.parse_args(argv)
+
+    from agentic_cataloger.review.errors import ReviewError
+
+    try:
+        return _dispatch_review(parsed)
+    except ReviewError as exc:
+        logger.warning("%s", exc)
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except (ValueError, TypeError, LookupError, RuntimeError) as exc:
+        logger.exception("review command failed")
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _dispatch_review(parsed: argparse.Namespace) -> int:
+    """Run one review subcommand.
+
+    Returns:
+        Process exit code (0 on success).
+
+    Raises:
+        ValueError: Unknown subcommand.
+    """
+    handlers = {
+        "defer": _do_defer_item,
+        "list": _do_list_deferred_items,
+    }
+    handler = handlers.get(parsed.subcommand)
+    if handler is None:
+        msg = f"unknown subcommand {parsed.subcommand!r}"
+        raise ValueError(msg)
+    return handler(parsed)
+
+
+def _do_defer_item(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.contracts.models import StageKind
+    from agentic_cataloger.platform.review.runner import run_defer_item
+    from agentic_cataloger.review.commands import DeferItemRequest
+    from agentic_cataloger.review.models import ReasonCode
+
+    try:
+        payload = json.loads(parsed.payload)
+    except json.JSONDecodeError as exc:
+        msg = f"--payload must be valid JSON: {exc}"
+        raise ValueError(msg) from exc
+    if not isinstance(payload, dict):
+        msg = "--payload must be a JSON object"
+        raise TypeError(msg)
+
+    result = run_defer_item(
+        DeferItemRequest(
+            product_id=parsed.product_id,
+            stage=StageKind(parsed.stage),
+            reason_code=ReasonCode(parsed.reason_code),
+            attempt_count=parsed.attempt_count,
+            payload_snapshot=payload,
+            evidence_span=parsed.evidence_span,
+            trace_id=parsed.trace_id,
+        )
+    )
+    item = result.item
+    print(
+        f"deferred product={item.product_id} stage={item.stage} "
+        f"reason_code={item.reason_code} attempt_count={item.attempt_count} "
+        f"[{item.id}]"
+    )
+    return 0
+
+
+def _do_list_deferred_items(_parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.review.runner import run_list_deferred_items
+
+    result = run_list_deferred_items()
+    if not result.items:
+        print("no open deferred items")
+        return 0
+    for item in result.items:
+        print(
+            f"{item.stage} {item.reason_code} product={item.product_id} "
+            f"attempt_count={item.attempt_count} payload={item.payload_snapshot} "
+            f"[{item.id}]"
+        )
+    return 0
+
+
 def _run_telemetry(argv: list[str], telemetry: Telemetry) -> int:
     """Dispatch ``agentic-cataloger telemetry <subcommand>``.
 
@@ -478,6 +628,7 @@ def _print_help() -> None:
         "  ingest    import latest retailer CSVs into the catalog\n"
         "  taxonomy  create|reparent|show|assign|search|children "
         "substitutability categories\n"
+        "  review    defer|list deferred_items for human review\n"
         "  telemetry smoke — cheap OpenRouter call + Phoenix leaf LLM span\n"
     )
 
