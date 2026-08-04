@@ -50,5 +50,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Only the latest Lidl dump (~1 MB). Full data/ is ~177 MB and would
+      # burn the free Git LFS bandwidth quota (~10 GiB/mo) across CI runs.
+      - name: Fetch latest Lidl CSV via Git LFS
+        run: |
+          set -euo pipefail
+          latest="$(find data/lidl-ch-products -type f -name '*.csv' | sort | tail -1)"
+          if [ -z "${latest}" ]; then
+            echo "No Lidl CSV paths found; integration sample test will skip."
+            exit 0
+          fi
+          echo "Fetching ${latest}"
+          git lfs pull --include="${latest}"
+
       - name: Backend CI
         run: ./scripts/ci/backend-test.sh

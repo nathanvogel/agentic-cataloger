@@ -463,6 +463,18 @@ def test_find_latest_csv_prefers_newest(tmp_path: Path) -> None:
     )
 
 
+def _is_git_lfs_pointer(path: Path) -> bool:
+    """True when ``path`` is a Git LFS pointer, not the real blob content."""
+    try:
+        with path.open(encoding="utf-8") as handle:
+            return (
+                handle.readline().rstrip("\n")
+                == "version https://git-lfs.github.com/spec/v1"
+            )
+    except OSError:
+        return False
+
+
 @pytest.mark.integration
 def test_parse_real_lidl_header_sample() -> None:
     """Latest Lidl dump in data/ parses and yields source identities."""
@@ -472,6 +484,11 @@ def test_parse_real_lidl_header_sample() -> None:
         pytest.skip("data/lidl-ch-products not present")
     latest = find_latest_csv(retailer_dir)
     assert latest is not None
+    if _is_git_lfs_pointer(latest):
+        pytest.skip(
+            f"{latest} is a Git LFS pointer; run `git lfs pull` "
+            "(CI fetches only this latest Lidl CSV)"
+        )
     parsed = parse_csv_snapshot(
         retailer="lidl",
         path=latest,
