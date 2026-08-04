@@ -4,7 +4,7 @@
 - **Author**: planning agent (plan-task)
 - **Status**: Draft
 - **Primary services**: `backend`
-- **Related specs / ADRs**: [architecture.md § Observability](../specs/architecture.md), [roadmap.md M2 **4.3**](roadmap.md), [code_style_python.md §5 Protocols](../specs/code_style_python.md)
+- **Related specs / ADRs**: [architecture.md § Observability](../specs/architecture.md), [roadmap.md M2 **4.3**](roadmap.md), [code_style_python.md §5 Protocols](../specs/code_style_python.md). Cross-ref: **4.1** / **3.1** design (run_id-only vocabulary, `DeferredItem.trace_id`) — decided on branch discussion for contracts + deferred_items; this plan does not implement those items.
 
 ## 1. Problem
 
@@ -21,7 +21,7 @@ Debugging LLM stages without traces is the slowest way to build the agent. Roadm
 
 **Non-goals**
 
-- **4.1** typed run/stage/LLM-call contracts (plain UUID/string attrs only; follow-up later).
+- **4.1** typed run/stage contracts (`StageKind` / `StageResult` / `run_id`) — do not implement here; when attrs are set later, use that vocabulary (no minted `llm_call_id`).
 - **3.1** `deferred_items`, **2.5** category search, **4.4–4.5** agent/LangGraph.
 - **4.6** formal end-to-end run join + cost double-count proof (foundation only here).
 - OpenInference LangChain **auto**-instrumentation (`auto_instrument=False` now; wire in **4.4**).
@@ -60,8 +60,8 @@ Confirm? yes (2026-08-04)
 | Prior undone | Blocks 4.3? |
 | --- | --- |
 | **2.5** search tools | No |
-| **4.1** run/stage vocabulary | Soft only (string attrs now) |
-| **3.1** `deferred_items` | No (will *consume* `current_trace_id` later) |
+| **4.1** run/stage vocabulary | Soft — vocabulary decided (`run_id` + `StageKind` + attempt `int`); 4.3 does not import `contracts`, but later stage spans use those names (not invented IDs) |
+| **3.1** `deferred_items` | No (will *consume* `current_trace_id` later as nullable `trace_id`) |
 
 ## 5. Approach
 
@@ -134,7 +134,8 @@ Do not add keys to Compose by default (keeps CI/devcontainers offline-safe). REA
 | Missing `openinference.span.kind=LLM` | Span not rendered as LLM in Phoenix | Set kind + `llm.provider` / `llm.model_name` / token attrs explicitly on the leaf (platform may use `phoenix.otel` re-exports) | executor |
 | Logging API keys | Secret leak | Never log `OPENROUTER_API_KEY` / `PHOENIX_API_KEY`; fail closed with clear “missing key” | executor |
 | Compose topology test churn | CI noise | Do not require new compose env for collector/OpenRouter; README-only defaults | executor |
-| Blast: `deferred_items.trace_id` (**3.1**) | Needs stable trace id string | Expose `current_trace_id()` now; **3.1** wires later | follow-up |
+| Blast: `deferred_items.trace_id` (**3.1**) | Needs stable trace id string (nullable) | Expose `current_trace_id()` now (no-op → `None` is fine); **3.1** `defer_item` accepts optional `trace_id`; stages wire it in **4.4** | follow-up |
+| Blast: inventing stage/LLM-call IDs as span attrs | Conflicts with **4.1** (run_id only) | Do **not** mint `stage_execution_id` / `stage_attempt_id` / `llm_call_id` attrs. OTel span id is the call identity; stage label / attempt int only when stages exist | executor |
 | Blast: **4.6** cost | Silent `$0` without pricing entry | README note; accepted for 4.3 | accepted |
 
 Accepted risks:
@@ -149,7 +150,7 @@ Accepted risks:
 - **Choice**: Application port under empty `pipeline/` package.
 - **Options considered**: A) `pipeline/ports.py`, B) `contracts/` next to future 4.1 IDs, C) new top-level `observability/` package.
 - **Why**: Architecture already lists telemetry as application-layer; `pipeline/` is the future consumer of run/stage tracing; matches catalog/taxonomy “ports in owning package” without inventing a package.
-- **Rejected because**: B — `contracts/` is for shared run vocabulary (**4.1**), not adapters’ ports; C — YAGNI.
+- **Rejected because**: B — `contracts/` owns `StageKind` / `StageResult` (**4.1**), not adapter ports; putting `Telemetry` there would blur that split. C — YAGNI.
 
 ### Decision: Manual OpenInference attrs via Telemetry port (not LangChain instrumentor)
 
@@ -216,7 +217,7 @@ Accepted risks:
 - This *is* the observability path: traces to Phoenix via `phoenix.otel.register`.
 - Logs: bootstrap INFO when export enabled/disabled; ERROR on export failure without dumping secrets; smoke prints trace id to stdout.
 - Metrics/alarms: N/A.
-- Trace tags: leaf LLM OpenInference attrs listed in §5; optional `pipeline_run_id` string attr later from **4.1**.
+- Trace tags: leaf LLM OpenInference attrs listed in §5; optional `run_id` string attr later (**4.1** / LangGraph’s run id — not `pipeline_run_id`). Do not invent `stage_execution_id` / `llm_call_id` attrs; OTel span id covers call identity.
 
 ## 10. Rollout and rollback
 
@@ -249,3 +250,4 @@ HAND-OFF PROMPT
 - 2026-08-04 — OpenRouter kept as lasting LLM hop (not smoke-only); clarify leaf-span = no child LLM; offline leaf invariant vs 4.6 Phoenix e2e
 - 2026-08-04 — Flip bootstrap to `arize-phoenix-otel` / `phoenix.otel.register` (not hand-rolled OTLP)
 - 2026-08-04 — Sweep doc language: `PhoenixTelemetry`, `PHOENIX_*` env, offline span-capture tests (drop leftover hand-rolled OTel framing)
+- 2026-08-05 — Align with **4.1**/**3.1** design: future attr is `run_id` (not `pipeline_run_id`); no synthetic stage/LLM-call IDs; soft-dependency + `trace_id` handoff clarified; contracts vs pipeline port split restated
