@@ -29,6 +29,7 @@ FROM base AS dev
 
 ARG NODE_VERSION=25.2.1
 ARG TARGETARCH
+# postgresql-client-18 from PGDG (Debian trixie only ships 17). Matches compose postgres:18.4.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -37,9 +38,20 @@ RUN apt-get update \
         git \
         git-lfs \
         openssh-client \
-        postgresql-client \
         ripgrep \
         xz-utils \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+        https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+    && printf '%s\n' \
+        'Types: deb' \
+        'URIs: https://apt.postgresql.org/pub/repos/apt' \
+        'Suites: trixie-pgdg' \
+        'Components: main' \
+        'Signed-By: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc' \
+        > /etc/apt/sources.list.d/pgdg.sources \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-18 \
     && case "${TARGETARCH}" in \
         amd64) NODE_ARCH=linux-x64 ;; \
         arm64) NODE_ARCH=linux-arm64 ;; \
