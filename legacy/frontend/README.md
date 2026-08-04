@@ -1,4 +1,6 @@
-# Frontend
+# Frontend (legacy)
+
+Reference-only React/Vite UI from the pre–Python stack. Talks to the NestJS API on port **3010**, not the Python API. Not required for active development.
 
 A React-based frontend app built with TypeScript and Vite.
 

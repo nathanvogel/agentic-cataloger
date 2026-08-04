@@ -1,13 +1,13 @@
 # agentic-cataloger
 
-A multi-stage LLM agent that builds a product category tree and assigns SKUs to it. LangGraph, per-stage evals in Phoenix, and a defer-to-human queue. Running against a 30k-row dataset of Swiss grocery products (Migros, Lidl, Coop, Denner).
+Python catalog ingest and taxonomy tooling for a ~30k-row Swiss grocery dataset (Migros, Lidl, Coop, Denner). Today you can import products under durable source identity and build a substitutability category tree from the CLI. Next up: a multi-stage LangGraph agent that discovers categories, assigns SKUs, scores stages in Phoenix, and defers uncertain decisions to a human queue.
 
 ## Prerequisites
 
 - Docker & Docker Compose
 - **Dev Containers** extension (VS Code / Cursor)
 - **Python backend:** CPython **3.14.6** (non-free-threaded) via **uv 0.12.1** (installed in the devcontainer image)
-- **Frontend / legacy TS:** Node.js v25+ with Corepack and Yarn 4.11.0+ (installed in the devcontainer image)
+- **Legacy TS** (optional): Node.js v25+ with Corepack and Yarn 4.11.0+ (installed in the devcontainer image)
 
 
 ## Active stack layout
@@ -15,16 +15,14 @@ A multi-stage LLM agent that builds a product category tree and assigns SKUs to 
 | Path | Role |
 |------|------|
 | `backend/` | Python monolith (API, worker, migrate roles) |
-| `frontend/` | UI (active; Vite on port **3023**) |
 | `data/` | Catalog CSVs (active) |
-| `legacy/` | Relocated TypeScript stack — **reference until parity** |
+| `legacy/` | Frozen TypeScript stack + UI — **reference only** |
 
 | Port | Service |
 |------|---------|
 | **3020** | Python API (`agentic-cataloger api`) |
 | **3021** | New Postgres |
 | **3022** | Phoenix |
-| **3023** | Frontend Vite |
 
 Root `docker-compose.yml` backs the devcontainer (Postgres, Phoenix, API). Bound gate checklists: [`_bmad-output/implementation-artifacts/gates/`](_bmad-output/implementation-artifacts/gates/).
 
@@ -47,15 +45,6 @@ curl http://localhost:3020/health
 ```
 
 `DATABASE_URL` is preset in the API devcontainer (`@postgres:5432` on the docker compose network). `MIGRATE_DATABASE_URL` is not as the API service must not have superuser access. 
-
-## Frontend setup
-
-`postCreate` installs frontend deps. To refresh manually:
-
-```bash
-cd frontend
-yarn install
-```
 
 ## Python backend
 
@@ -83,7 +72,7 @@ For personal shell (zsh, Spaceship, aliases), push a private `dotfiles` repo to 
 
 ## Legacy reference stack
 
-The pre–Python NestJS backend, data importer, and DB scripts live under `legacy/`. They are **not** required to build or run for active development. Frozen ports: API **3010**, Postgres **5532**.
+The pre–Python NestJS backend, React UI, data importer, and DB scripts live under `legacy/`. They are **not** required to build or run for active development. Frozen ports: API **3010**, Postgres **5532**, Vite **3023**.
 
 Start legacy Postgres (from repo root):
 

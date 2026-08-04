@@ -134,7 +134,7 @@ UI components (`*.ui.tsx`) are organized into layers of increasing specificity. 
 **Folder structure** (grow into this as needed):
 
 ```
-frontend/src/
+legacy/frontend/app/
   components/
     atoms/          # generic building blocks
     molecules/      # composed UI features

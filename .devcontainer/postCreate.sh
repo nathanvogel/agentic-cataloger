@@ -60,12 +60,6 @@ echo "postCreate: installing pre-commit hooks..."
 cd /workspaces/agentic-cataloger
 uv run --directory backend pre-commit install
 
-# Frontend deps — vendored Yarn 4 in .yarn/releases.
-echo "postCreate: installing frontend deps (yarn)..."
-cd /workspaces/agentic-cataloger/frontend
-export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
-node .yarn/releases/yarn-4.11.0.cjs install
-
 # One-shot bootstrap when postgres is already healthy.
 # Migrate-only env vars — never injected into api/worker (GATE-02).
 echo "postCreate: checking postgres for migrations..."

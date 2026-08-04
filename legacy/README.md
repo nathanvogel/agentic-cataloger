@@ -1,10 +1,11 @@
 # Legacy (reference only)
 
-TypeScript NestJS backend, data importer, database scripts, and Kiro steering docs from the pre–Python-monolith stack.
+TypeScript NestJS backend, React UI, data importer, database scripts, and Kiro steering docs from the pre–Python-monolith stack.
 
 Kept for reference until the new Python backend reaches parity. Not maintained or required to build/run at the repo root.
 
 - `backend/` — NestJS API and CLI
+- `frontend/` — React/Vite UI (talks to the legacy NestJS API on port **3010**; Vite on **3023**)
 - `data-importer/` — CSV import to PostgreSQL
 - `db/` — Docker init SQL and migrations
 - `docker-compose.yml` — legacy Postgres service (`docker compose -f legacy/docker-compose.yml …` from repo root, or `docker compose …` from `legacy/`)

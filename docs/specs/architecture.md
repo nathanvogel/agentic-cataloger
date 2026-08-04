@@ -39,8 +39,7 @@ backend/
     platform/      # REST, MCP, CLI, dispatch, persistence, LLM, telemetry adapters
   migrations/      # Alembic
   tests/{domain,integration,contract,evals}/
-frontend/
-legacy/            # frozen old TypeScript backend + data importer
+legacy/            # frozen TypeScript backend, frontend, data importer
 ```
 
 Hexagonal, vertical-package monolith: `catalog`/`taxonomy`/`enrichment`/`review`/`pipeline`/`comparison`/`evaluation` are pure domain + application code with **zero** imports of FastAPI, SQLAlchemy, LangGraph, LangChain, Phoenix, or OpenTelemetry. All of that lives in `platform/` adapters. Domain operations take facts and return new state/rejection/events; transactions, clocks, IDs, and telemetry are the application/adapter layer's job.
@@ -129,8 +128,8 @@ REST / thin MCP / CLI
 
 ## Cutover from the legacy TypeScript stack
 
-- Fresh rebuild: new databases, replay one immutable source manifest through the Python importer, no legacy AI-derived state carried over. Legacy stays read-only; the frontend keeps talking to the legacy API until the new stack covers it. Recovery is "run the replay again" — no freeze/restore drills or gated rollback ceremony, because everything is reproducible from source.
-- `/backend` is the Python monolith root; `/legacy` holds the frozen old TypeScript backend + data importer; `/frontend` is unchanged.
+- Fresh rebuild: new databases, replay one immutable source manifest through the Python importer, no legacy AI-derived state carried over. Legacy stays read-only (including the old React UI on the NestJS API). Recovery is "run the replay again" — no freeze/restore drills or gated rollback ceremony, because everything is reproducible from source.
+- `/backend` is the Python monolith root; `/legacy` holds the frozen TypeScript backend, React UI, and data importer.
 
 ## Data conventions
 
