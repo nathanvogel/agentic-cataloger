@@ -27,3 +27,6 @@ htmlcov/
 
 # jscpd duplication reports
 report/
+
+# Riptide artifacts (cloud-synced)
+.humanlayer/tasks/

@@ -63,6 +63,7 @@
     "CLAUDE_CONFIG_DIR": "/root/.claude",
     "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
     "DATABASE_URL": "postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app",
+    // Needed for claude --dangerously-skip-permissions
     "IS_SANDBOX": "1",
     "RTK_TELEMETRY_DISABLED": "1"
   },
