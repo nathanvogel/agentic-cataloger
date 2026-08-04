@@ -1,7 +1,9 @@
 name: backend
 
 on:
+  # push only on main so PR branch updates do not also fire a push run
   push:
+    branches: [main]
     paths:
       - "backend/**"
       - "docker/**"
