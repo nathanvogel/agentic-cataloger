@@ -19,7 +19,6 @@ uv sync
 Prefer the portable CI script from repo root when you want the full gate (unit → migrate twice → integration → live `/health` + `/ready`):
 
 ```bash
-# Auto-detects the right Postgres host — see "Devcontainer vs. host" below.
 ./scripts/ci/backend-test.sh
 ```
 
@@ -32,9 +31,7 @@ uv sync --group dev
 # Domain / unit (static + import smoke, no Postgres required)
 uv run pytest tests/domain
 
-# Integration + PROC. Prefers Docker (testcontainers spins up Postgres 18.4);
-# when no Docker daemon is reachable (e.g. inside the devcontainer, which has none),
-# falls back to the compose `postgres` service — see "Devcontainer vs. host" above.
+# Integration + PROC.
 uv run pytest tests/integration
 
 # Everything under tests/
@@ -151,23 +148,6 @@ uv run agentic-cataloger taxonomy reparent --category <uuid> --parent <new-paren
 
 Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../docs/specs/substitutability-rubric.md).
 
-### Devcontainer vs. host: which Postgres hostname to use
-
-Postgres always runs as the `postgres` service in the root `docker-compose.yml` — there is
-**no Postgres on your machine's `localhost`**. Which hostname reaches it depends on where
-your shell is running:
-
-- **Inside the devcontainer** (or any container on the compose network, e.g. the `api`/
-  `worker`/`migrate` services, or an agent working in this repo): use `postgres:5432`.
-  `DATABASE_URL` is already preset to this for you — don't override it to `localhost`.
-- **On the host machine**, outside any container: use `localhost:3021` (the port compose
-  publishes) or `127.0.0.1:3021`.
-
-If you're not sure which situation you're in, run `getent hosts postgres` — resolves inside
-the devcontainer/compose network, fails on the host. `scripts/ci/backend-test.sh` and
-`backend/tests/conftest.py::_resolve_external_postgres` both auto-detect this the same way;
-copy that logic rather than hardcoding one hostname.
-
 ### Environment variables
 
 | Variable | Used by | Example (devcontainer / compose network) |
@@ -183,39 +163,29 @@ Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (ro
 
 **Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
 
-## Local stack (with root Compose)
+## Ports
 
-Run this **from the host machine**, not from inside the devcontainer — inside the
-devcontainer, `postgres` and `phoenix` are already up and `DATABASE_URL` is already
-pointed at `postgres:5432` (see "Devcontainer vs. host" above).
+| Port | Service | From host | From Devcontainer |
+|------|---------|-----------|-------------------|
+| **3020** | Python API | `localhost:3020` | `api:3020` |
+| **3021** | PostgreSQL 18.4 | `localhost:3021` | `postgres:5432` |
+| **3022** | Phoenix UI | `localhost:3022` | `phoenix:6006` |
 
-From repo root:
+## Reaching the Postgres database
 
-```bash
-docker compose up -d postgres phoenix
-cd backend
-export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
-uv run agentic-cataloger migrate
-export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
-uv run agentic-cataloger api
-```
+Postgres always runs as the `postgres` service in the root `docker-compose.yml`. 
 
-Or build and run API via Compose profile (run migrate once on a fresh volume first):
+- **Inside the devcontainer** (or any container on the compose network): use `postgres:5432`.
+  `DATABASE_URL` is already preset to this for you.
+- **On the host machine**, outside any container: use `localhost:3021`.
 
-```bash
-docker compose --profile roles run --rm migrate
-docker compose --profile api up -d
-```
+If you're not sure which situation you're in, run `getent hosts postgres`: 
 
-## Ports (GATE-01)
+- resolves inside the devcontainer/compose network,
+- fails on the host.
 
-| Port | Service |
-|------|---------|
-| **3020** | Python API |
-| **3021** | PostgreSQL 18.4 (`agentic_cataloger_app`, `agentic_cataloger_phoenix`) |
-| **3022** | Phoenix UI |
 
-## Inspect DB from the host
+### Inspect DB from the host
 
 Superuser URL (GUI/`psql`, SSL off):
 
