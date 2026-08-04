@@ -1,1 +1,1 @@
-"""Review domain package (seed)."""
+"""Review domain: deferred items the agent won't guess."""
