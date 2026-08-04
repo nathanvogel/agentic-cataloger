@@ -310,6 +310,12 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
                 f"{cat.name} [{cat.id}] parent={match.parent_name} {leaf} "
                 f"score={match.score:.3f} children={match.child_count}"
             )
+            for child in match.children:
+                print(f"  - {child.name} [{child.id}]")
+            if match.child_count > len(match.children):
+                print(
+                    f"  ... {match.child_count - len(match.children)} more, not shown"
+                )
         return 0
     if parsed.subcommand == "assign":
         result = run_assign_product(
