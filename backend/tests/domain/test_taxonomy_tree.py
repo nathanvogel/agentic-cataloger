@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import final
@@ -10,12 +11,15 @@ from uuid import UUID, uuid4
 import pytest
 
 from agentic_cataloger.taxonomy.commands import (
+    MAX_SEARCH_RESULTS,
     AssignProductRequest,
     CreateCategoryRequest,
     ReparentCategoryRequest,
+    SearchCategoriesRequest,
     assign_product_to_leaf,
     create_category,
     reparent_category,
+    search_categories,
     show_taxonomy,
 )
 from agentic_cataloger.taxonomy.errors import (
@@ -25,7 +29,12 @@ from agentic_cataloger.taxonomy.errors import (
     RootAlreadyExistsError,
     SelfParentError,
 )
-from agentic_cataloger.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.models import (
+    CHILDREN_LIMIT,
+    Category,
+    CategoryMatch,
+    Membership,
+)
 from agentic_cataloger.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
@@ -51,6 +60,7 @@ class _FakeUow(TaxonomyUnitOfWork):
 @dataclass
 class _FakeCategories(CategoryRepository):
     rows: dict[UUID, Category] = field(default_factory=dict)
+    last_search_limit: int | None = None
 
     def get(self, category_id: UUID) -> Category | None:
         return self.rows.get(category_id)
@@ -86,6 +96,35 @@ class _FakeCategories(CategoryRepository):
         )
         self.rows[category_id] = updated
         return updated
+
+    def search(self, query: str, *, limit: int) -> list[CategoryMatch]:
+        # Plain case-insensitive substring match — good enough for exercising
+        # command-layer orchestration (clamping, truncation logging); real
+        # pg_trgm ranking is covered by the integration tests.
+        self.last_search_limit = limit
+        needle = query.lower()
+        matches = [
+            self._match_for(category)
+            for category in self.rows.values()
+            if needle in category.name.lower()
+        ]
+        matches.sort(key=lambda match: match.category.name)
+        return matches[:limit]
+
+    def _match_for(self, category: Category) -> CategoryMatch:
+        parent = self.rows.get(category.parent_id) if category.parent_id else None
+        children = sorted(
+            (c for c in self.rows.values() if c.parent_id == category.id),
+            key=lambda c: c.name,
+        )
+        return CategoryMatch(
+            category=category,
+            parent_name=parent.name if parent else None,
+            is_leaf=not children,
+            score=1.0,
+            children=tuple(children[:CHILDREN_LIMIT]),
+            child_count=len(children),
+        )
 
 
 @final
@@ -335,3 +374,46 @@ def test_reparent_onto_membered_leaf_rejected() -> None:
             memberships=memberships,
             uow=uow,
         )
+
+
+def test_search_categories_rejects_empty_query() -> None:
+    """Search requires a non-empty query after strip."""
+    categories = _FakeCategories()
+
+    with pytest.raises(ValueError, match="non-empty"):
+        search_categories(SearchCategoriesRequest(query="   "), categories=categories)
+
+
+def test_search_categories_clamps_limit_to_max() -> None:
+    """A caller-supplied limit above MAX_SEARCH_RESULTS is clamped server-side."""
+    categories = _FakeCategories()
+    memberships = _FakeMemberships()
+    uow = _FakeUow()
+    _create(categories, memberships, uow, name="Root")
+
+    search_categories(
+        SearchCategoriesRequest(query="root", limit=1000),
+        categories=categories,
+    )
+
+    assert categories.last_search_limit == MAX_SEARCH_RESULTS
+
+
+def test_search_categories_logs_when_children_truncated(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A match at/above CHILDREN_LIMIT children logs a warning."""
+    categories = _FakeCategories()
+    memberships = _FakeMemberships()
+    uow = _FakeUow()
+    root = _create(categories, memberships, uow, name="Root")
+    for i in range(CHILDREN_LIMIT):
+        _create(categories, memberships, uow, name=f"Child {i}", parent_id=root.id)
+
+    with caplog.at_level(logging.WARNING):
+        result = search_categories(
+            SearchCategoriesRequest(query="root"), categories=categories
+        )
+
+    assert result.matches[0].child_count == CHILDREN_LIMIT
+    assert any("children list truncated" in record.message for record in caplog.records)

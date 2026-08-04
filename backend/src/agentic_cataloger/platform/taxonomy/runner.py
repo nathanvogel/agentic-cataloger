@@ -22,9 +22,11 @@ from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
     CreateCategoryRequest,
     ReparentCategoryRequest,
+    SearchCategoriesRequest,
     assign_product_to_leaf,
     create_category,
     reparent_category,
+    search_categories,
     show_taxonomy,
 )
 from agentic_cataloger.taxonomy.models import (
@@ -32,6 +34,7 @@ from agentic_cataloger.taxonomy.models import (
     Category,
     CreateCategoryResult,
     ReparentCategoryResult,
+    SearchCategoriesResult,
     TaxonomyTree,
 )
 from agentic_cataloger.taxonomy.tree import children_map
@@ -130,6 +133,30 @@ def run_show_taxonomy(*, database_url: str | None = None) -> TaxonomyTree:
     url = _require_database_url(database_url)
     with connect_app(url) as conn:
         return show_taxonomy(categories=PsycopgCategoryRepository(conn))
+
+
+def run_search_categories(
+    *,
+    query: str,
+    limit: int | None = None,
+    database_url: str | None = None,
+) -> SearchCategoriesResult:
+    """Fuzzy-search categories by name in the migrated database.
+
+    Args:
+        query: Search text.
+        limit: Optional caller-supplied result cap (clamped server-side).
+        database_url: App DB URL; defaults to ``DATABASE_URL``.
+
+    Returns:
+        Ranked search matches.
+    """
+    url = _require_database_url(database_url)
+    with connect_app(url) as conn:
+        return search_categories(
+            SearchCategoriesRequest(query=query, limit=limit),
+            categories=PsycopgCategoryRepository(conn),
+        )
 
 
 def run_assign_product(

@@ -55,3 +55,38 @@ class AssignProductResult:
 
     membership: Membership
     moved: bool
+
+
+CHILDREN_LIMIT = 50
+
+
+@dataclass(frozen=True, slots=True)
+class CategoryMatch:
+    """One ranked category search hit, with eager immediate children.
+
+    Not a persisted row: ``category`` plus context computed at query time.
+    ``children`` is capped at ``CHILDREN_LIMIT``; ``child_count`` is the true
+    count, which may exceed ``len(children)``.
+    """
+
+    category: Category
+    parent_name: str | None
+    is_leaf: bool
+    score: float
+    children: tuple[Category, ...]
+    child_count: int
+
+
+@dataclass(frozen=True, slots=True)
+class SearchCategoriesResult:
+    """Ranked category matches for a fuzzy-search query."""
+
+    matches: tuple[CategoryMatch, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ListCategoryChildrenResult:
+    """One page of a category's immediate children, plus the true count."""
+
+    children: tuple[Category, ...]
+    child_count: int

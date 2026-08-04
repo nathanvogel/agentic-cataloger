@@ -190,6 +190,23 @@ def _run_taxonomy(argv: list[str]) -> int:
 
     sub.add_parser("show", help="Print the rooted taxonomy tree")
 
+    from agentic_cataloger.taxonomy.commands import (
+        DEFAULT_SEARCH_RESULTS,
+        MAX_SEARCH_RESULTS,
+    )
+
+    search_p = sub.add_parser("search", help="Fuzzy-search categories by name")
+    search_p.add_argument("--query", required=True, help="Search text")
+    search_p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            f"Max results (default {DEFAULT_SEARCH_RESULTS}, "
+            f"hard cap {MAX_SEARCH_RESULTS})"
+        ),
+    )
+
     assign_p = sub.add_parser(
         "assign",
         help="Assign a product to a leaf (moves on re-assign)",
@@ -254,6 +271,7 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
         run_assign_product,
         run_create_category,
         run_reparent_category,
+        run_search_categories,
         run_show_taxonomy,
     )
 
@@ -279,6 +297,19 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
         return 0
     if parsed.subcommand == "show":
         print(format_taxonomy_tree(run_show_taxonomy()))
+        return 0
+    if parsed.subcommand == "search":
+        result = run_search_categories(query=parsed.query, limit=parsed.limit)
+        if not result.matches:
+            print("no matches")
+            return 0
+        for match in result.matches:
+            cat = match.category
+            leaf = "leaf" if match.is_leaf else "non-leaf"
+            print(
+                f"{cat.name} [{cat.id}] parent={match.parent_name} {leaf} "
+                f"score={match.score:.3f} children={match.child_count}"
+            )
         return 0
     if parsed.subcommand == "assign":
         result = run_assign_product(
@@ -308,7 +339,7 @@ def _print_help() -> None:
         "  worker    long-running job consumer stub\n"
         "  migrate   one-shot bootstrap (schema + vendor setup)\n"
         "  ingest    import latest retailer CSVs into the catalog\n"
-        "  taxonomy  create|reparent|show|assign substitutability categories\n"
+        "  taxonomy  create|reparent|show|assign|search substitutability categories\n"
     )
 
 

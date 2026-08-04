@@ -12,7 +12,12 @@ from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgUnitOfWork,
     connect_app,
 )
-from agentic_cataloger.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.models import (
+    CHILDREN_LIMIT,
+    Category,
+    CategoryMatch,
+    Membership,
+)
 from agentic_cataloger.taxonomy.ports import (
     CategoryRepository,
     MembershipRepository,
@@ -145,6 +150,47 @@ class PsycopgCategoryRepository(CategoryRepository):
             raise RuntimeError(msg)
         return _category_from_row(row)
 
+    def search(self, query: str, *, limit: int) -> list[CategoryMatch]:
+        """Return categories ranked by name similarity to `query`, capped at `limit`."""
+        # Postgres's default pg_trgm.similarity_threshold (0.3) is tuned for
+        # longer text and misses common single-transposition typos on short
+        # category names (e.g. "diary" vs "Dairy" scores 0.2). SET doesn't
+        # accept bind parameters, so this stays a literal.
+        self._conn.execute("SET LOCAL pg_trgm.similarity_threshold = 0.15")
+        rows = self._conn.execute(
+            """
+            SELECT c.id, c.name, c.parent_id, c.preferred_comparable_unit,
+                   c.created_at, c.updated_at,
+                   p.name AS parent_name,
+                   NOT EXISTS (
+                       SELECT 1 FROM taxonomy_categories x WHERE x.parent_id = c.id
+                   ) AS is_leaf,
+                   similarity(c.name, %(query)s) AS score,
+                   COALESCE(kids.children, '[]'::jsonb) AS children,
+                   COALESCE(kids.child_count, 0) AS child_count
+            FROM taxonomy_categories c
+            LEFT JOIN taxonomy_categories p ON p.id = c.parent_id
+            LEFT JOIN LATERAL (
+                SELECT
+                    jsonb_agg(
+                        jsonb_build_object('id', ch.id, 'name', ch.name)
+                        ORDER BY ch.name
+                    ) FILTER (WHERE ch.rn <= %(children_limit)s) AS children,
+                    count(*) AS child_count
+                FROM (
+                    SELECT id, name, row_number() OVER (ORDER BY name) AS rn
+                    FROM taxonomy_categories
+                    WHERE parent_id = c.id
+                ) ch
+            ) kids ON true
+            WHERE c.name %% %(query)s
+            ORDER BY score DESC, c.name
+            LIMIT %(limit)s
+            """,
+            {"query": query, "children_limit": CHILDREN_LIMIT, "limit": limit},
+        ).fetchall()
+        return [_category_match_from_row(row) for row in rows]
+
 
 @final
 class PsycopgMembershipRepository(MembershipRepository):
@@ -232,6 +278,28 @@ def _category_from_row(row: Any) -> Category:
         preferred_comparable_unit=_optional_str(data.get("preferred_comparable_unit")),
         created_at=data.get("created_at"),
         updated_at=data.get("updated_at"),
+    )
+
+
+def _category_match_from_row(row: Any) -> CategoryMatch:
+    data = _as_mapping(row)
+    category = _category_from_row(row)
+    children_raw = data.get("children") or []
+    children = tuple(
+        Category(
+            id=UUID(str(child["id"])),
+            name=str(child["name"]),
+            parent_id=category.id,
+        )
+        for child in children_raw
+    )
+    return CategoryMatch(
+        category=category,
+        parent_name=_optional_str(data.get("parent_name")),
+        is_leaf=bool(data["is_leaf"]),
+        score=float(data["score"]),
+        children=children,
+        child_count=int(data["child_count"]),
     )
 
 

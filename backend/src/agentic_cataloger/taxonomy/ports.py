@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from agentic_cataloger.taxonomy.models import Category, Membership
+from agentic_cataloger.taxonomy.models import Category, CategoryMatch, Membership
 
 
 class TaxonomyUnitOfWork(Protocol):
@@ -49,6 +49,10 @@ class CategoryRepository(Protocol):
         now: datetime,
     ) -> Category:
         """Set ``parent_id`` for an existing category and bump ``updated_at``."""
+        ...
+
+    def search(self, query: str, *, limit: int) -> Sequence[CategoryMatch]:
+        """Return categories ranked by name similarity to `query`, capped at `limit`."""
         ...
 
 

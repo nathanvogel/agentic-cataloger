@@ -17,11 +17,13 @@ from agentic_cataloger.taxonomy.errors import (
     SelfParentError,
 )
 from agentic_cataloger.taxonomy.models import (
+    CHILDREN_LIMIT,
     AssignProductResult,
     Category,
     CreateCategoryResult,
     Membership,
     ReparentCategoryResult,
+    SearchCategoriesResult,
     TaxonomyTree,
 )
 from agentic_cataloger.taxonomy.ports import (
@@ -33,6 +35,9 @@ from agentic_cataloger.taxonomy.ports import (
 from agentic_cataloger.taxonomy.tree import is_leaf, parent_map, would_create_cycle
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_SEARCH_RESULTS = 20
+MAX_SEARCH_RESULTS = 40
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,6 +66,14 @@ class AssignProductRequest:
     product_id: UUID
     leaf_id: UUID
     now: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SearchCategoriesRequest:
+    """Inputs for a fuzzy category-name search."""
+
+    query: str
+    limit: int | None = None
 
 
 def create_category(
@@ -220,6 +233,45 @@ def show_taxonomy(*, categories: CategoryRepository) -> TaxonomyTree:
     return TaxonomyTree(categories=tuple(categories.list_all()))
 
 
+def search_categories(
+    request: SearchCategoriesRequest,
+    *,
+    categories: CategoryRepository,
+) -> SearchCategoriesResult:
+    """Fuzzy-search categories by name, ranked and capped server-side.
+
+    The caller-supplied ``limit`` is clamped to ``MAX_SEARCH_RESULTS`` — this
+    is the hard token-budget constraint from roadmap story 2.5: no caller,
+    including an LLM tool call, can turn search into a full-tree dump.
+
+    Args:
+        request: Search text and optional caller-supplied limit.
+        categories: Category repository.
+
+    Returns:
+        Ranked matches, each with parent name, leaf status, and eager
+        immediate children.
+
+    Raises:
+        ValueError: ``query`` is empty after strip.
+    """
+    query = request.query.strip()
+    if not query:
+        msg = "Search query must be non-empty"
+        raise ValueError(msg)
+    limit = min(request.limit or DEFAULT_SEARCH_RESULTS, MAX_SEARCH_RESULTS)
+    matches = tuple(categories.search(query, limit=limit))
+    for match in matches:
+        if match.child_count >= CHILDREN_LIMIT:
+            logger.warning(
+                "Category %s has %d children (>= cap %d); children list truncated",
+                match.category.id,
+                match.child_count,
+                CHILDREN_LIMIT,
+            )
+    return SearchCategoriesResult(matches=matches)
+
+
 def assign_product_to_leaf(
     request: AssignProductRequest,
     *,
@@ -282,8 +334,10 @@ __all__ = [
     "AssignProductRequest",
     "CreateCategoryRequest",
     "ReparentCategoryRequest",
+    "SearchCategoriesRequest",
     "assign_product_to_leaf",
     "create_category",
     "reparent_category",
+    "search_categories",
     "show_taxonomy",
 ]
