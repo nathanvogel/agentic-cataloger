@@ -19,7 +19,7 @@ uv sync
 Prefer the portable CI script from repo root when you want the full gate (unit → migrate twice → integration → live `/health` + `/ready`):
 
 ```bash
-# Needs Postgres on localhost:3021 (compose or CI service)
+# Auto-detects the right Postgres host — see "Devcontainer vs. host" below.
 ./scripts/ci/backend-test.sh
 ```
 
@@ -32,7 +32,9 @@ uv sync --group dev
 # Domain / unit (static + import smoke, no Postgres required)
 uv run pytest tests/domain
 
-# Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
+# Integration + PROC. Prefers Docker (testcontainers spins up Postgres 18.4);
+# when no Docker daemon is reachable (e.g. inside the devcontainer, which has none),
+# falls back to the compose `postgres` service — see "Devcontainer vs. host" above.
 uv run pytest tests/integration
 
 # Everything under tests/
@@ -149,20 +151,43 @@ uv run agentic-cataloger taxonomy reparent --category <uuid> --parent <new-paren
 
 Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../docs/specs/substitutability-rubric.md).
 
+### Devcontainer vs. host: which Postgres hostname to use
+
+Postgres always runs as the `postgres` service in the root `docker-compose.yml` — there is
+**no Postgres on your machine's `localhost`**. Which hostname reaches it depends on where
+your shell is running:
+
+- **Inside the devcontainer** (or any container on the compose network, e.g. the `api`/
+  `worker`/`migrate` services, or an agent working in this repo): use `postgres:5432`.
+  `DATABASE_URL` is already preset to this for you — don't override it to `localhost`.
+- **On the host machine**, outside any container: use `localhost:3021` (the port compose
+  publishes) or `127.0.0.1:3021`.
+
+If you're not sure which situation you're in, run `getent hosts postgres` — resolves inside
+the devcontainer/compose network, fails on the host. `scripts/ci/backend-test.sh` and
+`backend/tests/conftest.py::_resolve_external_postgres` both auto-detect this the same way;
+copy that logic rather than hardcoding one hostname.
+
 ### Environment variables
 
-| Variable | Used by | Example |
+| Variable | Used by | Example (devcontainer / compose network) |
 |----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app` |
-| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app` |
-| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@localhost:3021/agentic_cataloger_phoenix` |
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app` |
+| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app` |
+| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@postgres:5432/agentic_cataloger_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
+
+From the host machine, swap `@postgres:5432` for `@localhost:3021` in each URL above.
 
 Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
 
 **Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
 
 ## Local stack (with root Compose)
+
+Run this **from the host machine**, not from inside the devcontainer — inside the
+devcontainer, `postgres` and `phoenix` are already up and `DATABASE_URL` is already
+pointed at `postgres:5432` (see "Devcontainer vs. host" above).
 
 From repo root:
 
