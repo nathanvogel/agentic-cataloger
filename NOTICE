@@ -1,0 +1,14 @@
+Third-party data
+================
+
+Swiss grocery product CSVs under `data/` are derived from the Yelinz datasets
+on Hugging Face, licensed under Creative Commons Attribution 4.0 (CC BY 4.0).
+
+- https://huggingface.co/datasets/Yelinz/coop-ch-products
+- https://huggingface.co/datasets/Yelinz/denner-ch-products
+- https://huggingface.co/datasets/Yelinz/lidl-ch-products
+- https://huggingface.co/datasets/Yelinz/migros-ch-products
+
+When redistributing or publishing derivative work that includes these files,
+retain attribution to the original dataset publisher and include a link to the
+CC BY 4.0 license: https://creativecommons.org/licenses/by/4.0/

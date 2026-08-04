@@ -116,3 +116,7 @@ See also [`legacy/README.md`](legacy/README.md).
 ## Project structure (steering)
 
 Legacy Kiro notes (reference): [`legacy/.kiro/steering/structure.md`](legacy/.kiro/steering/structure.md)
+
+## License
+
+Not open source for now. No license granted except as stated.
