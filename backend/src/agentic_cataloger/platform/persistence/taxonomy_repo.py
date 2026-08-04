@@ -191,6 +191,35 @@ class PsycopgCategoryRepository(CategoryRepository):
         ).fetchall()
         return [_category_match_from_row(row) for row in rows]
 
+    def children(
+        self, parent_id: UUID | None, *, limit: int
+    ) -> tuple[list[Category], int]:
+        """Return immediate children of `parent_id` (None = root categories).
+
+        Capped at `limit`, plus the true child count.
+        """
+        rows = self._conn.execute(
+            """
+            SELECT id, name, parent_id, preferred_comparable_unit,
+                   created_at, updated_at
+            FROM taxonomy_categories
+            WHERE parent_id IS NOT DISTINCT FROM %s
+            ORDER BY name
+            LIMIT %s
+            """,
+            (parent_id, limit),
+        ).fetchall()
+        count_row = self._conn.execute(
+            """
+            SELECT count(*) AS n
+            FROM taxonomy_categories
+            WHERE parent_id IS NOT DISTINCT FROM %s
+            """,
+            (parent_id,),
+        ).fetchone()
+        child_count = int(_as_mapping(count_row)["n"]) if count_row is not None else 0
+        return [_category_from_row(row) for row in rows], child_count
+
 
 @final
 class PsycopgMembershipRepository(MembershipRepository):

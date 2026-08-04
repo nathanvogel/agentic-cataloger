@@ -55,6 +55,15 @@ class CategoryRepository(Protocol):
         """Return categories ranked by name similarity to `query`, capped at `limit`."""
         ...
 
+    def children(
+        self, parent_id: UUID | None, *, limit: int
+    ) -> tuple[Sequence[Category], int]:
+        """Return immediate children of `parent_id` (None = root categories).
+
+        Capped at `limit`, plus the true child count.
+        """
+        ...
+
 
 class MembershipRepository(Protocol):
     """Persistence for product↔leaf membership (one leaf per product)."""

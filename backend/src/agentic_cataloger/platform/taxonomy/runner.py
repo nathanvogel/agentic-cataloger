@@ -21,10 +21,12 @@ from agentic_cataloger.platform.persistence.taxonomy_repo import (
 from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
     CreateCategoryRequest,
+    ListCategoryChildrenRequest,
     ReparentCategoryRequest,
     SearchCategoriesRequest,
     assign_product_to_leaf,
     create_category,
+    list_category_children,
     reparent_category,
     search_categories,
     show_taxonomy,
@@ -33,6 +35,7 @@ from agentic_cataloger.taxonomy.models import (
     AssignProductResult,
     Category,
     CreateCategoryResult,
+    ListCategoryChildrenResult,
     ReparentCategoryResult,
     SearchCategoriesResult,
     TaxonomyTree,
@@ -155,6 +158,30 @@ def run_search_categories(
     with connect_app(url) as conn:
         return search_categories(
             SearchCategoriesRequest(query=query, limit=limit),
+            categories=PsycopgCategoryRepository(conn),
+        )
+
+
+def run_list_category_children(
+    *,
+    parent_id: UUID | None = None,
+    limit: int | None = None,
+    database_url: str | None = None,
+) -> ListCategoryChildrenResult:
+    """List immediate children of a category in the migrated database.
+
+    Args:
+        parent_id: Parent category UUID; omit (None) for root categories.
+        limit: Optional caller-supplied result cap (clamped server-side).
+        database_url: App DB URL; defaults to ``DATABASE_URL``.
+
+    Returns:
+        One page of children plus the true child count.
+    """
+    url = _require_database_url(database_url)
+    with connect_app(url) as conn:
+        return list_category_children(
+            ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
             categories=PsycopgCategoryRepository(conn),
         )
 

@@ -14,10 +14,12 @@ from agentic_cataloger.taxonomy.commands import (
     MAX_SEARCH_RESULTS,
     AssignProductRequest,
     CreateCategoryRequest,
+    ListCategoryChildrenRequest,
     ReparentCategoryRequest,
     SearchCategoriesRequest,
     assign_product_to_leaf,
     create_category,
+    list_category_children,
     reparent_category,
     search_categories,
     show_taxonomy,
@@ -61,6 +63,7 @@ class _FakeUow(TaxonomyUnitOfWork):
 class _FakeCategories(CategoryRepository):
     rows: dict[UUID, Category] = field(default_factory=dict)
     last_search_limit: int | None = None
+    last_children_limit: int | None = None
 
     def get(self, category_id: UUID) -> Category | None:
         return self.rows.get(category_id)
@@ -110,6 +113,16 @@ class _FakeCategories(CategoryRepository):
         ]
         matches.sort(key=lambda match: match.category.name)
         return matches[:limit]
+
+    def children(
+        self, parent_id: UUID | None, *, limit: int
+    ) -> tuple[list[Category], int]:
+        self.last_children_limit = limit
+        matches = sorted(
+            (c for c in self.rows.values() if c.parent_id == parent_id),
+            key=lambda c: c.name,
+        )
+        return matches[:limit], len(matches)
 
     def _match_for(self, category: Category) -> CategoryMatch:
         parent = self.rows.get(category.parent_id) if category.parent_id else None
@@ -416,4 +429,55 @@ def test_search_categories_logs_when_children_truncated(
         )
 
     assert result.matches[0].child_count == CHILDREN_LIMIT
+    assert any("children list truncated" in record.message for record in caplog.records)
+
+
+def test_list_category_children_lists_roots_when_parent_omitted() -> None:
+    """Omitting parent_id lists root categories."""
+    categories = _FakeCategories()
+    memberships = _FakeMemberships()
+    uow = _FakeUow()
+    root = _create(categories, memberships, uow, name="Root")
+    _create(categories, memberships, uow, name="Child", parent_id=root.id)
+
+    result = list_category_children(
+        ListCategoryChildrenRequest(parent_id=None), categories=categories
+    )
+
+    assert [c.id for c in result.children] == [root.id]
+    assert result.child_count == 1
+
+
+def test_list_category_children_clamps_limit_to_cap() -> None:
+    """A caller-supplied limit above CHILDREN_LIMIT is clamped server-side."""
+    categories = _FakeCategories()
+    memberships = _FakeMemberships()
+    uow = _FakeUow()
+    root = _create(categories, memberships, uow, name="Root")
+
+    list_category_children(
+        ListCategoryChildrenRequest(parent_id=root.id, limit=1000),
+        categories=categories,
+    )
+
+    assert categories.last_children_limit == CHILDREN_LIMIT
+
+
+def test_list_category_children_logs_when_at_cap(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A category at/above CHILDREN_LIMIT children logs a warning."""
+    categories = _FakeCategories()
+    memberships = _FakeMemberships()
+    uow = _FakeUow()
+    root = _create(categories, memberships, uow, name="Root")
+    for i in range(CHILDREN_LIMIT):
+        _create(categories, memberships, uow, name=f"Child {i}", parent_id=root.id)
+
+    with caplog.at_level(logging.WARNING):
+        result = list_category_children(
+            ListCategoryChildrenRequest(parent_id=root.id), categories=categories
+        )
+
+    assert result.child_count == CHILDREN_LIMIT
     assert any("children list truncated" in record.message for record in caplog.records)
