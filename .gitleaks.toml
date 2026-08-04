@@ -1,0 +1,17 @@
+title = "agentic-cataloger gitleaks config"
+
+[extend]
+# Use gitleaks defaults, then apply repo-specific allowlists below.
+useDefault = true
+
+[allowlist]
+description = "Vendor BMAD skills and manifest checksums are not secrets."
+paths = [
+  '''(?:^|/)\.agents/''',
+  '''(?:^|/)\.claude/''',
+  '''(?:^|/)_bmad/_config/files-manifest\.csv$''',
+]
+regexes = [
+  # Historical NestJS README codecov badge example token (removed when backend moved to legacy/).
+  '''abc123def456''',
+]
