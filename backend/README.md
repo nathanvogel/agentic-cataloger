@@ -19,7 +19,6 @@ uv sync
 Prefer the portable CI script from repo root when you want the full gate (unit → migrate twice → integration → live `/health` + `/ready`):
 
 ```bash
-# Needs Postgres on localhost:3021 (compose or CI service)
 ./scripts/ci/backend-test.sh
 ```
 
@@ -32,7 +31,7 @@ uv sync --group dev
 # Domain / unit (static + import smoke, no Postgres required)
 uv run pytest tests/domain
 
-# Integration + PROC (needs Docker: testcontainers spins up Postgres 18.4)
+# Integration + PROC.
 uv run pytest tests/integration
 
 # Everything under tests/
@@ -151,46 +150,42 @@ Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../
 
 ### Environment variables
 
-| Variable | Used by | Example |
+| Variable | Used by | Example (devcontainer / compose network) |
 |----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app` |
-| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app` |
-| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@localhost:3021/agentic_cataloger_phoenix` |
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app` |
+| `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app` |
+| `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@postgres:5432/agentic_cataloger_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
+
+From the host machine, swap `@postgres:5432` for `@localhost:3021` in each URL above.
 
 Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
 
 **Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
 
-## Local stack (with root Compose)
+## Ports
 
-From repo root:
+| Port | Service | From host | From Devcontainer |
+|------|---------|-----------|-------------------|
+| **3020** | Python API | `localhost:3020` | `api:3020` |
+| **3021** | PostgreSQL 18.4 | `localhost:3021` | `postgres:5432` |
+| **3022** | Phoenix UI | `localhost:3022` | `phoenix:6006` |
 
-```bash
-docker compose up -d postgres phoenix
-cd backend
-export MIGRATE_DATABASE_URL=postgresql://postgres:postgres@localhost:3021/agentic_cataloger_app
-uv run agentic-cataloger migrate
-export DATABASE_URL=postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@localhost:3021/agentic_cataloger_app
-uv run agentic-cataloger api
-```
+## Reaching the Postgres database
 
-Or build and run API via Compose profile (run migrate once on a fresh volume first):
+Postgres always runs as the `postgres` service in the root `docker-compose.yml`. 
 
-```bash
-docker compose --profile roles run --rm migrate
-docker compose --profile api up -d
-```
+- **Inside the devcontainer** (or any container on the compose network): use `postgres:5432`.
+  `DATABASE_URL` is already preset to this for you.
+- **On the host machine**, outside any container: use `localhost:3021`.
 
-## Ports (GATE-01)
+If you're not sure which situation you're in, run `getent hosts postgres`: 
 
-| Port | Service |
-|------|---------|
-| **3020** | Python API |
-| **3021** | PostgreSQL 18.4 (`agentic_cataloger_app`, `agentic_cataloger_phoenix`) |
-| **3022** | Phoenix UI |
+- resolves inside the devcontainer/compose network,
+- fails on the host.
 
-## Inspect DB from the host
+
+### Inspect DB from the host
 
 Superuser URL (GUI/`psql`, SSL off):
 

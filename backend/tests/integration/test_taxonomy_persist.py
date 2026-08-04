@@ -29,10 +29,13 @@ from agentic_cataloger.platform.taxonomy.runner import (
     format_taxonomy_tree,
     run_assign_product,
     run_create_category,
+    run_list_category_children,
     run_reparent_category,
+    run_search_categories,
     run_show_taxonomy,
 )
 from agentic_cataloger.taxonomy.commands import (
+    MAX_SEARCH_RESULTS,
     AssignProductRequest,
     CreateCategoryRequest,
     assign_product_to_leaf,
@@ -301,3 +304,98 @@ def test_product_existence_adapter(
         lookup = PsycopgProductRepository(conn)
         assert lookup.exists(product_uuid) is True
         assert lookup.exists(uuid4()) is False
+
+
+@pytest.mark.integration
+def test_search_categories_ranks_typo_query_first(
+    migrated_database: str,
+    app_database_url: str,
+) -> None:
+    """A near-miss (typo) query still ranks the intended category first."""
+    with connect_app(app_database_url) as conn:
+        _clear_taxonomy(conn)
+
+    root = run_create_category(name="Dairy", database_url=app_database_url).category
+    run_create_category(name="Bakery", parent_id=root.id, database_url=app_database_url)
+
+    result = run_search_categories(query="diary", database_url=app_database_url)
+
+    assert result.matches
+    assert result.matches[0].category.name == "Dairy"
+
+
+@pytest.mark.integration
+def test_search_categories_caps_results_at_max(
+    migrated_database: str,
+    app_database_url: str,
+) -> None:
+    """A caller-supplied limit above MAX_SEARCH_RESULTS is clamped server-side."""
+    with connect_app(app_database_url) as conn:
+        _clear_taxonomy(conn)
+
+    root = run_create_category(name="Milk root", database_url=app_database_url).category
+    for i in range(MAX_SEARCH_RESULTS + 5):
+        run_create_category(
+            name=f"Milk {i}",
+            parent_id=root.id,
+            database_url=app_database_url,
+        )
+
+    result = run_search_categories(
+        query="milk", limit=1000, database_url=app_database_url
+    )
+
+    assert len(result.matches) == MAX_SEARCH_RESULTS
+
+
+@pytest.mark.integration
+def test_search_categories_match_includes_real_children(
+    migrated_database: str,
+    app_database_url: str,
+) -> None:
+    """A match's children/child_count reflect real child rows."""
+    with connect_app(app_database_url) as conn:
+        _clear_taxonomy(conn)
+
+    root = run_create_category(name="Dairy", database_url=app_database_url).category
+    leaf_a = run_create_category(
+        name="Cow milk", parent_id=root.id, database_url=app_database_url
+    ).category
+    leaf_b = run_create_category(
+        name="Goat milk", parent_id=root.id, database_url=app_database_url
+    ).category
+
+    result = run_search_categories(query="dairy", database_url=app_database_url)
+
+    match = next(m for m in result.matches if m.category.id == root.id)
+    assert match.parent_name is None
+    assert match.is_leaf is False
+    assert match.child_count == 2
+    assert {c.id for c in match.children} == {leaf_a.id, leaf_b.id}
+
+
+@pytest.mark.integration
+def test_list_category_children_pages_and_reports_true_count(
+    migrated_database: str,
+    app_database_url: str,
+) -> None:
+    """A passed-in smaller limit still reports the true child_count."""
+    with connect_app(app_database_url) as conn:
+        _clear_taxonomy(conn)
+
+    root = run_create_category(name="Dairy", database_url=app_database_url).category
+    children = [
+        run_create_category(
+            name=f"Milk {i}", parent_id=root.id, database_url=app_database_url
+        ).category
+        for i in range(5)
+    ]
+
+    result = run_list_category_children(
+        parent_id=root.id, limit=2, database_url=app_database_url
+    )
+
+    assert len(result.children) == 2
+    assert result.child_count == 5
+    expected_names = sorted(c.name for c in children)[:2]
+    assert [c.name for c in result.children] == expected_names

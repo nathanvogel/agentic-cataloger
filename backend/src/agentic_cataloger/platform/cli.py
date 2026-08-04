@@ -190,6 +190,41 @@ def _run_taxonomy(argv: list[str]) -> int:
 
     sub.add_parser("show", help="Print the rooted taxonomy tree")
 
+    from agentic_cataloger.taxonomy.commands import (
+        DEFAULT_SEARCH_RESULTS,
+        MAX_SEARCH_RESULTS,
+    )
+
+    search_p = sub.add_parser("search", help="Fuzzy-search categories by name")
+    search_p.add_argument("--query", required=True, help="Search text")
+    search_p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=(
+            f"Max results (default {DEFAULT_SEARCH_RESULTS}, "
+            f"hard cap {MAX_SEARCH_RESULTS})"
+        ),
+    )
+
+    from agentic_cataloger.taxonomy.models import CHILDREN_LIMIT
+
+    children_p = sub.add_parser(
+        "children", help="List immediate children of a category (or roots)"
+    )
+    children_p.add_argument(
+        "--parent",
+        type=UUID,
+        default=None,
+        help="Parent category UUID (omit to list root categories)",
+    )
+    children_p.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help=f"Max children (default/hard cap {CHILDREN_LIMIT})",
+    )
+
     assign_p = sub.add_parser(
         "assign",
         help="Assign a product to a leaf (moves on re-assign)",
@@ -248,55 +283,113 @@ def _dispatch_taxonomy(parsed: argparse.Namespace) -> int:
     Raises:
         ValueError: Unknown subcommand.
     """
+    handlers = {
+        "create": _do_create_category,
+        "reparent": _do_reparent_category,
+        "show": _do_show_taxonomy,
+        "search": _do_search_categories,
+        "children": _do_list_category_children,
+        "assign": _do_assign_product,
+    }
+    handler = handlers.get(parsed.subcommand)
+    if handler is None:
+        msg = f"unknown subcommand {parsed.subcommand!r}"
+        raise ValueError(msg)
+    return handler(parsed)
+
+
+def _do_create_category(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.taxonomy.runner import run_create_category
+
+    result = run_create_category(
+        name=parsed.name,
+        parent_id=parsed.parent,
+        preferred_comparable_unit=parsed.preferred_comparable_unit,
+    )
+    cat = result.category
+    print(
+        f"created {cat.name} [{cat.id}] "
+        f"parent={cat.parent_id} unit={cat.preferred_comparable_unit}"
+    )
+    return 0
+
+
+def _do_reparent_category(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.taxonomy.runner import run_reparent_category
+
+    result = run_reparent_category(
+        category_id=parsed.category,
+        new_parent_id=parsed.parent,
+    )
+    cat = result.category
+    print(f"reparented {cat.name} [{cat.id}] parent={cat.parent_id}")
+    return 0
+
+
+def _do_show_taxonomy(_parsed: argparse.Namespace) -> int:
     from agentic_cataloger.platform.taxonomy.runner import (
-        ProductRef,
         format_taxonomy_tree,
-        run_assign_product,
-        run_create_category,
-        run_reparent_category,
         run_show_taxonomy,
     )
 
-    if parsed.subcommand == "create":
-        result = run_create_category(
-            name=parsed.name,
-            parent_id=parsed.parent,
-            preferred_comparable_unit=parsed.preferred_comparable_unit,
-        )
-        cat = result.category
-        print(
-            f"created {cat.name} [{cat.id}] "
-            f"parent={cat.parent_id} unit={cat.preferred_comparable_unit}"
-        )
-        return 0
-    if parsed.subcommand == "reparent":
-        result = run_reparent_category(
-            category_id=parsed.category,
-            new_parent_id=parsed.parent,
-        )
-        cat = result.category
-        print(f"reparented {cat.name} [{cat.id}] parent={cat.parent_id}")
-        return 0
-    if parsed.subcommand == "show":
-        print(format_taxonomy_tree(run_show_taxonomy()))
-        return 0
-    if parsed.subcommand == "assign":
-        result = run_assign_product(
-            product=ProductRef(
-                product_id=parsed.product_id,
-                source_namespace=parsed.namespace,
-                source_product_id=parsed.source_product_id,
-                source_variant_id=parsed.source_variant_id,
-            ),
-            leaf_id=parsed.leaf,
-        )
-        membership = result.membership
-        moved = "moved" if result.moved else "assigned"
-        print(f"{moved} product={membership.product_id} leaf={membership.category_id}")
-        return 0
+    print(format_taxonomy_tree(run_show_taxonomy()))
+    return 0
 
-    msg = f"unknown subcommand {parsed.subcommand!r}"
-    raise ValueError(msg)
+
+def _do_search_categories(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.taxonomy.runner import run_search_categories
+
+    result = run_search_categories(query=parsed.query, limit=parsed.limit)
+    if not result.matches:
+        print("no matches")
+        return 0
+    for match in result.matches:
+        cat = match.category
+        leaf = "leaf" if match.is_leaf else "non-leaf"
+        print(
+            f"{cat.name} [{cat.id}] parent={match.parent_name} {leaf} "
+            f"score={match.score:.3f} children={match.child_count}"
+        )
+        for child in match.children:
+            print(f"  - {child.name} [{child.id}]")
+        if match.child_count > len(match.children):
+            print(f"  ... {match.child_count - len(match.children)} more, not shown")
+    return 0
+
+
+def _do_list_category_children(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.taxonomy.runner import run_list_category_children
+
+    result = run_list_category_children(parent_id=parsed.parent, limit=parsed.limit)
+    if not result.children:
+        print("no children")
+        return 0
+    for child in result.children:
+        print(f"{child.name} [{child.id}]")
+    if result.child_count > len(result.children):
+        print(f"... {result.child_count - len(result.children)} more, not shown")
+    return 0
+
+
+def _do_assign_product(parsed: argparse.Namespace) -> int:
+    from agentic_cataloger.platform.taxonomy.runner import (
+        ProductRef,
+        run_assign_product,
+    )
+
+    result = run_assign_product(
+        product=ProductRef(
+            product_id=parsed.product_id,
+            source_namespace=parsed.namespace,
+            source_product_id=parsed.source_product_id,
+            source_variant_id=parsed.source_variant_id,
+        ),
+        leaf_id=parsed.leaf,
+    )
+    membership = result.membership
+    moved = "moved" if result.moved else "assigned"
+    print(f"{moved} product={membership.product_id} leaf={membership.category_id}")
+    return 0
 
 
 def _print_help() -> None:
@@ -308,7 +401,8 @@ def _print_help() -> None:
         "  worker    long-running job consumer stub\n"
         "  migrate   one-shot bootstrap (schema + vendor setup)\n"
         "  ingest    import latest retailer CSVs into the catalog\n"
-        "  taxonomy  create|reparent|show|assign substitutability categories\n"
+        "  taxonomy  create|reparent|show|assign|search|children "
+        "substitutability categories\n"
     )
 
 
