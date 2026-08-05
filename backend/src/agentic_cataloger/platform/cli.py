@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
 import sys
 from pathlib import Path
 from uuid import UUID
@@ -24,6 +25,21 @@ def _configure_logging() -> None:
     )
 
 
+def _install_early_signal_handlers() -> None:
+    """Exit 0 on SIGTERM/SIGINT before a role replaces these handlers.
+
+    ``configure_telemetry`` (Phoenix ``register``) can take longer than a
+    readiness probe or PROC test sleep. Without this, the default SIGTERM
+    disposition kills the process with return code ``-15``.
+    """
+
+    def _handle_shutdown(_signum: int, _frame: object | None) -> None:
+        raise SystemExit(0)
+
+    signal.signal(signal.SIGTERM, _handle_shutdown)
+    signal.signal(signal.SIGINT, _handle_shutdown)
+
+
 def main(argv: list[str] | None = None) -> None:
     """Dispatch ``agentic-cataloger <command>`` to roles or application commands.
 
@@ -31,6 +47,7 @@ def main(argv: list[str] | None = None) -> None:
         argv: CLI arguments. When ``None``, uses ``sys.argv[1:]``.
     """
     _configure_logging()
+    _install_early_signal_handlers()
     from agentic_cataloger.platform.telemetry import (
         configure_telemetry,
         shutdown_telemetry,
