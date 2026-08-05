@@ -12,6 +12,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app
+      PHOENIX_COLLECTOR_ENDPOINT: http://phoenix:6006
+      PHOENIX_PROJECT_NAME: agentic-cataloger
 
   worker:
     working_dir: /workspaces/agentic-cataloger/backend

@@ -21,6 +21,7 @@ Condensed from BMAD's architecture spine (now deleted). Companion to [2026-scope
 | Pydantic | 2.13.4 |
 | OpenTelemetry API/SDK | 1.44.0 |
 | OpenInference LangChain instrumentation | 0.1.68 |
+| arize-phoenix-otel | ≥0.16.0 |
 | Phoenix (self-hosted, ELv2) | 19.11.1 |
 
 ## Layout

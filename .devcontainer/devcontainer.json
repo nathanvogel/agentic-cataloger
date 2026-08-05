@@ -58,6 +58,9 @@
     "CLAUDE_CONFIG_DIR": "/root/.claude",
     "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0",
     "DATABASE_URL": "postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app",
+    // Phoenix sibling service (runServices); UI still on host :3022.
+    "PHOENIX_COLLECTOR_ENDPOINT": "http://phoenix:6006",
+    "PHOENIX_PROJECT_NAME": "agentic-cataloger",
     // Needed for claude --dangerously-skip-permissions
     "IS_SANDBOX": "1",
     "RTK_TELEMETRY_DISABLED": "1"

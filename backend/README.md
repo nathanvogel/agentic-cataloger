@@ -156,12 +156,31 @@ Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../
 | `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app` |
 | `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@postgres:5432/agentic_cataloger_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
+| `PHOENIX_COLLECTOR_ENDPOINT` | telemetry export (`phoenix.otel.register`) | preset in the **devcontainer** to `http://phoenix:6006`;  **Unset → NoOpTelemetry** |
+| `PHOENIX_PROJECT` / `PHOENIX_PROJECT_NAME` | Phoenix project name | preset in the **devcontainer** to `agentic-cataloger` (same default if unset) |
+| `PHOENIX_API_KEY` | optional Bearer for authenticated Phoenix | omit for local Compose |
+| `OPENROUTER_API_KEY` | `telemetry smoke` / future LLM hops | local secret (not in Compose) |
+| `OPENROUTER_SMOKE_MODEL` | `telemetry smoke` model id | default `openai/gpt-4o-mini` |
 
 From the host machine, swap `@postgres:5432` for `@localhost:3021` in each URL above.
 
 Phoenix readiness steps in `migrate` run **only when `PHOENIX_HOST` is set** (root Compose `migrate` profile or devcontainer). CI runs migrate against Postgres alone and intentionally skips Phoenix waits.
 
 **Never** inject `MIGRATE_DATABASE_URL` into `api` or `worker`, elevated credentials are migrate-only (GATE-02).
+
+### Telemetry smoke (Phoenix + OpenRouter)
+
+Offline CI never calls OpenRouter. For a manual leaf-LLM span check:
+
+```bash
+# Devcontainer already sets PHOENIX_COLLECTOR_ENDPOINT=http://phoenix:6006
+export OPENROUTER_API_KEY=sk-or-...
+# optional: export OPENROUTER_SMOKE_MODEL=openai/gpt-4o-mini
+
+uv run --directory backend agentic-cataloger telemetry smoke
+```
+
+Open `http://localhost:3022`, find the printed `trace_id`, and confirm a leaf span with `openinference.span.kind=LLM`, `llm.provider=openrouter`, and `llm.model_name`. Token attrs appear when the response includes usage. Cost may show `$0` until you add a matching Phoenix model-pricing entry for that model + provider.
 
 ## Ports
 

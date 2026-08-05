@@ -11,6 +11,7 @@ or host ``localhost:3021``) so the suite does not mutate the live app DBs.
 from __future__ import annotations
 
 import os
+import select
 import signal
 import socket
 import subprocess
@@ -91,7 +92,11 @@ def bootstrap_gate02_roles(host: str, port: int, *, password: str = "test") -> N
 
 
 def ensure_external_test_databases(harness: PostgresHarness) -> None:
-    """Create isolated ``*_test`` DBs on shared Postgres; leave live DBs alone."""
+    """Recreate isolated ``*_test`` DBs on shared Postgres; leave live DBs alone.
+
+    Drops and recreates each session so a leftover Alembic head from another
+    branch cannot break migrate.
+    """
     admin = harness.url("postgres", harness.password, "postgres")
     with psycopg.connect(admin, autocommit=True) as conn:
         for role in ("agentic_cataloger_app", "agentic_cataloger_phoenix"):
@@ -105,6 +110,8 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
                 )
                 raise RuntimeError(msg)
 
+        _drop_database(conn, harness.app_database)
+        _drop_database(conn, harness.phoenix_database)
         _create_database(conn, harness.app_database)
         _create_database(
             conn, harness.phoenix_database, owner="agentic_cataloger_phoenix"
@@ -119,6 +126,19 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
     _grant_phoenix_schema_privileges(
         harness.host, harness.port, harness.password, harness.phoenix_database
     )
+
+
+def _drop_database(conn: psycopg.Connection, name: str) -> None:
+    """Drop ``name`` if it exists. Refuses names that do not end with ``_test``."""
+    if not name.endswith("_test"):
+        msg = f"refusing to drop non-test database {name!r}"
+        raise RuntimeError(msg)
+    exists = conn.execute(
+        "SELECT 1 FROM pg_database WHERE datname = %s", (name,)
+    ).fetchone()
+    if exists is None:
+        return
+    conn.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
 
 
 def _create_database(
@@ -318,6 +338,8 @@ def spawn_role(
     merged = os.environ.copy()
     if env:
         merged.update(env)
+    # So readiness logs appear promptly when stderr is a pipe (not a TTY).
+    merged.setdefault("PYTHONUNBUFFERED", "1")
     cli_bin = BACKEND_ROOT / ".venv" / "bin" / "agentic-cataloger"
     command = (
         [str(cli_bin), role]
@@ -337,6 +359,42 @@ def spawn_role(
         stderr=subprocess.PIPE,
         text=True,
     )
+
+
+def wait_for_role_log(
+    proc: subprocess.Popen[str],
+    needle: str,
+    *,
+    timeout_s: float = 30.0,
+) -> str:
+    """Read ``proc.stderr`` until ``needle`` appears; return buffered text so far.
+
+    Remaining stderr must be combined by the caller after ``communicate``:
+    ``pre + (stderr or "")``.
+
+    Raises:
+        AssertionError: Process exits before the needle is seen.
+        TimeoutError: Needle not seen within ``timeout_s``.
+    """
+    if proc.stderr is None:
+        raise AssertionError("spawned role has no stderr pipe")
+    deadline = time.time() + timeout_s
+    buf = ""
+    while time.time() < deadline:
+        if needle in buf:
+            return buf
+        if proc.poll() is not None:
+            buf += proc.stderr.read()
+            raise AssertionError(
+                f"role exited before log {needle!r} (rc={proc.returncode}): {buf}"
+            )
+        ready, _, _ = select.select([proc.stderr], [], [], 0.2)
+        if not ready:
+            continue
+        line = proc.stderr.readline()
+        if line:
+            buf += line
+    raise TimeoutError(f"log {needle!r} not seen within {timeout_s}s: {buf}")
 
 
 def terminate_role(

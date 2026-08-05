@@ -6,7 +6,12 @@ import signal
 import time
 
 import pytest
-from tests.conftest import resolve_api_test_port, spawn_role, wait_for_http
+from tests.conftest import (
+    resolve_api_test_port,
+    spawn_role,
+    wait_for_http,
+    wait_for_role_log,
+)
 
 
 @pytest.mark.proc
@@ -25,14 +30,17 @@ def test_proc_002_worker_starts_and_stops(
     app_database_url: str,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Spawned worker stays up until SIGTERM, then exits 0."""
+    """Spawned worker stays up until SIGTERM, then exits 0 via its own handler."""
     monkeypatch.setenv("DATABASE_URL", app_database_url)
     proc = spawn_role("worker")
-    time.sleep(1.0)
+    # Wait past telemetry bootstrap so SIGTERM hits run_worker's handlers.
+    pre_stderr = wait_for_role_log(proc, "worker started", timeout_s=10)
     assert proc.poll() is None
     proc.send_signal(signal.SIGTERM)
-    stdout, stderr = proc.communicate(timeout=10)
+    stdout, stderr_tail = proc.communicate(timeout=10)
+    stderr = pre_stderr + (stderr_tail or "")
     assert proc.returncode == 0, stderr or stdout
+    assert "worker shutting down" in stderr
 
 
 @pytest.mark.proc
