@@ -91,7 +91,11 @@ def bootstrap_gate02_roles(host: str, port: int, *, password: str = "test") -> N
 
 
 def ensure_external_test_databases(harness: PostgresHarness) -> None:
-    """Create isolated ``*_test`` DBs on shared Postgres; leave live DBs alone."""
+    """Recreate isolated ``*_test`` DBs on shared Postgres; leave live DBs alone.
+
+    Drops and recreates each session so a leftover Alembic head from another
+    branch cannot break migrate.
+    """
     admin = harness.url("postgres", harness.password, "postgres")
     with psycopg.connect(admin, autocommit=True) as conn:
         for role in ("agentic_cataloger_app", "agentic_cataloger_phoenix"):
@@ -105,6 +109,8 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
                 )
                 raise RuntimeError(msg)
 
+        _drop_database(conn, harness.app_database)
+        _drop_database(conn, harness.phoenix_database)
         _create_database(conn, harness.app_database)
         _create_database(
             conn, harness.phoenix_database, owner="agentic_cataloger_phoenix"
@@ -119,6 +125,19 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
     _grant_phoenix_schema_privileges(
         harness.host, harness.port, harness.password, harness.phoenix_database
     )
+
+
+def _drop_database(conn: psycopg.Connection, name: str) -> None:
+    """Drop ``name`` if it exists. Refuses names that do not end with ``_test``."""
+    if not name.endswith("_test"):
+        msg = f"refusing to drop non-test database {name!r}"
+        raise RuntimeError(msg)
+    exists = conn.execute(
+        "SELECT 1 FROM pg_database WHERE datname = %s", (name,)
+    ).fetchone()
+    if exists is None:
+        return
+    conn.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
 
 
 def _create_database(
