@@ -1,6 +1,6 @@
 """Console entrypoint.
 
-``agentic-cataloger api | worker | migrate | ingest | taxonomy``.
+``agentic-cataloger api | worker | migrate | ingest | taxonomy | telemetry``.
 """
 
 from __future__ import annotations
@@ -10,6 +10,8 @@ import logging
 import sys
 from pathlib import Path
 from uuid import UUID
+
+from agentic_cataloger.pipeline.ports import Telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +29,30 @@ def main(argv: list[str] | None = None) -> None:
 
     Args:
         argv: CLI arguments. When ``None``, uses ``sys.argv[1:]``.
+    """
+    _configure_logging()
+    from agentic_cataloger.platform.telemetry import (
+        configure_telemetry,
+        shutdown_telemetry,
+    )
+
+    telemetry = configure_telemetry()
+    try:
+        _dispatch_command(list(sys.argv[1:] if argv is None else argv), telemetry)
+    finally:
+        shutdown_telemetry()
+
+
+def _dispatch_command(args: list[str], telemetry: Telemetry) -> None:
+    """Route top-level CLI argv to the matching command handler.
+
+    Args:
+        args: CLI arguments after the program name.
+        telemetry: Process-wide telemetry port from bootstrap.
 
     Raises:
         SystemExit: On help, version, unknown command, or command exit code.
     """
-    _configure_logging()
-    args = list(sys.argv[1:] if argv is None else argv)
     if not args or args[0] in {"-h", "--help"}:
         _print_help()
         raise SystemExit(0 if args and args[0] in {"-h", "--help"} else 1)
@@ -56,6 +76,8 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit(_run_ingest(args[1:]))
     if command == "taxonomy":
         raise SystemExit(_run_taxonomy(args[1:]))
+    if command == "telemetry":
+        raise SystemExit(_run_telemetry(args[1:], telemetry))
     if command in {"-V", "--version"}:
         from importlib.metadata import version
 
@@ -392,6 +414,42 @@ def _do_assign_product(parsed: argparse.Namespace) -> int:
     return 0
 
 
+def _run_telemetry(argv: list[str], telemetry: Telemetry) -> int:
+    """Dispatch ``agentic-cataloger telemetry <subcommand>``.
+
+    Args:
+        argv: Arguments after ``telemetry``.
+        telemetry: Process-wide telemetry port.
+
+    Returns:
+        Process exit code (0 on success).
+    """
+    parser = argparse.ArgumentParser(
+        prog="agentic-cataloger telemetry",
+        description=(
+            "Telemetry helpers. Requires OPENROUTER_API_KEY for smoke. "
+            "Set PHOENIX_COLLECTOR_ENDPOINT (e.g. http://localhost:3022) "
+            "to export spans to Phoenix."
+        ),
+    )
+    sub = parser.add_subparsers(dest="subcommand", required=True)
+    sub.add_parser(
+        "smoke",
+        help="Cheap OpenRouter call + leaf LLM span (prints trace_id)",
+    )
+    parser.parse_args(argv)
+
+    from agentic_cataloger.platform.llm.openrouter import run_telemetry_smoke
+
+    try:
+        trace_id = run_telemetry_smoke(telemetry)
+    except ValueError as exc:
+        logger.error("%s", exc)  # ruff: ignore[error-instead-of-exception] — expected missing-key path
+        return 1
+    print(f"trace_id={trace_id or 'none'}")
+    return 0
+
+
 def _print_help() -> None:
     """Print CLI usage for supported commands."""
     print(
@@ -403,6 +461,7 @@ def _print_help() -> None:
         "  ingest    import latest retailer CSVs into the catalog\n"
         "  taxonomy  create|reparent|show|assign|search|children "
         "substitutability categories\n"
+        "  telemetry smoke — cheap OpenRouter call + Phoenix leaf LLM span\n"
     )
 
 

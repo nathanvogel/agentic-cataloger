@@ -23,6 +23,7 @@ dependencies = [
     "opentelemetry-api==1.44.0",
     "opentelemetry-sdk==1.44.0",
     "openinference-instrumentation-langchain==0.1.68",
+    "arize-phoenix-otel>=0.16.0",
 ]
 
 [project.scripts]
@@ -175,6 +176,12 @@ docstring-code-line-length = "dynamic"
 "**/platform/cli.py" = [
     "import-outside-top-level",  # lazy role imports keep unused roles unloaded
     "T20",  # help/version are intentional CLI stdout (§7)
+]
+"**/platform/telemetry/bootstrap.py" = [
+    "import-outside-top-level",  # phoenix.otel only when collector endpoint is set
+]
+"**/platform/llm/openrouter.py" = [
+    "import-outside-top-level",  # langchain_openai only on live smoke path
 ]
 "**/platform/roles/api.py" = [
     "hardcoded-bind-all-interfaces",  # bind 0.0.0.0 — intentional for container/host publish

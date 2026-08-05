@@ -16,6 +16,7 @@ FORBIDDEN = {
     "langchain",
     "langgraph",
     "opentelemetry",
+    "phoenix",
 }
 
 

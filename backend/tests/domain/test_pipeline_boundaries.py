@@ -1,12 +1,12 @@
-"""Taxonomy package must stay free of persistence / framework imports."""
+"""Pipeline package must stay free of persistence / framework imports."""
 
 from __future__ import annotations
 
 import ast
 from pathlib import Path
 
-TAXONOMY_ROOT = (
-    Path(__file__).resolve().parents[2] / "src" / "agentic_cataloger" / "taxonomy"
+PIPELINE_ROOT = (
+    Path(__file__).resolve().parents[2] / "src" / "agentic_cataloger" / "pipeline"
 )
 FORBIDDEN = {
     "psycopg",
@@ -20,16 +20,16 @@ FORBIDDEN = {
 }
 
 
-def test_taxonomy_root_contains_python_modules() -> None:
-    assert TAXONOMY_ROOT.is_dir()
-    py_files = list(TAXONOMY_ROOT.rglob("*.py"))
-    assert py_files, f"no Python files under {TAXONOMY_ROOT}"
+def test_pipeline_root_contains_python_modules() -> None:
+    assert PIPELINE_ROOT.is_dir()
+    py_files = list(PIPELINE_ROOT.rglob("*.py"))
+    assert py_files, f"no Python files under {PIPELINE_ROOT}"
 
 
-def test_taxonomy_has_no_adapter_imports() -> None:
-    """No taxonomy module may import platform adapters or SQL libraries."""
+def test_pipeline_has_no_adapter_imports() -> None:
+    """No pipeline module may import platform adapters or tracing SDKs."""
     offenders: list[str] = []
-    for path in TAXONOMY_ROOT.rglob("*.py"):
+    for path in PIPELINE_ROOT.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             names: list[str] = []
