@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol
+
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.pipeline.models import RunProductRef
 
 AttributeValue = str | int | float | bool
 
@@ -38,4 +41,25 @@ class Telemetry(Protocol):
 
     def shutdown(self) -> None:
         """Flush and release exporter resources, if any."""
+        ...
+
+
+class RunProductRepository(Protocol):
+    """Read path for selecting a set of catalog products for a pipeline run."""
+
+    def list_for_run(
+        self,
+        *,
+        ingest_filter: IngestFilter,
+        unassigned_only: bool,
+        limit: int | None,
+    ) -> Sequence[RunProductRef]:
+        """Return products matching ``ingest_filter``.
+
+        Args:
+            ingest_filter: Category/keyword criteria (empty = no filtering).
+            unassigned_only: Exclude products with an existing taxonomy leaf
+                membership when True.
+            limit: Optional row cap; None means no limit.
+        """
         ...

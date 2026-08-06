@@ -10,6 +10,7 @@ import json
 import logging
 import signal
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from uuid import UUID
 
@@ -86,27 +87,49 @@ def _dispatch_command(args: list[str], telemetry: Telemetry) -> None:
 
         run_worker()
         return
-    if command == "migrate":
-        from agentic_cataloger.platform.roles.migrate import run_migrate
-
-        raise SystemExit(run_migrate())
-    if command == "ingest":
-        raise SystemExit(_run_ingest(args[1:]))
-    if command == "taxonomy":
-        raise SystemExit(_run_taxonomy(args[1:]))
-    if command == "review":
-        raise SystemExit(_run_review(args[1:]))
-    if command == "telemetry":
-        raise SystemExit(_run_telemetry(args[1:], telemetry))
     if command in {"-V", "--version"}:
         from importlib.metadata import version
 
         print(version("agentic-cataloger"))
         raise SystemExit(0)
 
-    logger.error("Unknown command: %s", command)
-    _print_help()
-    raise SystemExit(1)
+    exit_code = _dispatch_exit_code_command(command, args[1:], telemetry)
+    if exit_code is None:
+        logger.error("Unknown command: %s", command)
+        _print_help()
+        raise SystemExit(1)
+    raise SystemExit(exit_code)
+
+
+def _dispatch_exit_code_command(
+    command: str, argv: list[str], telemetry: Telemetry
+) -> int | None:
+    """Run one exit-code-returning top-level command.
+
+    Args:
+        command: Top-level command name (everything but ``api``/``worker``,
+            which never return an exit code, and help/version).
+        argv: Arguments after the command name.
+        telemetry: Process-wide telemetry port from bootstrap.
+
+    Returns:
+        The command's exit code, or None when ``command`` is unrecognized.
+    """
+    if command == "migrate":
+        from agentic_cataloger.platform.roles.migrate import run_migrate
+
+        return run_migrate()
+    if command == "telemetry":
+        return _run_telemetry(argv, telemetry)
+
+    handlers: dict[str, Callable[[list[str]], int]] = {
+        "ingest": _run_ingest,
+        "run": _run_pipeline,
+        "taxonomy": _run_taxonomy,
+        "review": _run_review,
+    }
+    handler = handlers.get(command)
+    return handler(argv) if handler is not None else None
 
 
 def _run_ingest(argv: list[str]) -> int:
@@ -179,6 +202,82 @@ def _run_ingest(argv: list[str]) -> int:
         f"deferred={summary.deferred_count} "
         f"collisions={summary.collision_count}"
     )
+    return 0
+
+
+def _run_pipeline(argv: list[str]) -> int:
+    """Parse ``run`` flags and select the products a run would operate on.
+
+    Only ``--dry-run`` is implemented so far — it selects and prints the
+    matching products without making any LLM call. Omitting it fails loudly
+    until the graph exists (Phase 2).
+
+    Args:
+        argv: Arguments after ``run``.
+
+    Returns:
+        Process exit code (0 on success, 1 when ``--dry-run`` is omitted).
+    """
+    parser = argparse.ArgumentParser(
+        prog="agentic-cataloger run",
+        description=(
+            "Select products via IngestFilter and categorize them through "
+            "the two-stage discover/assign pipeline."
+        ),
+    )
+    parser.add_argument(
+        "--source-category",
+        default=None,
+        help=(
+            "Filter: case-insensitive substring of source_category, or exact "
+            "match of unified_category (e.g. Milchprodukte or dairy)."
+        ),
+    )
+    parser.add_argument(
+        "--keyword",
+        default=None,
+        help="Filter: case-insensitive substring of product name / name_de.",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Max number of products to select.",
+    )
+    parser.add_argument(
+        "--reassign",
+        action="store_true",
+        help="Include products that already have a taxonomy leaf membership.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Select and print the products a run would touch; no LLM calls.",
+    )
+    parsed = parser.parse_args(argv)
+
+    if not parsed.dry_run:
+        print(
+            "error: run requires --dry-run for now (not yet implemented)",
+            file=sys.stderr,
+        )
+        return 1
+
+    from agentic_cataloger.catalog.ingest_filter import IngestFilter
+    from agentic_cataloger.platform.pipeline.runner import run_select_products
+
+    ingest_filter = IngestFilter(
+        source_category=parsed.source_category,
+        keyword=parsed.keyword,
+    )
+    result = run_select_products(
+        ingest_filter=ingest_filter,
+        limit=parsed.limit,
+        unassigned_only=not parsed.reassign,
+    )
+    for product in result.products:
+        print(f"{product.name} [{product.product_id}]")
+    print(f"{len(result.products)} product(s) selected")
     return 0
 
 
@@ -626,6 +725,8 @@ def _print_help() -> None:
         "  worker    long-running job consumer stub\n"
         "  migrate   one-shot bootstrap (schema + vendor setup)\n"
         "  ingest    import latest retailer CSVs into the catalog\n"
+        "  run       categorize products via the two-stage discover/assign "
+        "pipeline (--dry-run only, for now)\n"
         "  taxonomy  create|reparent|show|assign|search|children "
         "substitutability categories\n"
         "  review    defer|list deferred_items for human review\n"
