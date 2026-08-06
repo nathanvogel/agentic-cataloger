@@ -52,15 +52,15 @@ The taxonomy the agent will read and write, with no agent involved yet. All thre
 
 - [x] **2.1** Build the rooted substitutability tree (no cycles, no self-parenting, no graph edges).
 - [x] **2.3** Assign a product to exactly one leaf, enforced by DB uniqueness. Import/source categories stay ingest filters only. The prose rubric + few-shot pairs get written here; the agent consumes them in M2.
-- [ ] **2.5** Search-backed category context over the command layer. **Hard token constraint, not an optimization** — no full-tree or subtree dump, ever. MVP exposes this to the agent as LangChain tools directly (MCP deferred).
+- [x] **2.5** Search-backed category context over the command layer. **Hard token constraint, not an optimization** — no full-tree or subtree dump, ever. MVP exposes this to the agent as LangChain tools directly (MCP deferred).
 
 ## M2 — The agent
 
 Two stages, separately prompted and separately scored. Extract is not one of them.
 
-- [ ] **4.1** Define the shared vocabulary for agent runs in `contracts/` — run ID, stage ID, LLM-call ID, and a common result shape (success / defer / invalid + payload). Only discover/create and assign for now; extract comes later with 3.5.
-- [ ] **3.1** `deferred_items` table — the agent needs somewhere to put "I won't guess this" before it can be allowed to refuse. Small table, unblocks everything downstream.
-- [ ] **4.3** Telemetry through a domain-owned port (OTel only in adapters). Early, not last — debugging LLM stages without traces is the slowest way to build this.
+- [x] **4.1** Define the shared vocabulary for agent runs in `contracts/` — run ID, stage ID, LLM-call ID, and a common result shape (success / defer / invalid + payload). Only discover/create and assign for now; extract comes later with 3.5.
+- [x] **3.1** `deferred_items` table — the agent needs somewhere to put "I won't guess this" before it can be allowed to refuse. Small table, unblocks everything downstream.
+- [x] **4.3** Telemetry through a domain-owned port (OTel only in adapters). Early, not last — debugging LLM stages without traces is the slowest way to build this.
 - [ ] **4.4** Discover/create and assign as two separately-prompted stages. Same-call create+assign stays structurally impossible.
 - [ ] **2.6** Prefer matching an existing category before creating; no draft/provisional state. This is the anti-fragmentation policy the discover stage implements.
 - [ ] **4.5** Orchestrate the stages in LangGraph; launch a run from an ingest filter (1.5). Node-level `RetryPolicy` covers flaky calls.
