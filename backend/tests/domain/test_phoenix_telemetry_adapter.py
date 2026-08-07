@@ -60,7 +60,7 @@ def test_configure_telemetry_calls_register_with_traces_endpoint(
             endpoint="http://phoenix:6006/v1/traces",
             protocol="http/protobuf",
             batch=False,
-            auto_instrument=False,
+            auto_instrument=True,
         )
     assert isinstance(telemetry, PhoenixTelemetry)
     shutdown_telemetry()

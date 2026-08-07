@@ -6,7 +6,7 @@ from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
-from agentic_cataloger.pipeline.models import RunProductRef
+from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
 
 AttributeValue = str | int | float | bool
 
@@ -61,5 +61,30 @@ class RunProductRepository(Protocol):
             unassigned_only: Exclude products with an existing taxonomy leaf
                 membership when True.
             limit: Optional row cap; None means no limit.
+        """
+        ...
+
+
+class StageAgent(Protocol):
+    """One separately-prompted stage. The adapter owns the model and tools.
+
+    Production wiring supplies a LangChain-backed implementation (tools
+    closed over a live connection); tests supply a fake returning canned
+    ``StageDecision``s, with no network and no DB — that substitutability is
+    the whole point of routing decisions through this port.
+    """
+
+    def decide(
+        self,
+        *,
+        product: RunProductRef,
+        context: Mapping[str, object],
+    ) -> StageDecision:
+        """Decide this stage's outcome for one product.
+
+        Args:
+            product: The product this stage attempt is working on.
+            context: Extra context for the prompt (e.g. a candidate leaf a
+                prior stage created); empty on a first pass.
         """
         ...

@@ -206,17 +206,18 @@ def _run_ingest(argv: list[str]) -> int:
 
 
 def _run_pipeline(argv: list[str]) -> int:
-    """Parse ``run`` flags and select the products a run would operate on.
+    """Parse ``run`` flags and either dry-run select or run the pipeline.
 
-    Only ``--dry-run`` is implemented so far — it selects and prints the
-    matching products without making any LLM call. Omitting it fails loudly
-    until the graph exists (Phase 2).
+    ``--dry-run`` selects and prints the matching products without making
+    any LLM call. Without it, categorizes each selected product through the
+    two-stage assign/defer graph (Phase 2 — discover/create lands in
+    Phase 3) and prints a run summary.
 
     Args:
         argv: Arguments after ``run``.
 
     Returns:
-        Process exit code (0 on success, 1 when ``--dry-run`` is omitted).
+        Process exit code (0 on success).
     """
     parser = argparse.ArgumentParser(
         prog="agentic-cataloger run",
@@ -256,28 +257,50 @@ def _run_pipeline(argv: list[str]) -> int:
     )
     parsed = parser.parse_args(argv)
 
-    if not parsed.dry_run:
-        print(
-            "error: run requires --dry-run for now (not yet implemented)",
-            file=sys.stderr,
-        )
-        return 1
-
     from agentic_cataloger.catalog.ingest_filter import IngestFilter
-    from agentic_cataloger.platform.pipeline.runner import run_select_products
+    from agentic_cataloger.taxonomy.errors import TaxonomyError
 
     ingest_filter = IngestFilter(
         source_category=parsed.source_category,
         keyword=parsed.keyword,
     )
-    result = run_select_products(
-        ingest_filter=ingest_filter,
-        limit=parsed.limit,
-        unassigned_only=not parsed.reassign,
+
+    if parsed.dry_run:
+        from agentic_cataloger.platform.pipeline.runner import run_select_products
+
+        result = run_select_products(
+            ingest_filter=ingest_filter,
+            limit=parsed.limit,
+            unassigned_only=not parsed.reassign,
+        )
+        for product in result.products:
+            print(f"{product.name} [{product.product_id}]")
+        print(f"{len(result.products)} product(s) selected")
+        return 0
+
+    from agentic_cataloger.platform.pipeline.runner import run_pipeline
+
+    try:
+        summary = run_pipeline(
+            ingest_filter=ingest_filter,
+            limit=parsed.limit,
+            unassigned_only=not parsed.reassign,
+        )
+    except TaxonomyError as exc:
+        logger.warning("%s", exc)
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    except (ValueError, LookupError, RuntimeError) as exc:
+        logger.exception("run command failed")
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+    print(
+        f"run ok: {summary.product_count} products, "
+        f"{summary.deferred_count} deferred, "
+        f"{summary.created_count} created, "
+        f"{summary.disagreement_count} assign/discover disagreements"
     )
-    for product in result.products:
-        print(f"{product.name} [{product.product_id}]")
-    print(f"{len(result.products)} product(s) selected")
     return 0
 
 
@@ -726,7 +749,8 @@ def _print_help() -> None:
         "  migrate   one-shot bootstrap (schema + vendor setup)\n"
         "  ingest    import latest retailer CSVs into the catalog\n"
         "  run       categorize products via the two-stage discover/assign "
-        "pipeline (--dry-run only, for now)\n"
+        "pipeline (--dry-run to preview; discover/create lands in a later "
+        "phase)\n"
         "  taxonomy  create|reparent|show|assign|search|children "
         "substitutability categories\n"
         "  review    defer|list deferred_items for human review\n"

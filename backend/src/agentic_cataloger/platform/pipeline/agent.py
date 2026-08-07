@@ -1,0 +1,226 @@
+"""LangChain-backed StageAgent: model + bound tools + structured output.
+
+Along with ``tools.py``, this is the only module allowed to import
+``langchain``/``langgraph`` in the pipeline vertical — mirrors
+``platform/taxonomy/tools.py``'s role for the taxonomy vertical.
+
+Owns the three loop guards from the design discussion's resolved
+"tool-calling agent loop" decision:
+
+- **Loop length** — ``recursion_limit`` passed at invoke time;
+  ``GraphRecursionError`` is caught here and turned into
+  ``action="defer"`` rather than escaping as a traceback.
+- **Tool-call budget** — ``ToolCallLimitMiddleware`` refuses further tool
+  calls past a fixed budget and forces the model to answer with what it
+  has (``exit_behavior="continue"``).
+- **Wall clock / spend** — ``chat_model()``'s ``timeout=``.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, cast
+from uuid import UUID
+
+import psycopg
+from langchain.agents import create_agent
+from langchain.agents.middleware.tool_call_limit import ToolCallLimitMiddleware
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import BaseTool
+from langgraph.errors import GraphRecursionError
+from pydantic import BaseModel
+
+from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.platform.llm.openrouter import chat_model
+from agentic_cataloger.platform.pipeline.prompts import ASSIGN_SYSTEM_PROMPT
+from agentic_cataloger.platform.pipeline.tools import build_assign_tools
+
+logger = logging.getLogger(__name__)
+
+# ~5-6 tool round-trips; a weak model that never converges hits this before
+# it hits the tool-call budget below.
+RECURSION_LIMIT = 15
+# Refuse further tool calls past this many in one decide() call — forces
+# the model to answer (assign or defer) with what it already has.
+TOOL_CALL_BUDGET = 8
+
+
+class _AssignDecisionSchema(BaseModel):
+    """Structured output schema for the assign stage.
+
+    Converted to the domain ``StageDecision`` by
+    ``_assign_decision_from_schema`` — the assign stage can never emit
+    ``action="create"`` because this schema doesn't offer it.
+    """
+
+    action: Literal["assign", "defer"]
+    leaf_id: str | None = None
+    reason: str | None = None
+
+
+def _assign_decision_from_schema(schema: BaseModel) -> StageDecision:
+    """Convert the assign stage's structured response into a StageDecision.
+
+    Args:
+        schema: Parsed ``_AssignDecisionSchema`` instance.
+
+    Returns:
+        Domain decision; an unparseable ``leaf_id`` is treated as absent
+        (the node then routes it like any other miss).
+    """
+    # to_decision is only ever wired to the matching response_schema at
+    # construction time (build_assign_stage_agent pairs the two) — cast
+    # rather than assert/isinstance since this is a static, not runtime, fact.
+    parsed = cast(_AssignDecisionSchema, schema)
+    leaf_id: UUID | None = None
+    if parsed.leaf_id:
+        try:
+            leaf_id = UUID(parsed.leaf_id)
+        except ValueError:
+            logger.warning(
+                "Assign stage returned an unparseable leaf_id=%r", parsed.leaf_id
+            )
+    return StageDecision(action=parsed.action, leaf_id=leaf_id, reason=parsed.reason)
+
+
+def _render_product(product: RunProductRef, context: Mapping[str, object]) -> str:
+    """Render one product (plus optional extra context) as the user turn.
+
+    Args:
+        product: Product this stage attempt is deciding about.
+        context: Extra prompt context (e.g. a discover-created candidate
+            leaf in Phase 3); empty on a first pass.
+
+    Returns:
+        Plain-text product description for the agent's first message.
+    """
+    lines = [
+        f"product_id: {product.product_id}",
+        f"name: {product.name}",
+    ]
+    if product.name_de:
+        lines.append(f"name_de: {product.name_de}")
+    if product.source_category:
+        lines.append(
+            "source_category (retailer label, not authoritative): "
+            f"{product.source_category}"
+        )
+    if product.unified_category:
+        lines.append(f"unified_category: {product.unified_category}")
+    for key, value in context.items():
+        lines.append(f"{key}: {value}")
+    return "\n".join(lines)
+
+
+class LangChainStageAgent:
+    """One stage's tool-calling loop over a bound chat model.
+
+    Tools, prompt, and response schema are all stage-specific and fixed at
+    construction time; ``decide`` only varies by the product (and optional
+    context) it's deciding about.
+    """
+
+    def __init__(  # ruff: ignore[too-many-arguments]
+        self,
+        *,
+        tools: list[BaseTool],
+        system_prompt: str,
+        response_schema: type[BaseModel],
+        to_decision: Callable[[BaseModel], StageDecision],
+        model: BaseChatModel | None = None,
+        recursion_limit: int = RECURSION_LIMIT,
+        tool_call_budget: int = TOOL_CALL_BUDGET,
+    ) -> None:
+        """Build one stage's compiled agent.
+
+        Args:
+            tools: Tools bound for this stage only (disjoint per stage).
+            system_prompt: Rubric + task framing for this stage.
+            response_schema: Pydantic schema for ``response_format``.
+            to_decision: Converts a parsed ``response_schema`` instance
+                into the domain ``StageDecision``.
+            model: Chat model; defaults to ``chat_model()``.
+            recursion_limit: Passed to the agent's own ``invoke`` call.
+            tool_call_budget: Max tool calls per ``decide()`` before the
+                model is forced to answer with what it has.
+        """
+        super().__init__()
+        self._agent = create_agent(
+            model=model if model is not None else chat_model(),
+            tools=tools,
+            system_prompt=system_prompt,
+            response_format=response_schema,
+            middleware=[
+                ToolCallLimitMiddleware(
+                    run_limit=tool_call_budget, exit_behavior="continue"
+                ),
+            ],
+        )
+        self._to_decision = to_decision
+        self._recursion_limit = recursion_limit
+
+    def decide(
+        self,
+        *,
+        product: RunProductRef,
+        context: Mapping[str, object],
+    ) -> StageDecision:
+        """Run this stage's agent loop for one product.
+
+        Args:
+            product: Product this stage attempt is deciding about.
+            context: Extra prompt context; empty on a first pass.
+
+        Returns:
+            The stage's decision. A ``GraphRecursionError`` or an absent
+            structured response both convert to ``action="defer"`` rather
+            than escaping as a traceback.
+        """
+        try:
+            outcome = self._agent.invoke(
+                {"messages": [HumanMessage(content=_render_product(product, context))]},
+                config={"recursion_limit": self._recursion_limit},
+            )
+        except GraphRecursionError as exc:
+            logger.warning(
+                "Stage hit recursion_limit=%d for product_id=%s: %s",
+                self._recursion_limit,
+                product.product_id,
+                exc,
+            )
+            return StageDecision(
+                action="defer", reason=f"recursion limit exceeded: {exc}"
+            )
+
+        structured = outcome.get("structured_response")
+        if structured is None:
+            logger.warning(
+                "Stage produced no structured response for product_id=%s",
+                product.product_id,
+            )
+            return StageDecision(
+                action="defer", reason="model returned no structured response"
+            )
+        return self._to_decision(structured)
+
+
+def build_assign_stage_agent(conn: psycopg.Connection[Any]) -> LangChainStageAgent:
+    """Build the assign stage's agent, with tools bound to ``conn``.
+
+    Args:
+        conn: Live psycopg connection for this product's stages.
+
+    Returns:
+        Configured agent for the assign stage.
+    """
+    return LangChainStageAgent(
+        tools=build_assign_tools(conn),
+        system_prompt=ASSIGN_SYSTEM_PROMPT,
+        response_schema=_AssignDecisionSchema,
+        to_decision=_assign_decision_from_schema,
+    )
+
+
+__all__ = ["LangChainStageAgent", "build_assign_stage_agent"]

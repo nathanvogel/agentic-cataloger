@@ -190,6 +190,42 @@ def test_smoke_requires_openrouter_api_key(
         run_telemetry_smoke(telemetry)
 
 
+def test_pipeline_stage_span_may_wrap_an_llm_span() -> None:
+    """A non-LLM pipeline.stage span wrapping an LLM-kind span is fine.
+
+    Proves the auto-instrumentor's LLM spans (pipeline stage calls) are
+    allowed to nest under the hand-rolled ``pipeline.stage`` span — only
+    LLM-under-LLM nesting is disallowed.
+    """
+    telemetry = RecordingTelemetry()
+    completion = LlmCompletion(text="ok", model_name="pipeline-model")
+
+    stage_handle = telemetry.start_span(
+        "pipeline.stage",
+        attributes={"pipeline.stage.kind": "assign"},
+    )
+    record_leaf_llm_span(
+        telemetry,
+        name="pipeline.stage.llm",
+        complete=lambda: completion,
+        model_name=completion.model_name,
+    )
+    stage_handle.end()
+
+    stage_spans = [s for s in telemetry.spans if s.name == "pipeline.stage"]
+    assert len(stage_spans) == 1
+    assert stage_spans[0].attributes.get("openinference.span.kind") != "LLM"
+
+    llm_spans = [
+        s
+        for s in telemetry.spans
+        if s.attributes.get("openinference.span.kind") == "LLM"
+    ]
+    assert len(llm_spans) == 1
+    assert llm_spans[0].parent_id == stage_spans[0].span_id
+    _assert_no_llm_parent_of_llm(telemetry.spans)
+
+
 def _assert_no_llm_parent_of_llm(spans: list[_RecordedSpan]) -> None:
     by_id = {s.span_id: s for s in spans}
     for span in spans:

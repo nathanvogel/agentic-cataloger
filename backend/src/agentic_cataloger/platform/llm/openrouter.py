@@ -6,16 +6,23 @@ import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from phoenix.otel import OpenInferenceSpanKindValues, SpanAttributes
 
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 
+if TYPE_CHECKING:
+    from langchain_openai import ChatOpenAI
+
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api/v1"
 DEFAULT_SMOKE_MODEL: Final = "openai/gpt-4o-mini"
+# Same default model as the smoke path — cheap and already proven to work
+# against OpenRouter; override with PIPELINE_MODEL for a stronger model.
+DEFAULT_PIPELINE_MODEL: Final = "openai/gpt-4o-mini"
+PIPELINE_LLM_TIMEOUT_SECONDS: Final = 60.0
 
 # OpenInference keys via phoenix.otel re-exports (platform only; domain stays SDK-free)
 SPAN_KIND_KEY: Final = SpanAttributes.OPENINFERENCE_SPAN_KIND
@@ -132,6 +139,40 @@ def complete_openrouter(
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
+    )
+
+
+def chat_model() -> ChatOpenAI:
+    """Build the shared chat model for pipeline stages (OpenRouter-backed).
+
+    Model comes from ``PIPELINE_MODEL`` (default ``openai/gpt-4o-mini``,
+    same as the smoke path). ``max_retries=0`` is deliberate: LangGraph's
+    node-level ``RetryPolicy`` owns retries, not the client — a client-side
+    retry inside a ``RetryPolicy``-wrapped node would silently multiply
+    spend and hide the failure from the attempt counter.
+
+    Returns:
+        Configured chat model — no tools or structured output bound yet;
+        ``langchain.agents.create_agent`` does that per stage.
+
+    Raises:
+        ValueError: ``OPENROUTER_API_KEY`` is unset.
+    """
+    from langchain_openai import ChatOpenAI
+    from pydantic import SecretStr
+
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        msg = "OPENROUTER_API_KEY is required for pipeline stages"
+        raise ValueError(msg)
+    model = os.environ.get("PIPELINE_MODEL") or DEFAULT_PIPELINE_MODEL
+    return ChatOpenAI(
+        model=model,
+        api_key=SecretStr(api_key),
+        base_url=OPENROUTER_BASE_URL,
+        temperature=0,
+        timeout=PIPELINE_LLM_TIMEOUT_SECONDS,
+        max_retries=0,
     )
 
 

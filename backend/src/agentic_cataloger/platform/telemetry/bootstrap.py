@@ -82,7 +82,17 @@ def configure_telemetry() -> Telemetry:
         endpoint=traces_endpoint,
         protocol="http/protobuf",
         batch=False,
-        auto_instrument=False,
+        # Wires openinference-instrumentation-langchain so pipeline stage
+        # LLM calls (create_agent's ChatOpenAI) get their own OpenInference
+        # spans automatically, nested under the hand-rolled pipeline.stage
+        # span. This is a *global* flag (patches
+        # langchain_core.callbacks.BaseCallbackManager.__init__), so it also
+        # starts auto-instrumenting complete_openrouter's ChatOpenAI call
+        # (telemetry smoke) — that path now emits both the hand-rolled leaf
+        # LLM span (record_leaf_llm_span) and an auto-instrumented one.
+        # Accepted for now (roadmap 4.6 is where cost-join double-counting
+        # would actually bite); the pipeline spans are the ones that matter.
+        auto_instrument=True,
     )
     tracer = provider.get_tracer(_TRACER_NAME)
     _state.active = PhoenixTelemetry(tracer, provider)
