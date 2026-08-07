@@ -103,7 +103,7 @@ flowchart TB
 
 ## Pipeline & agent orchestration
 
-- Discover/create → assign → extract run as three separately-prompted stages, each independently scored. Same-call create+assign is structurally impossible.
+- Assign runs first, then discover/create only on a miss — two separately-prompted, separately-scored stages per product. Extract is later work (roadmap 3.5). Same-call create+assign is structurally impossible: `assign` and `discover_create` bind disjoint tool sets.
 - LangGraph owns MVP orchestration. Every run/stage-execution/attempt gets a durable ID (`pipeline_run_id`, `stage_execution_id`, `stage_attempt_id`). Before a command applies its effect, the stage stores its outcome + request fingerprint + config versions in Postgres; a replay reapplies that *stored* outcome instead of silently calling the LLM again. LangGraph's Postgres checkpointer holds orchestration state only — never a second business database.
 - Agent capability surface starts as MCP/tool calls, as a thin adapter over the shared command layer. Escalate to something heavier (CLI-style surface, code execution) only if tool-definition token cost or context bloat becomes a *measured* problem.
 
@@ -111,7 +111,7 @@ flowchart TB
 REST / thin MCP / CLI
   → shared application commands (idempotent, safe to re-run)
   → LangGraph workflow
-  → discover/create | assign | extract
+  → assign | discover/create (on miss only; extract is later)
   → category search + product supply
   → deterministic validators + evidence_span; unknown → deferred queue
   → owner-specific transactional writes (import can never reach enrichment state)
