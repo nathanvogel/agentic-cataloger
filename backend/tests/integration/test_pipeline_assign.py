@@ -24,6 +24,7 @@ from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_sna
 from agentic_cataloger.catalog.identity import SourceIdentity
 from agentic_cataloger.catalog.models import ProductObservation
 from agentic_cataloger.contracts.models import StageKind
+from agentic_cataloger.pipeline.commands import ensure_root_category
 from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
 from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
@@ -113,17 +114,19 @@ def _seed_product(conn: psycopg.Connection[Any], *, product_id_str: str) -> UUID
 
 
 def _seed_tree(conn: psycopg.Connection[Any]) -> tuple[UUID, UUID]:
-    """Create a two-level taxonomy tree; return (root_id, leaf_id)."""
+    """Create a two-level taxonomy tree; return (root_id, leaf_id).
+
+    Uses ``ensure_root_category`` so the helper is idempotent when the shared
+    integration DB already has a root from an earlier test.
+    """
     tag = uuid4().hex[:8]
     cats = PsycopgCategoryRepository(conn)
     mems = PsycopgMembershipRepository(conn)
     uow = PsycopgUnitOfWork(conn)
-    root = create_category(
-        CreateCategoryRequest(name=f"assign-root-{tag}"),
-        categories=cats,
-        memberships=mems,
-        uow=uow,
-    ).category
+    # Idempotent root creation — won't fail if another test already made one.
+    ensure_root_category(categories=cats, memberships=mems, uow=uow)
+    root = cats.get_root()
+    assert root is not None
     leaf = create_category(
         CreateCategoryRequest(name=f"assign-leaf-{tag}", parent_id=root.id),
         categories=cats,
@@ -133,13 +136,31 @@ def _seed_tree(conn: psycopg.Connection[Any]) -> tuple[UUID, UUID]:
     return root.id, leaf.id
 
 
+class _AlwaysDeferAgent:
+    """Stub that always returns action='defer' — used as a no-op discover agent."""
+
+    @staticmethod
+    def decide(
+        *,
+        product: RunProductRef,
+        context: Any,
+    ) -> StageDecision:
+        """Return a defer decision."""
+        return StageDecision(action="defer", reason="stub discover agent")
+
+
 def _run_graph(
     conn: psycopg.Connection[Any],
     *,
     product_id: UUID,
     agent: Any,
+    discover_agent: Any = None,
 ) -> dict[str, Any]:
-    """Invoke the stage graph for one product and return the full state dict."""
+    """Invoke the stage graph for one product and return the full state dict.
+
+    ``discover_agent`` defaults to ``_AlwaysDeferAgent`` so existing Phase 2
+    callers don't break; Phase 3 callers pass their own scripted agent.
+    """
     graph = build_stage_graph()
     telemetry = configure_telemetry()
     product = RunProductRef(
@@ -156,7 +177,12 @@ def _run_graph(
             "discover_ran": False,
         },
         config={"recursion_limit": 10},
-        context=StageDeps(conn=conn, telemetry=telemetry, stage_agent=agent),
+        context=StageDeps(
+            conn=conn,
+            telemetry=telemetry,
+            stage_agent=agent,
+            discover_agent=discover_agent or _AlwaysDeferAgent(),
+        ),
     )
 
 
@@ -190,7 +216,12 @@ def test_assign_miss_defers_and_writes_deferred_item(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
-    """A model-initiated defer writes a deferred_items row with stage=ASSIGN."""
+    """Assign miss → discover also defers → one deferred_items row.
+
+    In Phase 3 the assign miss routes to discover first.  With a stub
+    discover that always defers, the deferred_items row is attributed to
+    DISCOVER_CREATE (the last stage that ran and could not place the product).
+    """
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-miss-{uuid4().hex[:8]}")
 
@@ -205,7 +236,9 @@ def test_assign_miss_defers_and_writes_deferred_item(
         items = PsycopgDeferredItemRepository(conn).list_open()
         matching = [i for i in items if i.product_id == pid]
         assert len(matching) == 1
-        assert matching[0].stage == StageKind.ASSIGN
+        # Phase 3: assign miss → discover (stub, also defers) → defer_node
+        # attributes to DISCOVER_CREATE, the terminal failing stage.
+        assert matching[0].stage == StageKind.DISCOVER_CREATE
 
 
 @pytest.mark.integration
@@ -213,7 +246,11 @@ def test_recursion_error_produces_deferred_row_not_traceback(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
-    """A GraphRecursionError from the agent is caught and defers the product."""
+    """A GraphRecursionError from the agent is caught and defers the product.
+
+    In Phase 3 the deferred row is attributed to DISCOVER_CREATE because the
+    stub discover agent also defers after the assign agent defers.
+    """
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-recurse-{uuid4().hex[:8]}")
 
@@ -227,4 +264,5 @@ def test_recursion_error_produces_deferred_row_not_traceback(
         items = PsycopgDeferredItemRepository(conn).list_open()
         matching = [i for i in items if i.product_id == pid]
         assert len(matching) == 1
-        assert matching[0].stage == StageKind.ASSIGN
+        # Phase 3: assign defer → discover (stub, also defers) → DISCOVER_CREATE.
+        assert matching[0].stage == StageKind.DISCOVER_CREATE

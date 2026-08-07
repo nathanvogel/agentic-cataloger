@@ -28,9 +28,11 @@ from agentic_cataloger.platform.persistence.taxonomy_repo import (
 )
 from agentic_cataloger.taxonomy.commands import (
     AssignProductRequest,
+    CreateCategoryRequest,
     ListCategoryChildrenRequest,
     SearchCategoriesRequest,
     assign_product_to_leaf,
+    create_category,
     list_category_children,
     search_categories,
 )
@@ -166,4 +168,103 @@ def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
     return [_search_categories, _get_category_children, _assign_product_to_leaf]
 
 
-__all__ = ["build_assign_tools"]
+def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
+    """Build the discover stage's tools, all closed over ``conn``.
+
+    ``assign_product_to_leaf`` is deliberately absent — never reachable from
+    the discover stage, mirroring ``build_assign_tools`` never binding
+    ``create_category``.
+
+    ``create_category`` is included here so the model can explore parent
+    candidates by checking what names are already taken.  The DISCOVER prompt
+    instructs the model NOT to call it directly; the node creates from the
+    structured-output proposal instead.  A real LLM that ignores the prompt
+    and calls the tool will successfully write the category, after which the
+    node skips re-creating the same path.
+
+    Args:
+        conn: Live psycopg connection, reused across every tool call for
+            one product's stages.
+
+    Returns:
+        ``search_categories``, ``get_category_children``, and
+        ``create_category`` tool objects.
+    """
+    categories = PsycopgCategoryRepository(conn)
+
+    @tool("search_categories")
+    def _search_categories(query: str, limit: int = 20) -> str:
+        """Fuzzy-search the substitutability category tree by category name.
+
+        Typo-tolerant and ranked by similarity, not exact/substring matching
+        — close variants and misspellings still surface. Returns up to
+        `limit` ranked matches (default 20, max 40); each match includes its
+        parent name, leaf/non-leaf status, and up to 50 immediate children.
+        Never returns the full tree or a subtree — call again with a
+        different query, or use get_category_children to go deeper, instead
+        of raising `limit`.
+
+        Returns:
+            One formatted block per match (name, id, parent, leaf status,
+            score, and children), or "no matches".
+        """
+        result = search_categories(
+            SearchCategoriesRequest(query=query, limit=limit),
+            categories=categories,
+        )
+        if not result.matches:
+            return "no matches"
+        return "\n".join(_format_match(m) for m in result.matches)
+
+    @tool("get_category_children")
+    def _get_category_children(category_id: str | None = None, limit: int = 50) -> str:
+        """List the immediate children of one category, or root categories.
+
+        Used when `category_id` is omitted. Bounded to `limit` (max 50) —
+        never a subtree or the full tree. Use this to go past the children
+        already included in a search_categories match, or to browse when
+        search finds nothing close enough.
+
+        Returns:
+            One "name [id]" line per child, or "no children".
+        """
+        parent_id = UUID(category_id) if category_id else None
+        result = list_category_children(
+            ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
+            categories=categories,
+        )
+        if not result.children:
+            return "no children"
+        lines = [_format_category_line(c) for c in result.children]
+        if result.child_count > len(result.children):
+            lines.append(
+                f"... {result.child_count - len(result.children)} more, not shown"
+            )
+        return "\n".join(lines)
+
+    @tool("create_category")
+    def _create_category(name: str, parent_id: str) -> str:
+        """Create one new category under an existing parent.
+
+        Only call this to explore whether a name slot is available. To
+        actually create the category path for this product, return
+        action="create" with parent_id and names in your structured response
+        — the system creates the categories from your proposal, and calling
+        this tool directly will result in a duplicate.
+
+        Returns:
+            "created {name} [{id}]", or an error line explaining why not
+            (e.g. parent not found, parent already has product memberships).
+        """
+        result = create_category(
+            CreateCategoryRequest(name=name, parent_id=UUID(parent_id)),
+            categories=categories,
+            memberships=PsycopgMembershipRepository(conn),
+            uow=PsycopgUnitOfWork(conn),
+        )
+        return f"created {result.category.name} [{result.category.id}]"
+
+    return [_search_categories, _get_category_children, _create_category]
+
+
+__all__ = ["build_assign_tools", "build_discover_tools"]

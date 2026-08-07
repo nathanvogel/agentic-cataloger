@@ -32,10 +32,20 @@ from langchain_core.tools import BaseTool
 from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
-from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.pipeline.models import (
+    RejectedCandidate,
+    RunProductRef,
+    StageDecision,
+)
 from agentic_cataloger.platform.llm.openrouter import chat_model
-from agentic_cataloger.platform.pipeline.prompts import ASSIGN_SYSTEM_PROMPT
-from agentic_cataloger.platform.pipeline.tools import build_assign_tools
+from agentic_cataloger.platform.pipeline.prompts import (
+    ASSIGN_SYSTEM_PROMPT,
+    DISCOVER_SYSTEM_PROMPT,
+)
+from agentic_cataloger.platform.pipeline.tools import (
+    build_assign_tools,
+    build_discover_tools,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -223,4 +233,96 @@ def build_assign_stage_agent(conn: psycopg.Connection[Any]) -> LangChainStageAge
     )
 
 
-__all__ = ["LangChainStageAgent", "build_assign_stage_agent"]
+# ---------------------------------------------------------------------------
+# Discover/create stage
+# ---------------------------------------------------------------------------
+
+
+class _RejectedCandidateSchema(BaseModel):
+    """One category the discover stage considered and rejected."""
+
+    category_id: str
+    name: str
+
+
+class _DiscoverDecisionSchema(BaseModel):
+    """Structured output schema for the discover stage.
+
+    Converted to the domain ``StageDecision`` by
+    ``_discover_decision_from_schema``.  The discover stage can never emit
+    ``action="assign"`` because this schema doesn't offer it.
+    """
+
+    action: Literal["create", "defer"]
+    parent_id: str | None = None
+    names: list[str] = []
+    rejected: list[_RejectedCandidateSchema] = []
+    reason: str | None = None
+
+
+def _discover_decision_from_schema(schema: BaseModel) -> StageDecision:
+    """Convert the discover stage's structured response into a StageDecision.
+
+    Args:
+        schema: Parsed ``_DiscoverDecisionSchema`` instance.
+
+    Returns:
+        Domain decision; an unparseable ``parent_id`` is treated as absent.
+    """
+    parsed = cast(_DiscoverDecisionSchema, schema)
+    parent_id: UUID | None = None
+    if parsed.parent_id:
+        try:
+            parent_id = UUID(parsed.parent_id)
+        except ValueError:
+            logger.warning(
+                "Discover stage returned an unparseable parent_id=%r", parsed.parent_id
+            )
+
+    rejected: tuple[RejectedCandidate, ...] = ()
+    valid_rejected: list[RejectedCandidate] = []
+    for r in parsed.rejected:
+        if not r.category_id:
+            continue
+        try:
+            valid_rejected.append(
+                RejectedCandidate(category_id=UUID(r.category_id), name=r.name)
+            )
+        except ValueError:
+            logger.warning(
+                "Discover stage returned unparseable rejected category_id=%r",
+                r.category_id,
+            )
+    rejected = tuple(valid_rejected)
+
+    return StageDecision(
+        action=parsed.action,
+        parent_id=parent_id,
+        names=tuple(parsed.names),
+        rejected=rejected,
+        reason=parsed.reason,
+    )
+
+
+def build_discover_stage_agent(conn: psycopg.Connection[Any]) -> LangChainStageAgent:
+    """Build the discover stage's agent, with tools bound to ``conn``.
+
+    Args:
+        conn: Live psycopg connection for this product's stages.
+
+    Returns:
+        Configured agent for the discover/create stage.
+    """
+    return LangChainStageAgent(
+        tools=build_discover_tools(conn),
+        system_prompt=DISCOVER_SYSTEM_PROMPT,
+        response_schema=_DiscoverDecisionSchema,
+        to_decision=_discover_decision_from_schema,
+    )
+
+
+__all__ = [
+    "LangChainStageAgent",
+    "build_assign_stage_agent",
+    "build_discover_stage_agent",
+]

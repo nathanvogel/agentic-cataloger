@@ -15,6 +15,12 @@ from agentic_cataloger.pipeline.models import (
 from agentic_cataloger.pipeline.ports import RunProductRepository
 from agentic_cataloger.review.commands import DeferItemRequest
 from agentic_cataloger.review.models import ReasonCode
+from agentic_cataloger.taxonomy.commands import CreateCategoryRequest, create_category
+from agentic_cataloger.taxonomy.ports import (
+    CategoryRepository,
+    MembershipRepository,
+    TaxonomyUnitOfWork,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -134,9 +140,76 @@ def build_defer_request(
     )
 
 
+def ensure_root_category(
+    *,
+    categories: CategoryRepository,
+    memberships: MembershipRepository,
+    uow: TaxonomyUnitOfWork,
+) -> None:
+    """Ensure a root category exists before a pipeline run starts.
+
+    Creates "All products" when no root is present so the model never
+    needs to reason about roots, and a ``RootAlreadyExistsError`` can
+    never surface mid-run from the discover stage.  Called once before
+    the product loop (not per product).
+
+    Args:
+        categories: Category repository.
+        memberships: Membership repository (required by ``create_category``
+            for the leaf-demotion check, which is a no-op for a root).
+        uow: Unit of work for a transactional write.
+    """
+    if categories.get_root() is not None:
+        return
+    create_category(
+        CreateCategoryRequest(name="All products"),
+        categories=categories,
+        memberships=memberships,
+        uow=uow,
+    )
+
+
+_MAX_CREATE_LEVELS = 2
+
+
+def validate_create_proposal(decision: StageDecision) -> None:
+    """Validate a discover stage's create proposal before calling ``create_category``.
+
+    A create with no rejected-candidate evidence is refused (roadmap 2.6 —
+    enforced in the node, not only in the prompt). A path longer than
+    ``_MAX_CREATE_LEVELS`` is also refused to keep the tree shallow and bounded
+    (design discussion: "Cap: 2 new levels (parent + leaf); deeper than that,
+    defer").
+
+    Args:
+        decision: The discover stage's decision (must have action="create").
+
+    Raises:
+        ValueError: When ``rejected`` is empty, ``names`` is empty, or the
+            path is deeper than ``_MAX_CREATE_LEVELS``.
+    """
+    if not decision.rejected:
+        msg = (
+            "create proposal must include at least one rejected candidate "
+            "(roadmap 2.6 — a create with no evidence is refused)"
+        )
+        raise ValueError(msg)
+    if not decision.names:
+        msg = "create proposal must include at least one category name"
+        raise ValueError(msg)
+    if len(decision.names) > _MAX_CREATE_LEVELS:
+        msg = (
+            f"create path must be at most {_MAX_CREATE_LEVELS} levels; "
+            f"got {len(decision.names)}"
+        )
+        raise ValueError(msg)
+
+
 __all__ = [
     "SelectRunProductsRequest",
     "build_defer_request",
+    "ensure_root_category",
     "route_after_assign",
     "select_run_products",
+    "validate_create_proposal",
 ]

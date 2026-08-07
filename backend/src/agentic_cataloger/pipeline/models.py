@@ -58,6 +58,10 @@ class StageDecision:
     action: Literal["assign", "create", "defer"]
     leaf_id: UUID | None = None
     reason: str | None = None
+    # Phase 3 create payload — only populated when action="create"
+    parent_id: UUID | None = None
+    names: tuple[str, ...] = ()
+    rejected: tuple[RejectedCandidate, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
