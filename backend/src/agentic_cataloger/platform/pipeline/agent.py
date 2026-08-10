@@ -49,12 +49,12 @@ from agentic_cataloger.platform.pipeline.tools import (
 
 logger = logging.getLogger(__name__)
 
-# ~5-6 tool round-trips; a weak model that never converges hits this before
-# it hits the tool-call budget below.
-RECURSION_LIMIT = 15
 # Refuse further tool calls past this many in one decide() call — forces
 # the model to answer (assign or defer) with what it already has.
 TOOL_CALL_BUDGET = 8
+# LangGraph step budget for the inner agent loop. Each model/tool cycle
+# costs ~3 steps (model → tool → middleware)
+RECURSION_LIMIT = 50
 
 
 class _AssignDecisionSchema(BaseModel):
