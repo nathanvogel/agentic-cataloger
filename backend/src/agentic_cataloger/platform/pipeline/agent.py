@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 TOOL_CALL_BUDGET = 8
 # LangGraph step budget for the inner agent loop. Each model/tool cycle
 # costs ~3 steps (model → tool → middleware)
-RECURSION_LIMIT = 10
+RECURSION_LIMIT = 50
 
 
 class _AssignDecisionSchema(BaseModel):
