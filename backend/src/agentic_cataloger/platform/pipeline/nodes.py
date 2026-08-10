@@ -28,7 +28,13 @@ from agentic_cataloger.pipeline.commands import (
 from agentic_cataloger.pipeline.commands import (
     route_after_assign as _route_after_assign,
 )
-from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    CreateDecision,
+    DeferDecision,
+    RunProductRef,
+    StageDecision,
+)
 from agentic_cataloger.pipeline.ports import StageAgent, Telemetry
 from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
@@ -149,7 +155,7 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
     updates: dict[str, Any] = {"assign_decision": decision}
     status: Literal["success", "defer", "invalid"]
 
-    if decision.action == "assign" and decision.leaf_id is not None:
+    if isinstance(decision, AssignDecision):
         try:
             _write_assignment(
                 runtime.context.conn,
@@ -158,18 +164,20 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
             )
         except TaxonomyError as exc:
             status = "invalid"
-            updates["assign_decision"] = StageDecision(action="defer", reason=str(exc))
+            updates["assign_decision"] = DeferDecision(reason=str(exc))
             updates["assign_error"] = exc
         else:
             status = "success"
-    elif decision.action == "defer":
+    elif isinstance(decision, DeferDecision):
         status = "defer"
     else:
-        # action="create" — the assign stage schema never offers "create",
+        # CreateDecision — the assign stage schema never offers "create",
         # so this is a node-level rejection.
         status = "invalid"
-        exc = ValueError(f"assign stage returned unexpected action {decision.action!r}")
-        updates["assign_decision"] = StageDecision(action="defer", reason=str(exc))
+        exc = ValueError(
+            f"assign stage returned unexpected decision {type(decision).__name__!r}"
+        )
+        updates["assign_decision"] = DeferDecision(reason=str(exc))
         updates["assign_error"] = exc
 
     updates["assign"] = StageResult(
@@ -228,7 +236,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         "discover_count": state["discover_count"] + 1,
     }
 
-    if decision.action == "defer":
+    if isinstance(decision, DeferDecision):
         updates["discover"] = StageResult(
             run_id=state["run_id"],
             stage=StageKind.DISCOVER_CREATE,
@@ -238,11 +246,11 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         )
         return updates
 
-    if decision.action != "create":
-        # action="assign" or anything else — unexpected from discover schema.
-        exc_msg = f"discover stage returned unexpected action {decision.action!r}"
+    if not isinstance(decision, CreateDecision):
+        decision_type = type(decision).__name__
+        exc_msg = f"discover stage returned unexpected decision {decision_type!r}"
         logger.warning(exc_msg)
-        updates["discover_decision"] = StageDecision(action="defer", reason=exc_msg)
+        updates["discover_decision"] = DeferDecision(reason=exc_msg)
         updates["discover"] = StageResult(
             run_id=state["run_id"],
             stage=StageKind.DISCOVER_CREATE,
@@ -261,7 +269,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
             state["product"].product_id,
             exc,
         )
-        updates["discover_decision"] = StageDecision(action="defer", reason=str(exc))
+        updates["discover_decision"] = DeferDecision(reason=str(exc))
         updates["discover_error"] = exc
         updates["discover"] = StageResult(
             run_id=state["run_id"],
@@ -297,7 +305,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
             state["product"].product_id,
             exc,
         )
-        updates["discover_decision"] = StageDecision(action="defer", reason=str(exc))
+        updates["discover_decision"] = DeferDecision(reason=str(exc))
         updates["discover_error"] = exc
         updates["discover"] = StageResult(
             run_id=state["run_id"],

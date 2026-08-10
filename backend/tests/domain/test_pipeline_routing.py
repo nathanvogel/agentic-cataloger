@@ -6,7 +6,11 @@ from uuid import uuid4
 
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.commands import build_defer_request, route_after_assign
-from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    DeferDecision,
+    RunProductRef,
+)
 from agentic_cataloger.review.models import ReasonCode
 
 
@@ -21,8 +25,8 @@ def _product() -> RunProductRef:
 
 
 def test_route_after_assign_success_is_done() -> None:
-    """A clean assign (action + leaf_id) routes to "done" regardless of discover_count."""
-    decision = StageDecision(action="assign", leaf_id=uuid4(), reason=None)
+    """A clean assign routes to "done" regardless of discover_count."""
+    decision = AssignDecision(leaf_id=uuid4())
 
     assert route_after_assign(decision, discover_count=0) == "done"
     assert route_after_assign(decision, discover_count=3) == "done"
@@ -32,7 +36,7 @@ def test_route_after_assign_miss_routes_to_discover_create_while_budget_remains(
     None
 ):
     """A miss routes to discover_create while discover_count is below the cap."""
-    decision = StageDecision(action="defer", reason="nothing fits")
+    decision = DeferDecision(reason="nothing fits")
 
     assert route_after_assign(decision, discover_count=0) == "discover_create"
     assert route_after_assign(decision, discover_count=1) == "discover_create"
@@ -41,24 +45,24 @@ def test_route_after_assign_miss_routes_to_discover_create_while_budget_remains(
 
 def test_route_after_assign_miss_defers_once_discover_budget_exhausted() -> None:
     """A miss defers once discover_count reaches the iteration cap."""
-    decision = StageDecision(action="defer", reason="still nothing fits")
+    decision = DeferDecision(reason="still nothing fits")
 
     assert route_after_assign(decision, discover_count=3) == "defer"
     assert route_after_assign(decision, discover_count=4) == "defer"
 
 
-def test_route_after_assign_assign_action_without_leaf_id_is_a_miss() -> None:
-    """action="assign" with no leaf_id is treated like any other miss."""
-    decision = StageDecision(action="assign", leaf_id=None, reason=None)
+def test_route_after_assign_defer_is_a_miss() -> None:
+    """DeferDecision is treated like any other miss."""
+    decision = DeferDecision(reason="assign response missing leaf_id")
 
     assert route_after_assign(decision, discover_count=0) == "discover_create"
     assert route_after_assign(decision, discover_count=3) == "defer"
 
 
 def test_build_defer_request_from_model_decision_uses_defer_reason_code() -> None:
-    """A StageDecision (model-initiated defer) maps to ReasonCode.DEFER."""
+    """A DeferDecision (model-initiated defer) maps to ReasonCode.DEFER."""
     product = _product()
-    decision = StageDecision(action="defer", reason="nothing in the tree fits")
+    decision = DeferDecision(reason="nothing in the tree fits")
 
     request = build_defer_request(
         product=product,

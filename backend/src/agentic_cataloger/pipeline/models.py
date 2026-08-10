@@ -33,9 +33,8 @@ class SelectRunProductsResult:
 class RejectedCandidate:
     """One existing category the discover stage considered and rejected.
 
-    Required evidence for a create proposal (roadmap 2.6) — unused until
-    ``StageDecision`` grows a ``create`` payload and ``validate_create_proposal``
-    checks it (Phase 3), but the shape is fixed now alongside ``StageDecision``.
+    Required evidence for a create proposal (roadmap 2.6) — checked by
+    ``validate_create_proposal`` on ``CreateDecision``.
     """
 
     category_id: UUID
@@ -43,25 +42,46 @@ class RejectedCandidate:
 
 
 @dataclass(frozen=True, slots=True)
-class StageDecision:
-    """One stage's decision, converted from the LLM's structured output.
+class AssignDecision:
+    """Assign stage chose an existing leaf category."""
 
-    The domain shape the platform's ``response_format`` schema converts
-    into — never constructed directly from raw LLM output outside
-    ``platform/pipeline/agent.py``.
-
-    ``action="create"`` and its payload (parent/names/rejected candidates)
-    belong to the discover stage; the assign stage only ever produces
-    ``"assign"`` (with ``leaf_id`` set) or ``"defer"``.
-    """
-
-    action: Literal["assign", "create", "defer"]
-    leaf_id: UUID | None = None
+    leaf_id: UUID
     reason: str | None = None
-    # Phase 3 create payload — only populated when action="create"
-    parent_id: UUID | None = None
-    names: tuple[str, ...] = ()
-    rejected: tuple[RejectedCandidate, ...] = ()
+
+    @property
+    def action(self) -> Literal["assign"]:
+        """Discriminator for routing and telemetry."""
+        return "assign"
+
+
+@dataclass(frozen=True, slots=True)
+class DeferDecision:
+    """Stage declined to place the product (model-initiated or converted miss)."""
+
+    reason: str | None = None
+
+    @property
+    def action(self) -> Literal["defer"]:
+        """Discriminator for routing and telemetry."""
+        return "defer"
+
+
+@dataclass(frozen=True, slots=True)
+class CreateDecision:
+    """Discover stage proposed a new category path under ``parent_id``."""
+
+    parent_id: UUID
+    names: tuple[str, ...]
+    rejected: tuple[RejectedCandidate, ...]
+    reason: str | None = None
+
+    @property
+    def action(self) -> Literal["create"]:
+        """Discriminator for routing and telemetry."""
+        return "create"
+
+
+StageDecision = AssignDecision | DeferDecision | CreateDecision
 
 
 @dataclass(frozen=True, slots=True)
@@ -79,6 +99,9 @@ class RunSummary:
 
 
 __all__ = [
+    "AssignDecision",
+    "CreateDecision",
+    "DeferDecision",
     "RejectedCandidate",
     "RunProductRef",
     "RunSummary",

@@ -8,6 +8,8 @@ from typing import Literal
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    CreateDecision,
     RunProductRef,
     SelectRunProductsResult,
     StageDecision,
@@ -84,7 +86,7 @@ def route_after_assign(
         discover budget remaining, ``"defer"`` once the discover budget is
         exhausted.
     """
-    if decision.action == "assign" and decision.leaf_id is not None:
+    if isinstance(decision, AssignDecision):
         return "done"
     if discover_count >= _MAX_DISCOVER_ITERATIONS:
         return "defer"
@@ -177,7 +179,7 @@ _MAX_CREATE_LEVELS = 5
 _MAX_DISCOVER_ITERATIONS = 3
 
 
-def validate_create_proposal(decision: StageDecision) -> None:
+def validate_create_proposal(decision: CreateDecision) -> None:
     """Validate a discover stage's create proposal before calling ``create_category``.
 
     A create with no rejected-candidate evidence is refused (roadmap 2.6 —
@@ -187,7 +189,7 @@ def validate_create_proposal(decision: StageDecision) -> None:
     that, defer).
 
     Args:
-        decision: The discover stage's decision (must have action="create").
+        decision: The discover stage's create proposal.
 
     Raises:
         ValueError: When ``rejected`` is empty, ``names`` is empty, or the

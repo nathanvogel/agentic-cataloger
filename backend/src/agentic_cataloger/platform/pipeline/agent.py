@@ -33,6 +33,9 @@ from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
 from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    CreateDecision,
+    DeferDecision,
     RejectedCandidate,
     RunProductRef,
     StageDecision,
@@ -84,6 +87,8 @@ def _assign_decision_from_schema(schema: BaseModel) -> StageDecision:
     # construction time (build_assign_stage_agent pairs the two) — cast
     # rather than assert/isinstance since this is a static, not runtime, fact.
     parsed = cast(_AssignDecisionSchema, schema)
+    if parsed.action == "defer":
+        return DeferDecision(reason=parsed.reason)
     leaf_id: UUID | None = None
     if parsed.leaf_id:
         try:
@@ -92,7 +97,11 @@ def _assign_decision_from_schema(schema: BaseModel) -> StageDecision:
             logger.warning(
                 "Assign stage returned an unparseable leaf_id=%r", parsed.leaf_id
             )
-    return StageDecision(action=parsed.action, leaf_id=leaf_id, reason=parsed.reason)
+    if leaf_id is not None:
+        return AssignDecision(leaf_id=leaf_id, reason=parsed.reason)
+    return DeferDecision(
+        reason=parsed.reason or "assign response missing leaf_id",
+    )
 
 
 def _render_product(product: RunProductRef, context: Mapping[str, object]) -> str:
@@ -203,9 +212,7 @@ class LangChainStageAgent:
                 product.product_id,
                 exc,
             )
-            return StageDecision(
-                action="defer", reason=f"recursion limit exceeded: {exc}"
-            )
+            return DeferDecision(reason=f"recursion limit exceeded: {exc}")
 
         structured = outcome.get("structured_response")
         if structured is None:
@@ -213,9 +220,7 @@ class LangChainStageAgent:
                 "Stage produced no structured response for product_id=%s",
                 product.product_id,
             )
-            return StageDecision(
-                action="defer", reason="model returned no structured response"
-            )
+            return DeferDecision(reason="model returned no structured response")
         return self._to_decision(structured)
 
 
@@ -273,6 +278,9 @@ def _discover_decision_from_schema(schema: BaseModel) -> StageDecision:
         Domain decision; an unparseable ``parent_id`` is treated as absent.
     """
     parsed = cast(_DiscoverDecisionSchema, schema)
+    if parsed.action == "defer":
+        return DeferDecision(reason=parsed.reason)
+
     parent_id: UUID | None = None
     if parsed.parent_id:
         try:
@@ -298,8 +306,12 @@ def _discover_decision_from_schema(schema: BaseModel) -> StageDecision:
             )
     rejected = tuple(valid_rejected)
 
-    return StageDecision(
-        action=parsed.action,
+    if parent_id is None:
+        return DeferDecision(
+            reason=parsed.reason or "create response missing parent_id",
+        )
+
+    return CreateDecision(
         parent_id=parent_id,
         names=tuple(parsed.names),
         rejected=rejected,

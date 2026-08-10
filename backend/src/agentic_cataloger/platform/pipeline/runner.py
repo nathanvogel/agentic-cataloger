@@ -13,7 +13,11 @@ from agentic_cataloger.pipeline.commands import (
     ensure_root_category,
     select_run_products,
 )
-from agentic_cataloger.pipeline.models import RunSummary, SelectRunProductsResult
+from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    RunSummary,
+    SelectRunProductsResult,
+)
 from agentic_cataloger.platform.persistence.catalog_repo import connect_app
 from agentic_cataloger.platform.persistence.pipeline_repo import (
     PsycopgRunProductRepository,
@@ -166,9 +170,7 @@ def run_pipeline(
             assign_decision = outcome.get("assign_decision")
             if (
                 discover_leaf is not None
-                and assign_decision is not None
-                and assign_decision.action == "assign"
-                and assign_decision.leaf_id is not None
+                and isinstance(assign_decision, AssignDecision)
                 and assign_decision.leaf_id != discover_leaf
             ):
                 disagreement_count += 1

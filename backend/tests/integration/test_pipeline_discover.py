@@ -19,7 +19,7 @@ network.  Covers:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -33,6 +33,9 @@ from agentic_cataloger.catalog.identity import SourceIdentity
 from agentic_cataloger.catalog.models import ProductObservation
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    CreateDecision,
+    DeferDecision,
     RejectedCandidate,
     RunProductRef,
     StageDecision,
@@ -63,7 +66,7 @@ from agentic_cataloger.taxonomy.commands import CreateCategoryRequest, create_ca
 class _FakeStageAgent:
     """Scripted stub — returns canned StageDecisions without network calls."""
 
-    def __init__(self, decisions: list[StageDecision]) -> None:
+    def __init__(self, decisions: Sequence[StageDecision]) -> None:
         super().__init__()
         self._decisions = iter(decisions)
 
@@ -208,8 +211,7 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
         # it) — the assign second-pass fake will capture it from context.
 
         discover_decisions = [
-            StageDecision(
-                action="create",
+            CreateDecision(
                 parent_id=root_id,
                 names=("Dairy-Branch", "Full-fat Milk"),
                 rejected=(_rejected(existing_leaf_id, f"Existing-cat-{tag}"),),
@@ -234,15 +236,13 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
             ) -> StageDecision:
                 self._call_count += 1
                 if self._call_count == 1:
-                    return StageDecision(
-                        action="defer", reason="nothing fits (first pass)"
-                    )
+                    return DeferDecision(reason="nothing fits (first pass)")
                 # Second pass: accept the discover-created leaf id from context
                 suggested = context.get("suggested_leaf_id")
                 assert suggested is not None, (
                     "second pass must receive suggested_leaf_id"
                 )
-                return StageDecision(action="assign", leaf_id=UUID(str(suggested)))
+                return AssignDecision(leaf_id=UUID(str(suggested)))
 
         outcome = _run_graph(
             conn,
@@ -306,8 +306,7 @@ def test_discover_iteration_cap_produces_at_most_three_discover_calls(
         ) -> StageDecision:
             """Return a create decision and increment the call counter."""
             self.call_count += 1
-            return StageDecision(
-                action="create",
+            return CreateDecision(
                 parent_id=root_id,
                 names=(f"PingPong-Branch-{self.call_count}-{tag}",),
                 rejected=(_rejected(existing_leaf_id, f"Leaf-{tag}"),),
@@ -321,10 +320,10 @@ def test_discover_iteration_cap_produces_at_most_three_discover_calls(
             product_id=pid,
             assign_agent=_FakeStageAgent(
                 [
-                    StageDecision(action="defer", reason="nothing fits pass 1"),
-                    StageDecision(action="defer", reason="nothing fits pass 2"),
-                    StageDecision(action="defer", reason="nothing fits pass 3"),
-                    StageDecision(action="defer", reason="nothing fits pass 4"),
+                    DeferDecision(reason="nothing fits pass 1"),
+                    DeferDecision(reason="nothing fits pass 2"),
+                    DeferDecision(reason="nothing fits pass 3"),
+                    DeferDecision(reason="nothing fits pass 4"),
                 ]
             ),
             discover_agent=counting_agent,
@@ -363,28 +362,23 @@ def test_empty_rejected_proposal_defers_without_calling_create_category(
         _run_graph(
             conn,
             product_id=pid,
-            assign_agent=_FakeStageAgent(
-                [StageDecision(action="defer", reason="nothing fits")]
-            ),
+            assign_agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
             discover_agent=_FakeStageAgent(
                 [
                     # Empty rejected list — validate_create_proposal will reject this.
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=("ShouldNotBeCreated",),
                         rejected=(),  # ← no evidence
                     ),
                     # RetryPolicy will retry discover; we return invalid again.
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=("ShouldNotBeCreated",),
                         rejected=(),
                     ),
                     # Third attempt — also invalid, retry exhausted → defer.
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=("ShouldNotBeCreated",),
                         rejected=(),
@@ -427,14 +421,11 @@ def test_six_level_proposal_defers_without_calling_create_category(
         _run_graph(
             conn,
             product_id=pid,
-            assign_agent=_FakeStageAgent(
-                [StageDecision(action="defer", reason="nothing fits")]
-            ),
+            assign_agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
             discover_agent=_FakeStageAgent(
                 [
                     # 6 levels — should be rejected by validate_create_proposal on all retries
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=(
                             "Level1",
@@ -446,8 +437,7 @@ def test_six_level_proposal_defers_without_calling_create_category(
                         ),
                         rejected=(_rejected(leaf_id, f"ExistingLeaf-{tag}"),),
                     ),
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=(
                             "Level1",
@@ -459,8 +449,7 @@ def test_six_level_proposal_defers_without_calling_create_category(
                         ),
                         rejected=(_rejected(leaf_id, f"ExistingLeaf-{tag}"),),
                     ),
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=(
                             "Level1",
@@ -521,9 +510,9 @@ def test_assign_second_pass_disagrees_with_discover_increments_disagreement_coun
         ) -> StageDecision:
             self._call += 1
             if self._call == 1:
-                return StageDecision(action="defer", reason="first pass miss")
+                return DeferDecision(reason="first pass miss")
             # Second pass: choose the EXISTING leaf, not the one discover created.
-            return StageDecision(action="assign", leaf_id=existing_leaf_id)
+            return AssignDecision(leaf_id=existing_leaf_id)
 
     assign_agent_instance = _TwoPassAssignAgent()
 
@@ -536,8 +525,7 @@ def test_assign_second_pass_disagrees_with_discover_increments_disagreement_coun
             assign_agent=assign_agent_instance,
             discover_agent=_FakeStageAgent(
                 [
-                    StageDecision(
-                        action="create",
+                    CreateDecision(
                         parent_id=root_id,
                         names=(f"DiscoLeaf-{tag}",),
                         rejected=(_rejected(existing_leaf_id, f"ExistingLeaf-{tag}"),),
@@ -561,6 +549,7 @@ def test_assign_second_pass_disagrees_with_discover_increments_disagreement_coun
     # But chosen leaf ≠ discover leaf → disagreement.
     assign_decision = outcome.get("assign_decision")
     assert assign_decision is not None
+    assert isinstance(assign_decision, AssignDecision)
     assert assign_decision.leaf_id == existing_leaf_id
     assert assign_decision.leaf_id != discover_leaf
 

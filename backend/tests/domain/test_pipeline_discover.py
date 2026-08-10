@@ -23,7 +23,7 @@ from agentic_cataloger.pipeline.commands import (
     ensure_root_category,
     validate_create_proposal,
 )
-from agentic_cataloger.pipeline.models import RejectedCandidate, StageDecision
+from agentic_cataloger.pipeline.models import CreateDecision, RejectedCandidate
 from agentic_cataloger.taxonomy.models import Category, CategoryMatch, Membership
 
 # ---------------------------------------------------------------------------
@@ -181,8 +181,7 @@ def _rejected(n: int = 1) -> tuple[RejectedCandidate, ...]:
 
 def test_validate_create_proposal_rejects_empty_rejected() -> None:
     """A create decision with no rejected candidates raises ValueError."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=("Dairy",),
         rejected=(),
@@ -194,8 +193,7 @@ def test_validate_create_proposal_rejects_empty_rejected() -> None:
 
 def test_validate_create_proposal_rejects_empty_names() -> None:
     """A create decision with no names raises ValueError."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=(),
         rejected=_rejected(1),
@@ -207,8 +205,7 @@ def test_validate_create_proposal_rejects_empty_names() -> None:
 
 def test_validate_create_proposal_rejects_path_longer_than_5() -> None:
     """A create path deeper than 5 levels raises ValueError."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=("Level1", "Level2", "Level3", "Level4", "Level5", "Level6"),
         rejected=_rejected(1),
@@ -220,8 +217,7 @@ def test_validate_create_proposal_rejects_path_longer_than_5() -> None:
 
 def test_validate_create_proposal_accepts_single_level() -> None:
     """A valid single-level proposal passes without raising."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=("New Leaf",),
         rejected=_rejected(1),
@@ -232,8 +228,7 @@ def test_validate_create_proposal_accepts_single_level() -> None:
 
 def test_validate_create_proposal_accepts_two_levels() -> None:
     """A valid two-level proposal passes without raising."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=("New Branch", "New Leaf"),
         rejected=_rejected(2),
@@ -244,8 +239,7 @@ def test_validate_create_proposal_accepts_two_levels() -> None:
 
 def test_validate_create_proposal_accepts_five_levels() -> None:
     """A valid five-level proposal passes without raising."""
-    decision = StageDecision(
-        action="create",
+    decision = CreateDecision(
         parent_id=uuid4(),
         names=(
             "New Branch",

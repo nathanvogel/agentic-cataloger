@@ -11,7 +11,7 @@ graph, no network.  Covers:
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -25,7 +25,12 @@ from agentic_cataloger.catalog.identity import SourceIdentity
 from agentic_cataloger.catalog.models import ProductObservation
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.commands import ensure_root_category
-from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.pipeline.models import (
+    AssignDecision,
+    DeferDecision,
+    RunProductRef,
+    StageDecision,
+)
 from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     PsycopgSnapshotRepository,
@@ -51,7 +56,7 @@ from agentic_cataloger.taxonomy.commands import (
 class _FakeStageAgent:
     """Scripted stub — returns canned StageDecisions, never touches the network."""
 
-    def __init__(self, decisions: list[StageDecision]) -> None:
+    def __init__(self, decisions: Sequence[StageDecision]) -> None:
         super().__init__()
         self._decisions = iter(decisions)
 
@@ -82,7 +87,7 @@ class _RecursionAgent:
     ) -> StageDecision:
         # Simulates what LangChainStageAgent returns after catching
         # GraphRecursionError from its internal create_agent loop.
-        return StageDecision(action="defer", reason="recursion limit exceeded")
+        return DeferDecision(reason="recursion limit exceeded")
 
 
 def _seed_product(conn: psycopg.Connection[Any], *, product_id_str: str) -> UUID:
@@ -146,7 +151,7 @@ class _AlwaysDeferAgent:
         context: Any,
     ) -> StageDecision:
         """Return a defer decision."""
-        return StageDecision(action="defer", reason="stub discover agent")
+        return DeferDecision(reason="stub discover agent")
 
 
 def _run_graph(
@@ -196,9 +201,7 @@ def test_assign_success_writes_membership_and_returns_success(
         pid = _seed_product(conn, product_id_str=f"pa-success-{uuid4().hex[:8]}")
         _, leaf_id = _seed_tree(conn)
 
-        agent = _FakeStageAgent(
-            [StageDecision(action="assign", leaf_id=leaf_id, reason=None)]
-        )
+        agent = _FakeStageAgent([AssignDecision(leaf_id=leaf_id)])
         outcome = _run_graph(conn, product_id=pid, agent=agent)
 
         result = outcome["assign"]
@@ -225,9 +228,7 @@ def test_assign_miss_defers_and_writes_deferred_item(
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-miss-{uuid4().hex[:8]}")
 
-        agent = _FakeStageAgent(
-            [StageDecision(action="defer", reason="nothing in tree fits")]
-        )
+        agent = _FakeStageAgent([DeferDecision(reason="nothing in tree fits")])
         outcome = _run_graph(conn, product_id=pid, agent=agent)
 
         result = outcome["assign"]
