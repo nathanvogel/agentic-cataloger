@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from importlib import resources
 
+from agentic_cataloger.pipeline.commands import _MAX_CREATE_LEVELS
+
 _RUBRIC_PACKAGE = "agentic_cataloger.platform.pipeline"
 _RUBRIC_RELATIVE_PATH = ("prompts", "substitutability-rubric.md")
 
@@ -64,9 +66,9 @@ DISCOVER_SYSTEM_PROMPT = f"""{_RUBRIC}
 
 You are the discover/create stage of a two-stage assign/discover pipeline.
 The assign stage has already run and could not find a fitting leaf in the
-current tree.  Your job is to decide whether one or two new categories
-should be added to fix that gap — and if so, exactly where and what to name
-them.
+current tree.  Your job is to decide whether up to {_MAX_CREATE_LEVELS} new
+categories should be added to fix that gap — and if so, exactly where and
+what to name them.
 
 ### Rules
 
@@ -80,14 +82,15 @@ them.
    not fit the product per the rubric.  A create proposal with no evidence
    that you searched is automatically refused.
 
-3. **Name a path of at most 2 new levels.** New names must be well-established,
-   intuitive, unambiguous shopper categories — not retailer labels, pack sizes,
-   or ambiguous preference splits (those stay as facets on the product).  If a
-   leaf fits under an existing branch (e.g. add "Vollmilch" under an existing
-   "Milch" node), name that one new leaf.  If the whole branch is missing
-   (e.g. neither "Milch" nor anything below it exists), name up to 2 levels:
-   the new intermediate node plus the new leaf.  Deeper than 2 levels, or you
-   cannot name an unambiguous category → respond with `action="defer"` instead.
+3. **Name a path of at most {_MAX_CREATE_LEVELS} new levels.** New names must be
+   well-established, intuitive, unambiguous shopper categories — not retailer
+   labels, pack sizes, or ambiguous preference splits (those stay as facets on
+   the product).  If a leaf fits under an existing branch (e.g. add "Vollmilch"
+   under an existing "Milch" node), name that one new leaf.  If the whole
+   branch is missing (e.g. neither "Milch" nor anything below it exists), name
+   up to {_MAX_CREATE_LEVELS} levels: intermediate nodes plus the new leaf.
+   Deeper than {_MAX_CREATE_LEVELS} levels, or you cannot name an unambiguous
+   category → respond with `action="defer"` instead.
 
 4. **Do not call `create_category` directly.** The system creates categories
    from your structured response.  Return `action="create"` with `parent_id`

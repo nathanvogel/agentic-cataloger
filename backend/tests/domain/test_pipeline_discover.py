@@ -4,10 +4,11 @@ Uses in-memory fakes only — no DB, no LLM.  Covers:
 - ensure_root_category skips the write when a root already exists.
 - ensure_root_category creates "All products" when no root is present.
 - validate_create_proposal rejects an empty rejected list.
-- validate_create_proposal rejects a path longer than 2 levels.
+- validate_create_proposal rejects a path longer than 5 levels.
 - validate_create_proposal rejects an empty names list.
 - validate_create_proposal accepts a valid single-level proposal.
 - validate_create_proposal accepts a valid two-level proposal.
+- validate_create_proposal accepts a valid five-level proposal.
 """
 
 from __future__ import annotations
@@ -204,16 +205,16 @@ def test_validate_create_proposal_rejects_empty_names() -> None:
         validate_create_proposal(decision)
 
 
-def test_validate_create_proposal_rejects_path_longer_than_2() -> None:
-    """A create path deeper than 2 levels raises ValueError."""
+def test_validate_create_proposal_rejects_path_longer_than_5() -> None:
+    """A create path deeper than 5 levels raises ValueError."""
     decision = StageDecision(
         action="create",
         parent_id=uuid4(),
-        names=("Level1", "Level2", "Level3"),
+        names=("Level1", "Level2", "Level3", "Level4", "Level5", "Level6"),
         rejected=_rejected(1),
     )
 
-    with pytest.raises(ValueError, match="2 levels"):
+    with pytest.raises(ValueError, match="5 levels"):
         validate_create_proposal(decision)
 
 
@@ -235,6 +236,24 @@ def test_validate_create_proposal_accepts_two_levels() -> None:
         action="create",
         parent_id=uuid4(),
         names=("New Branch", "New Leaf"),
+        rejected=_rejected(2),
+    )
+
+    validate_create_proposal(decision)  # should not raise
+
+
+def test_validate_create_proposal_accepts_five_levels() -> None:
+    """A valid five-level proposal passes without raising."""
+    decision = StageDecision(
+        action="create",
+        parent_id=uuid4(),
+        names=(
+            "New Branch",
+            "New Sub-branch",
+            "New Sub-sub-branch",
+            "New Sub-sub-sub-branch",
+            "New Leaf",
+        ),
         rejected=_rejected(2),
     )
 

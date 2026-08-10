@@ -10,7 +10,7 @@ network.  Covers:
 3. Invalid proposal (empty rejected): discover returns create with no
    rejected candidates → invalid → retried → deferred, create_category never
    called.
-4. Path-too-deep proposal (3 levels): discover returns 3-level names list →
+4. Path-too-deep proposal (6 levels): discover returns 6-level names list →
    deferred without calling create_category.
 5. Assign second pass picks a different leaf than discover created →
    disagreement_count == 1 in the run summary, and the created leaf ends
@@ -409,11 +409,11 @@ def test_empty_rejected_proposal_defers_without_calling_create_category(
 
 
 @pytest.mark.integration
-def test_three_level_proposal_defers_without_calling_create_category(
+def test_six_level_proposal_defers_without_calling_create_category(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
-    """A 3-level names list in the create proposal defers without calling create_category."""
+    """A 6-level names list in the create proposal defers without calling create_category."""
     tag = uuid4().hex[:8]
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, tag=f"disc-deep-{tag}")
@@ -432,23 +432,44 @@ def test_three_level_proposal_defers_without_calling_create_category(
             ),
             discover_agent=_FakeStageAgent(
                 [
-                    # 3 levels — should be rejected by validate_create_proposal on all retries
+                    # 6 levels — should be rejected by validate_create_proposal on all retries
                     StageDecision(
                         action="create",
                         parent_id=root_id,
-                        names=("Level1", "Level2", "Level3"),
+                        names=(
+                            "Level1",
+                            "Level2",
+                            "Level3",
+                            "Level4",
+                            "Level5",
+                            "Level6",
+                        ),
                         rejected=(_rejected(leaf_id, f"ExistingLeaf-{tag}"),),
                     ),
                     StageDecision(
                         action="create",
                         parent_id=root_id,
-                        names=("Level1", "Level2", "Level3"),
+                        names=(
+                            "Level1",
+                            "Level2",
+                            "Level3",
+                            "Level4",
+                            "Level5",
+                            "Level6",
+                        ),
                         rejected=(_rejected(leaf_id, f"ExistingLeaf-{tag}"),),
                     ),
                     StageDecision(
                         action="create",
                         parent_id=root_id,
-                        names=("Level1", "Level2", "Level3"),
+                        names=(
+                            "Level1",
+                            "Level2",
+                            "Level3",
+                            "Level4",
+                            "Level5",
+                            "Level6",
+                        ),
                         rejected=(_rejected(leaf_id, f"ExistingLeaf-{tag}"),),
                     ),
                 ]

@@ -169,7 +169,7 @@ def ensure_root_category(
     )
 
 
-_MAX_CREATE_LEVELS = 2
+_MAX_CREATE_LEVELS = 5
 
 
 def validate_create_proposal(decision: StageDecision) -> None:
@@ -178,8 +178,8 @@ def validate_create_proposal(decision: StageDecision) -> None:
     A create with no rejected-candidate evidence is refused (roadmap 2.6 —
     enforced in the node, not only in the prompt). A path longer than
     ``_MAX_CREATE_LEVELS`` is also refused to keep the tree shallow and bounded
-    (design discussion: "Cap: 2 new levels (parent + leaf); deeper than that,
-    defer").
+    (design discussion: cap new levels at ``_MAX_CREATE_LEVELS``; deeper than
+    that, defer).
 
     Args:
         decision: The discover stage's decision (must have action="create").
