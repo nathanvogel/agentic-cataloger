@@ -1,8 +1,7 @@
 """Graph nodes for the per-product pipeline StateGraph.
 
-``assign_node`` calls the bound ``StageAgent``, wraps the call in a
-non-LLM-kind ``pipeline.stage`` span, and — on a clean assign — writes the
-membership itself through the live connection's repositories (an
+``assign_node`` calls the bound ``StageAgent`` and — on a clean assign —
+writes the membership itself through the live connection's repositories (an
 invariant-enforced-twice pattern already used elsewhere: the tool the model
 calls can write the same row, but the node is the guaranteed, idempotent
 write site). ``discover_node`` validates the create proposal and loops
@@ -93,37 +92,6 @@ class StageDeps:
     discover_agent: StageAgent
 
 
-def _decide(
-    runtime: Runtime[StageDeps],
-    product: RunProductRef,
-    *,
-    agent: StageAgent,
-    stage: StageKind,
-    context: dict[str, object] | None = None,
-) -> StageDecision:
-    """Call a stage agent inside one non-LLM-kind ``pipeline.stage`` span.
-
-    Args:
-        runtime: Node runtime carrying ``StageDeps``.
-        product: Product this stage attempt is deciding about.
-        agent: Stage-specific agent (assign or discover).
-        stage: Stage kind, recorded on the span attribute.
-        context: Extra prompt context (e.g. a discover-created candidate
-            leaf on the assign second pass); empty when not provided.
-
-    Returns:
-        The stage's decision.
-    """
-    handle = runtime.context.telemetry.start_span(
-        "pipeline.stage",
-        attributes={"pipeline.stage.kind": str(stage)},
-    )
-    try:
-        return agent.decide(product=product, context=context or {})
-    finally:
-        handle.end()
-
-
 def _write_assignment(
     conn: psycopg.Connection[Any],
     *,
@@ -173,11 +141,8 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
             "Consider it alongside your own search, but choose independently."
         )
 
-    decision = _decide(
-        runtime,
-        state["product"],
-        agent=runtime.context.stage_agent,
-        stage=StageKind.ASSIGN,
+    decision = runtime.context.stage_agent.decide(
+        product=state["product"],
         context=context,
     )
     attempt = runtime.execution_info.node_attempt if runtime.execution_info else 1
@@ -197,18 +162,6 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
             updates["assign_error"] = exc
         else:
             status = "success"
-            # Track discover ↔ assign agreement on the second pass.
-            if discover_leaf is not None:
-                agreed = decision.leaf_id == discover_leaf
-                chosen_leaf_id = decision.leaf_id
-                span = runtime.context.telemetry.start_span(
-                    "pipeline.assign",
-                    attributes={
-                        "pipeline.assign.agreed_with_discover": agreed,
-                        "pipeline.assign.chosen_leaf_id": str(chosen_leaf_id),
-                    },
-                )
-                span.end()
     elif decision.action == "defer":
         status = "defer"
     else:
@@ -266,11 +219,9 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         ``discover_decision``, ``discover`` (the stage result), and
         ``discover_leaf`` (UUID of the created leaf, when creation succeeds).
     """
-    decision = _decide(
-        runtime,
-        state["product"],
-        agent=runtime.context.discover_agent,
-        stage=StageKind.DISCOVER_CREATE,
+    decision = runtime.context.discover_agent.decide(
+        product=state["product"],
+        context={},
     )
     attempt = runtime.execution_info.node_attempt if runtime.execution_info else 1
     updates: dict[str, Any] = {
@@ -360,11 +311,6 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
 
     if leaf_id is not None:
         updates["discover_leaf"] = leaf_id
-        span = runtime.context.telemetry.start_span(
-            "pipeline.discover",
-            attributes={"pipeline.discover.created_leaf_id": str(leaf_id)},
-        )
-        span.end()
 
     updates["discover"] = StageResult(
         run_id=state["run_id"],

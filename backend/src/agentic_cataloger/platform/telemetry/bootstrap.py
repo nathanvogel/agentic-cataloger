@@ -84,8 +84,8 @@ def configure_telemetry() -> Telemetry:
         batch=False,
         # Wires openinference-instrumentation-langchain so pipeline stage
         # LLM calls (create_agent's ChatOpenAI) get their own OpenInference
-        # spans automatically, nested under the hand-rolled pipeline.stage
-        # span. This is a *global* flag (patches
+        # spans automatically under the product LangGraph tree. This is a
+        # *global* flag (patches
         # langchain_core.callbacks.BaseCallbackManager.__init__), so it also
         # starts auto-instrumenting complete_openrouter's ChatOpenAI call
         # (telemetry smoke) — that path now emits both the hand-rolled leaf
