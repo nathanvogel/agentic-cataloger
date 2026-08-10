@@ -29,6 +29,13 @@ class, keep one leaf and represent it as a **facet** on the product
 encodes that split as separate leaves. Do not invent a leaf just to hold an
 organic or variety distinction.
 
+**Category names are English only.** Every taxonomy name (parents and leaves)
+must be English — e.g. "Whole milk", "Cheese", "Salad cheese" — even when the
+catalog product title or retailer labels are German (or another language).
+Translate the shopper concept; do not copy German product wording into the
+tree. Product titles in the few-shots below are source data; they are not
+category names.
+
 **Not** criteria for membership:
 
 - Same retailer `source_category` or import label

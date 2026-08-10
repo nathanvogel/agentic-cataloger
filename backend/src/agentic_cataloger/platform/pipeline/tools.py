@@ -92,14 +92,16 @@ def build_assign_tools(pool: ConnectionPool) -> list[BaseTool]:
     def _search_categories(query: str, limit: int = 20) -> str:
         """Fuzzy-search the substitutability category tree by category name.
 
-        Typo-tolerant and ranked by similarity, not exact/substring matching
-        — close variants and misspellings still surface. Returns up to
-        `limit` ranked matches (default 20, max 40); each match includes its
-        parent name, leaf/non-leaf status, and up to 50 immediate children
-        (useful when a match is a branch, since assignment always targets a
-        leaf). Never returns the full tree or a subtree — prefer multiple
-        calls in one turn with different queries, or use
-        get_category_children to go deeper, instead of raising `limit`.
+        Category names in the tree are English only — pass English search
+        queries (translate German product wording). Typo-tolerant and ranked
+        by similarity, not exact/substring matching — close variants and
+        misspellings still surface. Returns up to `limit` ranked matches
+        (default 20, max 40); each match includes its parent name,
+        leaf/non-leaf status, and up to 50 immediate children (useful when a
+        match is a branch, since assignment always targets a leaf). Never
+        returns the full tree or a subtree — prefer multiple calls in one
+        turn with different queries, or use get_category_children to go
+        deeper, instead of raising `limit`.
 
         Returns:
             One formatted block per match (name, id, parent, leaf status,
@@ -197,13 +199,15 @@ def build_discover_tools(pool: ConnectionPool) -> list[BaseTool]:
     def _search_categories(query: str, limit: int = 20) -> str:
         """Fuzzy-search the substitutability category tree by category name.
 
-        Typo-tolerant and ranked by similarity, not exact/substring matching
-        — close variants and misspellings still surface. Returns up to
-        `limit` ranked matches (default 20, max 40); each match includes its
-        parent name, leaf/non-leaf status, and up to 50 immediate children.
-        Never returns the full tree or a subtree — prefer multiple calls in
-        one turn with different queries, or use get_category_children to go
-        deeper, instead of raising `limit`.
+        Category names in the tree are English only — pass English search
+        queries (translate German product wording). Typo-tolerant and ranked
+        by similarity, not exact/substring matching — close variants and
+        misspellings still surface. Returns up to `limit` ranked matches
+        (default 20, max 40); each match includes its parent name,
+        leaf/non-leaf status, and up to 50 immediate children. Never returns
+        the full tree or a subtree — prefer multiple calls in one turn with
+        different queries, or use get_category_children to go deeper, instead
+        of raising `limit`.
 
         Returns:
             One formatted block per match (name, id, parent, leaf status,
@@ -249,11 +253,12 @@ def build_discover_tools(pool: ConnectionPool) -> list[BaseTool]:
     def _create_category(name: str, parent_id: str) -> str:
         """Create one new category under an existing parent.
 
-        Only call this to explore whether a name slot is available. To
-        actually create the category path for this product, return
-        action="create" with parent_id and names in your structured response
-        — the system creates the categories from your proposal, and calling
-        this tool directly will result in a duplicate.
+        `name` must be English only (translate German product wording). Only
+        call this to explore whether a name slot is available. To actually
+        create the category path for this product, return action="create"
+        with parent_id and English names in your structured response — the
+        system creates the categories from your proposal, and calling this
+        tool directly will result in a duplicate.
 
         Returns:
             "created {name} [{id}]", or an error line explaining why not

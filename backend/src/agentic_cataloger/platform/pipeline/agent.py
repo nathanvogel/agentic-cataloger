@@ -30,7 +30,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.errors import GraphRecursionError
 from psycopg_pool import ConnectionPool
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.pipeline.models import (
@@ -251,7 +251,7 @@ class _RejectedCandidateSchema(BaseModel):
     """One category the discover stage considered and rejected."""
 
     category_id: str
-    name: str
+    name: str = Field(description="English category name as stored in the tree.")
 
 
 class _DiscoverDecisionSchema(BaseModel):
@@ -264,7 +264,13 @@ class _DiscoverDecisionSchema(BaseModel):
 
     action: Literal["create", "defer"]
     parent_id: str | None = None
-    names: list[str] = []
+    names: list[str] = Field(
+        default_factory=list,
+        description=(
+            "New category path in English only (outermost first). "
+            "Never German product wording."
+        ),
+    )
     rejected: list[_RejectedCandidateSchema] = []
     reason: str | None = None
 
