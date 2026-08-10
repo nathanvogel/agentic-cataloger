@@ -88,13 +88,13 @@ class StageDeps:
 
     ``conn`` is scoped to one product (opened and closed by the runner's
     per-product loop) — every node in one graph invocation shares it.
-    ``stage_agent`` is the assign stage; ``discover_agent`` is the
+    ``assign_agent`` is the assign stage; ``discover_agent`` is the
     discover/create stage.
     """
 
     conn: psycopg.Connection[Any]
     telemetry: Telemetry
-    stage_agent: StageAgent
+    assign_agent: StageAgent
     discover_agent: StageAgent
 
 
@@ -147,7 +147,7 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
             "Consider it alongside your own search, but choose independently."
         )
 
-    decision = runtime.context.stage_agent.decide(
+    decision = runtime.context.assign_agent.decide(
         product=state["product"],
         context=context,
     )

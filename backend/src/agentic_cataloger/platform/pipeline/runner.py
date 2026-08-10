@@ -112,7 +112,7 @@ def _invoke_product_graph(
                 context=StageDeps(
                     conn=conn,
                     telemetry=telemetry,
-                    stage_agent=build_assign_stage_agent(conn),
+                    assign_agent=build_assign_stage_agent(conn),
                     discover_agent=build_discover_stage_agent(conn),
                 ),
             )

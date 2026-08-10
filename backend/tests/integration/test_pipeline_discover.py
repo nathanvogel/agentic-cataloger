@@ -188,7 +188,7 @@ def _run_graph(
             context=StageDeps(
                 conn=conn,
                 telemetry=telemetry,
-                stage_agent=assign_agent,
+                assign_agent=assign_agent,
                 discover_agent=discover_agent,
             ),
         )
