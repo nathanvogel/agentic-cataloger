@@ -11,17 +11,19 @@ depends_on = None
 
 
 def upgrade() -> None:
+    # Drop the old check first — updating to 'discover' while
+    # CHECK (stage IN ('discover_create', 'assign')) still applies fails.
+    op.execute(
+        """
+        ALTER TABLE deferred_items
+        DROP CONSTRAINT deferred_items_stage_chk
+        """
+    )
     op.execute(
         """
         UPDATE deferred_items
         SET stage = 'discover'
         WHERE stage = 'discover_create'
-        """
-    )
-    op.execute(
-        """
-        ALTER TABLE deferred_items
-        DROP CONSTRAINT deferred_items_stage_chk
         """
     )
     op.execute(
@@ -36,15 +38,15 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute(
         """
-        UPDATE deferred_items
-        SET stage = 'discover_create'
-        WHERE stage = 'discover'
+        ALTER TABLE deferred_items
+        DROP CONSTRAINT deferred_items_stage_chk
         """
     )
     op.execute(
         """
-        ALTER TABLE deferred_items
-        DROP CONSTRAINT deferred_items_stage_chk
+        UPDATE deferred_items
+        SET stage = 'discover_create'
+        WHERE stage = 'discover'
         """
     )
     op.execute(
