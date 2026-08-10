@@ -33,6 +33,7 @@
     "contextlib",
     "CREATEDB",
     "Cutover",
+    "dataclasses",
     "datname",
     "delenv",
     "delists",
