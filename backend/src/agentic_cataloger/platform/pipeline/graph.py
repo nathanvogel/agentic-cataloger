@@ -1,16 +1,16 @@
-"""Per-product LangGraph StateGraph: assign, discover_create, and defer nodes.
+"""Per-product LangGraph StateGraph: assign, discover, and defer nodes.
 
 Graph shape (from the design discussion diagram):
 
     __start__ → assign
-    assign → END              (clean assign)
-    assign → discover_create  (miss with discover budget remaining)
-    assign → defer            (miss after discover budget exhausted)
-    discover_create → assign  (created a leaf, re-prompt assign fresh)
-    discover_create → defer   (invalid proposal, cap exceeded, or model defer)
+    assign → END       (clean assign)
+    assign → discover  (miss with discover budget remaining)
+    assign → defer     (miss after discover budget exhausted)
+    discover → assign  (created a leaf, re-prompt assign fresh)
+    discover → defer   (invalid proposal, cap exceeded, or model defer)
     defer → END
 
-Both ``assign`` and ``discover_create`` carry ``RetryPolicy(max_attempts=3)``
+Both ``assign`` and ``discover`` carry ``RetryPolicy(max_attempts=3)``
 so a flaky LLM call retries at the node level before escalating to defer.
 
 Compiled without a checkpointer: no resume path exists yet, and the
@@ -44,22 +44,20 @@ def build_stage_graph() -> CompiledStateGraph[Any, Any, Any, Any]:
     """Compile the per-product stage graph.
 
     Returns:
-        Compiled graph with the full assign → discover_create → assign
+        Compiled graph with the full assign → discover → assign
         loop and ping-pong guard (``discover_count`` in state caps discover
         at three iterations per product).
     """
     builder = StateGraph(RunState, context_schema=StageDeps)
 
     builder.add_node("assign", assign_node, retry_policy=ASSIGN_RETRY_POLICY)
-    builder.add_node(
-        "discover_create", discover_node, retry_policy=DISCOVER_RETRY_POLICY
-    )
+    builder.add_node("discover", discover_node, retry_policy=DISCOVER_RETRY_POLICY)
     builder.add_node("defer", defer_node)
 
     builder.add_edge("__start__", "assign")
 
     builder.add_conditional_edges("assign", route_after_assign)
-    builder.add_conditional_edges("discover_create", route_after_discover)
+    builder.add_conditional_edges("discover", route_after_discover)
     builder.add_edge("defer", END)
 
     return builder.compile()

@@ -200,7 +200,7 @@ def route_after_assign(state: RunState) -> str:
 
     Returns:
         Node name to run next: ``END`` on a clean assign, otherwise
-        ``"discover_create"`` or ``"defer"``.
+        ``"discover"`` or ``"defer"``.
     """
     outcome = _route_after_assign(
         cast(StageDecision, state.get("assign_decision")),
@@ -239,7 +239,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
     if isinstance(decision, DeferDecision):
         updates["discover"] = StageResult(
             run_id=state["run_id"],
-            stage=StageKind.DISCOVER_CREATE,
+            stage=StageKind.DISCOVER,
             attempt=attempt,
             status="defer",
             reason=decision.reason,
@@ -253,7 +253,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         updates["discover_decision"] = DeferDecision(reason=exc_msg)
         updates["discover"] = StageResult(
             run_id=state["run_id"],
-            stage=StageKind.DISCOVER_CREATE,
+            stage=StageKind.DISCOVER,
             attempt=attempt,
             status="invalid",
             reason=exc_msg,
@@ -273,7 +273,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         updates["discover_error"] = exc
         updates["discover"] = StageResult(
             run_id=state["run_id"],
-            stage=StageKind.DISCOVER_CREATE,
+            stage=StageKind.DISCOVER,
             attempt=attempt,
             status="invalid",
             reason=str(exc),
@@ -309,7 +309,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         updates["discover_error"] = exc
         updates["discover"] = StageResult(
             run_id=state["run_id"],
-            stage=StageKind.DISCOVER_CREATE,
+            stage=StageKind.DISCOVER,
             attempt=attempt,
             status="invalid",
             reason=str(exc),
@@ -321,7 +321,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
 
     updates["discover"] = StageResult(
         run_id=state["run_id"],
-        stage=StageKind.DISCOVER_CREATE,
+        stage=StageKind.DISCOVER,
         attempt=attempt,
         status="success",
     )
@@ -329,7 +329,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
 
 
 def route_after_discover(state: RunState) -> str:
-    """Conditional-edge function: route after the discover_create node.
+    """Conditional-edge function: route after the discover node.
 
     Args:
         state: Current graph state (``discover`` and ``discover_decision``
@@ -362,8 +362,8 @@ def defer_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
     """
     discover_result = cast(StageResult | None, state.get("discover"))
     if discover_result is not None and discover_result.status != "success":
-        # Discover stage deferred or failed — attribute to DISCOVER_CREATE.
-        stage = StageKind.DISCOVER_CREATE
+        # Discover stage deferred or failed — attribute to DISCOVER.
+        stage = StageKind.DISCOVER
         decision_or_error: StageDecision | Exception = state.get(
             "discover_error"
         ) or cast(StageDecision, state.get("discover_decision"))

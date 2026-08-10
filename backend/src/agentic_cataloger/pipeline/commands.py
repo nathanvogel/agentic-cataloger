@@ -64,13 +64,13 @@ def route_after_assign(
     decision: StageDecision,
     *,
     discover_count: int,
-) -> Literal["done", "discover_create", "defer"]:
+) -> Literal["done", "discover", "defer"]:
     """Decide where the graph goes after an assign-stage decision.
 
     This is the checkable half of roadmap 2.6 ("prefer matching an existing
     category before creating") and the defer contract: any decision that
     isn't a clean ``action="assign"`` with a ``leaf_id`` is a miss, and a
-    miss reaches ``discover_create`` only while ``discover_count`` is below
+    miss reaches ``discover`` only while ``discover_count`` is below
     ``_MAX_DISCOVER_ITERATIONS``; further misses defer instead of
     ping-ponging.
 
@@ -82,7 +82,7 @@ def route_after_assign(
             this product in this graph invocation.
 
     Returns:
-        ``"done"`` on a clean assign, ``"discover_create"`` on a miss with
+        ``"done"`` on a clean assign, ``"discover"`` on a miss with
         discover budget remaining, ``"defer"`` once the discover budget is
         exhausted.
     """
@@ -90,7 +90,7 @@ def route_after_assign(
         return "done"
     if discover_count >= _MAX_DISCOVER_ITERATIONS:
         return "defer"
-    return "discover_create"
+    return "discover"
 
 
 def build_defer_request(

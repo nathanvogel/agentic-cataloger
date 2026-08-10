@@ -11,7 +11,7 @@ from typing import Literal
 class StageKind(StrEnum):
     """Closed set of in-scope pipeline stages."""
 
-    DISCOVER_CREATE = "discover_create"
+    DISCOVER = "discover"
     ASSIGN = "assign"
 
 

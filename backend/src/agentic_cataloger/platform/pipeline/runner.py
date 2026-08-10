@@ -42,7 +42,7 @@ from agentic_cataloger.platform.telemetry import configure_telemetry
 
 logger = logging.getLogger(__name__)
 
-# Outer per-product graph: assign → discover_create → assign → defer → END
+# Outer per-product graph: assign → discover → assign → defer → END
 # is at most 4 hops. A generous ceiling that only fires on an actual
 # orchestration bug, not on a slow or looping model (the agent's own
 # recursion_limit in agent.py handles that).

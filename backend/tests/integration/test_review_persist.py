@@ -125,7 +125,7 @@ def test_list_open_returns_only_open_rows(
         item = defer_item(
             DeferItemRequest(
                 product_id=product_id,
-                stage=StageKind.DISCOVER_CREATE,
+                stage=StageKind.DISCOVER,
                 reason_code=ReasonCode.UNKNOWN,
                 attempt_count=1,
                 payload_snapshot={"note": "still open"},

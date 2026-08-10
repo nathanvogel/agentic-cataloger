@@ -270,7 +270,7 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
         discover_result = outcome.get("discover")
         assert discover_result is not None
         assert discover_result.status == "success"
-        assert discover_result.stage == StageKind.DISCOVER_CREATE
+        assert discover_result.stage == StageKind.DISCOVER
 
         discover_leaf = outcome.get("discover_leaf")
         assert discover_leaf is not None
@@ -414,7 +414,7 @@ def test_empty_rejected_proposal_defers_without_calling_create_category(
         items = PsycopgDeferredItemRepository(conn).list_open()
     matching = [i for i in items if i.product_id == pid]
     assert len(matching) == 1
-    assert matching[0].stage == StageKind.DISCOVER_CREATE
+    assert matching[0].stage == StageKind.DISCOVER
 
 
 @pytest.mark.integration
@@ -490,7 +490,7 @@ def test_six_level_proposal_defers_without_calling_create_category(
         items = PsycopgDeferredItemRepository(conn).list_open()
     matching = [i for i in items if i.product_id == pid]
     assert len(matching) == 1
-    assert matching[0].stage == StageKind.DISCOVER_CREATE
+    assert matching[0].stage == StageKind.DISCOVER
 
 
 @pytest.mark.integration

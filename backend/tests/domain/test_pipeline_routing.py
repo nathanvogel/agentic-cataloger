@@ -32,15 +32,13 @@ def test_route_after_assign_success_is_done() -> None:
     assert route_after_assign(decision, discover_count=3) == "done"
 
 
-def test_route_after_assign_miss_routes_to_discover_create_while_budget_remains() -> (
-    None
-):
-    """A miss routes to discover_create while discover_count is below the cap."""
+def test_route_after_assign_miss_routes_to_discover_while_budget_remains() -> None:
+    """A miss routes to discover while discover_count is below the cap."""
     decision = DeferDecision(reason="nothing fits")
 
-    assert route_after_assign(decision, discover_count=0) == "discover_create"
-    assert route_after_assign(decision, discover_count=1) == "discover_create"
-    assert route_after_assign(decision, discover_count=2) == "discover_create"
+    assert route_after_assign(decision, discover_count=0) == "discover"
+    assert route_after_assign(decision, discover_count=1) == "discover"
+    assert route_after_assign(decision, discover_count=2) == "discover"
 
 
 def test_route_after_assign_miss_defers_once_discover_budget_exhausted() -> None:
@@ -55,7 +53,7 @@ def test_route_after_assign_defer_is_a_miss() -> None:
     """DeferDecision is treated like any other miss."""
     decision = DeferDecision(reason="assign response missing leaf_id")
 
-    assert route_after_assign(decision, discover_count=0) == "discover_create"
+    assert route_after_assign(decision, discover_count=0) == "discover"
     assert route_after_assign(decision, discover_count=3) == "defer"
 
 

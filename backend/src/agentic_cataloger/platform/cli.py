@@ -583,7 +583,7 @@ def _run_review(argv: list[str]) -> int:
     defer_p.add_argument(
         "--stage",
         required=True,
-        choices=("discover_create", "assign"),
+        choices=("discover", "assign"),
         help="Pipeline stage that deferred",
     )
     defer_p.add_argument(
