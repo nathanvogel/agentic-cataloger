@@ -60,12 +60,12 @@ class RunState(TypedDict):
     ``assign_decision``/``assign_error``/``assign`` are set by
     ``assign_node``; ``discover_decision``/``discover_error``/``discover``/
     ``discover_leaf`` are set by ``discover_node``.  Both nodes share
-    ``discover_ran`` which prevents ping-ponging.
+    ``discover_count`` which caps assign↔discover ping-ponging.
     """
 
     product: RunProductRef
     run_id: str
-    discover_ran: bool
+    discover_count: int
     # Set by assign_node:
     assign_decision: NotRequired[StageDecision]
     assign_error: NotRequired[Exception]
@@ -149,10 +149,10 @@ def _write_assignment(
 def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
     """Decide-then-write the assign stage for one product.
 
-    On the first pass, ``state["discover_ran"]`` is False and context is
-    empty.  On the second pass (after discover_node ran and set
-    ``discover_leaf``), the created leaf is passed as context so the model
-    can consider it alongside its own search results.
+    On the first pass, ``state["discover_count"]`` is 0 and context is
+    empty.  After discover_node runs and sets ``discover_leaf``, the created
+    leaf is passed as context so the model can consider it alongside its own
+    search results.
 
     Args:
         state: Current graph state.
@@ -233,7 +233,7 @@ def route_after_assign(state: RunState) -> str:
     """Conditional-edge function: delegate to the pure domain routing rule.
 
     Args:
-        state: Current graph state (``assign_decision``/``discover_ran``
+        state: Current graph state (``assign_decision``/``discover_count``
             are always set by the time this runs, since it only fires
             after ``assign_node``).
 
@@ -244,7 +244,7 @@ def route_after_assign(state: RunState) -> str:
     """
     outcome = _route_after_assign(
         cast(StageDecision, state.get("assign_decision")),
-        discover_ran=state["discover_ran"],
+        discover_count=state["discover_count"],
     )
     return END if outcome == "done" else outcome
 
@@ -262,7 +262,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         runtime: Node runtime carrying ``StageDeps``.
 
     Returns:
-        State update: ``discover_ran`` (always True after this node),
+        State update: ``discover_count`` (incremented after this node),
         ``discover_decision``, ``discover`` (the stage result), and
         ``discover_leaf`` (UUID of the created leaf, when creation succeeds).
     """
@@ -275,7 +275,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
     attempt = runtime.execution_info.node_attempt if runtime.execution_info else 1
     updates: dict[str, Any] = {
         "discover_decision": decision,
-        "discover_ran": True,
+        "discover_count": state["discover_count"] + 1,
     }
 
     if decision.action == "defer":

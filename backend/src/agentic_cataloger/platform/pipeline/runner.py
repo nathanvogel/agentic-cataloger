@@ -142,7 +142,7 @@ def run_pipeline(
                 {
                     "product": product,
                     "run_id": str(run_id),
-                    "discover_ran": False,
+                    "discover_count": 0,
                 },
                 config={"run_id": run_id, "recursion_limit": OUTER_RECURSION_LIMIT},
                 context=StageDeps(

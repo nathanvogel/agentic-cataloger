@@ -4,8 +4,8 @@ Graph shape (from the design discussion diagram):
 
     __start__ → assign
     assign → END              (clean assign)
-    assign → discover_create  (first miss, discover not yet run)
-    assign → defer            (second miss, discover already ran)
+    assign → discover_create  (miss with discover budget remaining)
+    assign → defer            (miss after discover budget exhausted)
     discover_create → assign  (created a leaf, re-prompt assign fresh)
     discover_create → defer   (invalid proposal, cap exceeded, or model defer)
     defer → END
@@ -45,8 +45,8 @@ def build_stage_graph() -> CompiledStateGraph[Any, Any, Any, Any]:
 
     Returns:
         Compiled graph with the full assign → discover_create → assign
-        loop and ping-pong guard (``discover_ran`` in state ensures
-        discover fires at most once per product).
+        loop and ping-pong guard (``discover_count`` in state caps discover
+        at three iterations per product).
     """
     builder = StateGraph(RunState, context_schema=StageDeps)
 

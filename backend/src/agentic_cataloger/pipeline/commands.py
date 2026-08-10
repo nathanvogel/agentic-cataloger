@@ -61,30 +61,34 @@ def select_run_products(
 def route_after_assign(
     decision: StageDecision,
     *,
-    discover_ran: bool,
+    discover_count: int,
 ) -> Literal["done", "discover_create", "defer"]:
     """Decide where the graph goes after an assign-stage decision.
 
     This is the checkable half of roadmap 2.6 ("prefer matching an existing
     category before creating") and the defer contract: any decision that
     isn't a clean ``action="assign"`` with a ``leaf_id`` is a miss, and a
-    miss only reaches ``discover_create`` once per product — the second
-    miss (``discover_ran`` already True) defers instead of ping-ponging.
+    miss reaches ``discover_create`` only while ``discover_count`` is below
+    ``_MAX_DISCOVER_ITERATIONS``; further misses defer instead of
+    ping-ponging.
 
     Args:
         decision: The stage's decision (model output, or a node-level
             override such as an invalid write turned into a synthetic
             ``action="defer"``).
-        discover_ran: Whether discover/create has already run for this
-            product in this graph invocation.
+        discover_count: How many times discover/create has already run for
+            this product in this graph invocation.
 
     Returns:
-        ``"done"`` on a clean assign, ``"discover_create"`` on a first miss,
-        ``"defer"`` on a second miss.
+        ``"done"`` on a clean assign, ``"discover_create"`` on a miss with
+        discover budget remaining, ``"defer"`` once the discover budget is
+        exhausted.
     """
     if decision.action == "assign" and decision.leaf_id is not None:
         return "done"
-    return "defer" if discover_ran else "discover_create"
+    if discover_count >= _MAX_DISCOVER_ITERATIONS:
+        return "defer"
+    return "discover_create"
 
 
 def build_defer_request(
@@ -170,6 +174,7 @@ def ensure_root_category(
 
 
 _MAX_CREATE_LEVELS = 5
+_MAX_DISCOVER_ITERATIONS = 3
 
 
 def validate_create_proposal(decision: StageDecision) -> None:

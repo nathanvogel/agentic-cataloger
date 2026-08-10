@@ -5,8 +5,8 @@ network.  Covers:
 
 1. Cold tree: assign miss → discover creates 2 levels → assign second pass
    places the product in the new leaf.
-2. Ping-pong guard: a discover agent that always misses produces exactly one
-   discover call then defers, never loops.
+2. Ping-pong guard: a discover agent that always succeeds but assign always
+   misses produces exactly three discover calls then defers, never loops.
 3. Invalid proposal (empty rejected): discover returns create with no
    rejected candidates → invalid → retried → deferred, create_category never
    called.
@@ -166,7 +166,7 @@ def _run_graph(
         {
             "product": product,
             "run_id": str(uuid4()),
-            "discover_ran": False,
+            "discover_count": 0,
         },
         config={"recursion_limit": 10},
         context=StageDeps(
@@ -280,11 +280,11 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
 
 
 @pytest.mark.integration
-def test_ping_pong_guard_always_miss_produces_exactly_one_discover_call(
+def test_discover_iteration_cap_produces_at_most_three_discover_calls(
     migrated_database: str,
     app_database_url: str,
 ) -> None:
-    """A _FakeStageAgent that always misses: one discover call, then defer."""
+    """Assign always misses: three discover calls, then defer."""
     tag = uuid4().hex[:8]
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, tag=f"disc-pingpong-{tag}")
@@ -309,7 +309,7 @@ def test_ping_pong_guard_always_miss_produces_exactly_one_discover_call(
             return StageDecision(
                 action="create",
                 parent_id=root_id,
-                names=(f"PingPong-Branch-{tag}",),
+                names=(f"PingPong-Branch-{self.call_count}-{tag}",),
                 rejected=(_rejected(existing_leaf_id, f"Leaf-{tag}"),),
             )
 
@@ -319,20 +319,20 @@ def test_ping_pong_guard_always_miss_produces_exactly_one_discover_call(
         outcome = _run_graph(
             conn,
             product_id=pid,
-            # Assign always defers (first pass miss → discover, second pass miss → defer)
             assign_agent=_FakeStageAgent(
                 [
                     StageDecision(action="defer", reason="nothing fits pass 1"),
                     StageDecision(action="defer", reason="nothing fits pass 2"),
+                    StageDecision(action="defer", reason="nothing fits pass 3"),
+                    StageDecision(action="defer", reason="nothing fits pass 4"),
                 ]
             ),
             discover_agent=counting_agent,
         )
 
-    # Discover must have been called exactly once.
-    assert counting_agent.call_count == 1
+    assert counting_agent.call_count == 3
+    assert outcome["discover_count"] == 3
 
-    # The product ends up deferred (assign second pass also missed).
     assign_result = outcome["assign"]
     assert assign_result.status == "defer"
 

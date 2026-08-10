@@ -174,7 +174,7 @@ def _run_graph(
         {
             "product": product,
             "run_id": str(uuid4()),
-            "discover_ran": False,
+            "discover_count": 0,
         },
         config={"recursion_limit": 10},
         context=StageDeps(
