@@ -49,6 +49,7 @@
     "gerichte",
     "graphviz",
     "HITL",
+    "htmlcov",
     "httpx",
     "humanlayer",
     "inspectable",
@@ -67,6 +68,7 @@
     "mccabe",
     "Milchprodukte",
     "misconfig",
+    "mypy",
     "nathanvogel",
     "naturaplan",
     "negotiables",
@@ -118,6 +120,7 @@
     "uvicorn",
     "vegane",
     "venv",
+    "worktrees",
     "yelinz",
     "Yelinz"
   ]

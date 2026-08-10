@@ -30,3 +30,5 @@ report/
 
 # Riptide artifacts (cloud-synced)
 .humanlayer/tasks/
+
+.claude/worktrees
