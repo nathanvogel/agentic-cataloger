@@ -82,10 +82,12 @@ def configure_telemetry() -> Telemetry:
         endpoint=traces_endpoint,
         protocol="http/protobuf",
         batch=False,
-        # Wires openinference-instrumentation-langchain so pipeline stage
-        # LLM calls (create_agent's ChatOpenAI) get their own OpenInference
-        # spans automatically under the product LangGraph tree. This is a
-        # *global* flag (patches
+        # Wires openinference-instrumentation-langchain so LangGraph +
+        # create_agent ChatOpenAI calls emit OpenInference spans under the
+        # runner's hand-rolled pipeline.product parent. OpenInference does
+        # *not* attach those spans as OTel current context — that parent is
+        # what makes telemetry.current_trace_id() work in defer_node.
+        # auto_instrument is a *global* flag (patches
         # langchain_core.callbacks.BaseCallbackManager.__init__), so it also
         # starts auto-instrumenting complete_openrouter's ChatOpenAI call
         # (telemetry smoke) — that path now emits both the hand-rolled leaf

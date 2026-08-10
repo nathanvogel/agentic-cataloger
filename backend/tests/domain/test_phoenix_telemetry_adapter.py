@@ -9,6 +9,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.trace import StatusCode
 
 from agentic_cataloger.platform.llm.openrouter import (
     LlmCompletion,
@@ -132,4 +133,20 @@ def test_phoenix_adapter_current_trace_id_none_when_idle() -> None:
     trace.use_span(trace.INVALID_SPAN, end_on_exit=False)
     telemetry = PhoenixTelemetry(provider.get_tracer("idle"))
     assert telemetry.current_trace_id() is None
+    provider.shutdown()
+
+
+def test_phoenix_adapter_set_status_ok() -> None:
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    telemetry = PhoenixTelemetry(provider.get_tracer("status"), provider=None)
+
+    handle = telemetry.start_span("pipeline.product")
+    handle.set_status(ok=True)
+    handle.end()
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    assert spans[0].status.status_code is StatusCode.OK
     provider.shutdown()

@@ -24,6 +24,8 @@ class _RecordedSpan:
     span_id: str
     parent_id: str | None
     ended: bool = False
+    ok: bool | None = None
+    status_description: str = ""
 
 
 @dataclass
@@ -35,6 +37,10 @@ class RecordingSpanHandle:
 
     def set_attribute(self, key: str, value: AttributeValue) -> None:
         self._span.attributes[key] = value
+
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        self._span.ok = ok
+        self._span.status_description = description
 
     def end(self) -> None:
         self._span.ended = True

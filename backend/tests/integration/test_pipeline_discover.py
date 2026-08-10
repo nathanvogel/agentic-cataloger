@@ -155,7 +155,11 @@ def _run_graph(
     assign_agent: Any,
     discover_agent: Any,
 ) -> dict[str, Any]:
-    """Invoke the stage graph for one product and return the full state dict."""
+    """Invoke the stage graph for one product and return the full state dict.
+
+    Mirrors ``run_pipeline``: wraps ``graph.invoke`` in a ``pipeline.product``
+    span so ``defer_node`` can read ``telemetry.current_trace_id()``.
+    """
     graph = build_stage_graph()
     telemetry = configure_telemetry()
     product = RunProductRef(
@@ -165,20 +169,31 @@ def _run_graph(
         source_category=None,
         unified_category=None,
     )
-    return graph.invoke(  # type: ignore[return-value]
-        {
-            "product": product,
-            "run_id": str(uuid4()),
-            "discover_count": 0,
+    run_id = str(uuid4())
+    product_span = telemetry.start_span(
+        "pipeline.product",
+        attributes={
+            "pipeline.product_id": str(product_id),
+            "pipeline.run_id": run_id,
         },
-        config={"recursion_limit": 10},
-        context=StageDeps(
-            conn=conn,
-            telemetry=telemetry,
-            stage_agent=assign_agent,
-            discover_agent=discover_agent,
-        ),
     )
+    try:
+        return graph.invoke(  # type: ignore[return-value]
+            {
+                "product": product,
+                "run_id": run_id,
+                "discover_count": 0,
+            },
+            config={"recursion_limit": 10},
+            context=StageDeps(
+                conn=conn,
+                telemetry=telemetry,
+                stage_agent=assign_agent,
+                discover_agent=discover_agent,
+            ),
+        )
+    finally:
+        product_span.end()
 
 
 # ---------------------------------------------------------------------------

@@ -7,11 +7,13 @@ graph, no network.  Covers:
 - A model-initiated defer writes a ``deferred_items`` row with stage=ASSIGN.
 - An assign whose ``_FakeStageAgent`` always raises ``GraphRecursionError``
   is caught and produces a deferred row, not a traceback.
+- A product span around ``graph.invoke`` populates ``deferred_items.trace_id``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -31,6 +33,7 @@ from agentic_cataloger.pipeline.models import (
     RunProductRef,
     StageDecision,
 )
+from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     PsycopgSnapshotRepository,
@@ -154,20 +157,69 @@ class _AlwaysDeferAgent:
         return DeferDecision(reason="stub discover agent")
 
 
+@dataclass
+class _ActiveSpanHandle:
+    """Span handle that decrements the active-span depth on ``end``."""
+
+    _telemetry: _ActiveSpanTelemetry
+
+    def set_attribute(self, key: str, value: AttributeValue) -> None:
+        _ = (self, key, value)
+
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        _ = (self, ok, description)
+
+    def end(self) -> None:
+        self._telemetry._depth = max(0, self._telemetry._depth - 1)
+
+
+@dataclass
+class _ActiveSpanTelemetry:
+    """Telemetry fake that exposes a trace id only while a span is open.
+
+    Mirrors the runner's ``pipeline.product`` wrap: ``current_trace_id`` is
+    non-None inside ``graph.invoke``, None outside. Avoids needing a live
+    Phoenix collector for the deferred-row assertion.
+    """
+
+    _trace_id: str = field(default_factory=lambda: uuid4().hex)
+    _depth: int = 0
+
+    def start_span(
+        self,
+        name: str,
+        *,
+        attributes: Mapping[str, AttributeValue] | None = None,
+    ) -> SpanHandle:
+        _ = (name, attributes)
+        self._depth += 1
+        return _ActiveSpanHandle(_telemetry=self)
+
+    def current_trace_id(self) -> str | None:
+        return self._trace_id if self._depth > 0 else None
+
+    def shutdown(self) -> None:
+        _ = self
+
+
 def _run_graph(
     conn: psycopg.Connection[Any],
     *,
     product_id: UUID,
     agent: Any,
     discover_agent: Any = None,
+    telemetry: Telemetry | None = None,
 ) -> dict[str, Any]:
     """Invoke the stage graph for one product and return the full state dict.
 
     ``discover_agent`` defaults to ``_AlwaysDeferAgent`` so existing Phase 2
     callers don't break; Phase 3 callers pass their own scripted agent.
+
+    Mirrors ``run_pipeline``: wraps ``graph.invoke`` in a ``pipeline.product``
+    span so ``defer_node`` can read ``telemetry.current_trace_id()``.
     """
     graph = build_stage_graph()
-    telemetry = configure_telemetry()
+    active_telemetry = telemetry if telemetry is not None else configure_telemetry()
     product = RunProductRef(
         product_id=product_id,
         name="Test product",
@@ -175,20 +227,31 @@ def _run_graph(
         source_category=None,
         unified_category=None,
     )
-    return graph.invoke(  # type: ignore[return-value]
-        {
-            "product": product,
-            "run_id": str(uuid4()),
-            "discover_count": 0,
+    run_id = str(uuid4())
+    product_span = active_telemetry.start_span(
+        "pipeline.product",
+        attributes={
+            "pipeline.product_id": str(product_id),
+            "pipeline.run_id": run_id,
         },
-        config={"recursion_limit": 10},
-        context=StageDeps(
-            conn=conn,
-            telemetry=telemetry,
-            stage_agent=agent,
-            discover_agent=discover_agent or _AlwaysDeferAgent(),
-        ),
     )
+    try:
+        return graph.invoke(  # type: ignore[return-value]
+            {
+                "product": product,
+                "run_id": run_id,
+                "discover_count": 0,
+            },
+            config={"recursion_limit": 10},
+            context=StageDeps(
+                conn=conn,
+                telemetry=active_telemetry,
+                stage_agent=agent,
+                discover_agent=discover_agent or _AlwaysDeferAgent(),
+            ),
+        )
+    finally:
+        product_span.end()
 
 
 @pytest.mark.integration
@@ -267,3 +330,33 @@ def test_recursion_error_produces_deferred_row_not_traceback(
         assert len(matching) == 1
         # Phase 3: assign defer → discover (stub, also defers) → DISCOVER_CREATE.
         assert matching[0].stage == StageKind.DISCOVER_CREATE
+
+
+@pytest.mark.integration
+def test_defer_writes_trace_id_from_product_span(
+    migrated_database: str,
+    app_database_url: str,
+) -> None:
+    """Product span around invoke → deferred_items.trace_id is populated.
+
+    LangGraph's OpenInference spans do not attach as OTel current context;
+    the runner's ``pipeline.product`` wrap is what ``current_trace_id()``
+    reads. This test mirrors that wrap with an in-memory telemetry fake.
+    """
+    with connect_app(app_database_url) as conn:
+        pid = _seed_product(conn, product_id_str=f"pa-trace-{uuid4().hex[:8]}")
+        telemetry = _ActiveSpanTelemetry()
+
+        _run_graph(
+            conn,
+            product_id=pid,
+            agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
+            telemetry=telemetry,
+        )
+
+        items = PsycopgDeferredItemRepository(conn).list_open()
+        matching = [i for i in items if i.product_id == pid]
+        assert len(matching) == 1
+        assert matching[0].trace_id == telemetry._trace_id
+        # Span must be closed after invoke (no leak of "current" context).
+        assert telemetry.current_trace_id() is None

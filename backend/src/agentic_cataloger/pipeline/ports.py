@@ -18,6 +18,15 @@ class SpanHandle(Protocol):
         """Set a single attribute on this span."""
         ...
 
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        """Set the span status (OK vs ERROR) shown in Phoenix.
+
+        Args:
+            ok: True for OK, False for ERROR.
+            description: Optional status message (usually on ERROR).
+        """
+        ...
+
     def end(self) -> None:
         """End this span."""
         ...

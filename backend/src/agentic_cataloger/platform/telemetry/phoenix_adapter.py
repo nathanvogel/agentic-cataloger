@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any, cast, final
 
 from opentelemetry import context, trace
+from opentelemetry.trace import Status, StatusCode
 from opentelemetry.util.types import AttributeValue as OtelAttributeValue
 
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
@@ -30,6 +31,11 @@ class PhoenixSpanHandle(SpanHandle):
     def set_attribute(self, key: str, value: AttributeValue) -> None:
         """Set an attribute on the underlying span."""
         self._span.set_attribute(key, cast(OtelAttributeValue, value))
+
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        """Set OTel span status so Phoenix does not leave it UNSET."""
+        code = StatusCode.OK if ok else StatusCode.ERROR
+        self._span.set_status(Status(code, description))
 
     def end(self) -> None:
         """End the span and detach its context."""

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
-from uuid import uuid7
+from typing import Any, Final
+from uuid import UUID, uuid7
+
+from phoenix.otel import OpenInferenceSpanKindValues, SpanAttributes
 
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
 from agentic_cataloger.contracts.models import StageResult
@@ -15,9 +18,11 @@ from agentic_cataloger.pipeline.commands import (
 )
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
+    RunProductRef,
     RunSummary,
     SelectRunProductsResult,
 )
+from agentic_cataloger.pipeline.ports import Telemetry
 from agentic_cataloger.platform.persistence.catalog_repo import connect_app
 from agentic_cataloger.platform.persistence.pipeline_repo import (
     PsycopgRunProductRepository,
@@ -43,6 +48,12 @@ logger = logging.getLogger(__name__)
 # recursion_limit in agent.py handles that).
 OUTER_RECURSION_LIMIT = 10
 
+# OpenInference attrs so Phoenix renders the product parent as a CHAIN
+# (not an unlabeled / unknown span) with a short outcome in the UI.
+_SPAN_KIND_KEY: Final = SpanAttributes.OPENINFERENCE_SPAN_KIND
+_SPAN_KIND_CHAIN: Final = OpenInferenceSpanKindValues.CHAIN.value
+_OUTPUT_VALUE_KEY: Final = SpanAttributes.OUTPUT_VALUE
+
 
 def _require_database_url(database_url: str | None) -> str:
     url = (database_url or os.environ.get("DATABASE_URL", "")).strip()
@@ -50,6 +61,72 @@ def _require_database_url(database_url: str | None) -> str:
         msg = "DATABASE_URL must be set for pipeline commands"
         raise RuntimeError(msg)
     return url
+
+
+def _invoke_product_graph(
+    *,
+    database_url: str,
+    product: RunProductRef,
+    run_id: UUID,
+    graph: Any,
+    telemetry: Telemetry,
+) -> dict[str, Any]:
+    """Open a per-product connection and invoke the stage graph under one span.
+
+    Hand-rolled ``pipeline.product`` parent: OpenInference instruments
+    LangGraph into a span tree, but those spans are *not* attached as OTel
+    current context. ``defer_node`` reads ``telemetry.current_trace_id()``
+    (``get_current_span``), so without this wrap ``deferred_items`` rows get
+    a null ``trace_id`` even when Phoenix shows a full tree.
+
+    Args:
+        database_url: App DB URL for the per-product connection.
+        product: Catalog product this invocation decides about.
+        run_id: Caller-minted run id shared with graph state and config.
+        graph: Compiled stage graph from ``build_stage_graph``.
+        telemetry: Active telemetry adapter (Phoenix or no-op).
+
+    Returns:
+        Final graph state dict for this product.
+    """
+    with connect_app(database_url) as conn:
+        product_span = telemetry.start_span(
+            "pipeline.product",
+            attributes={
+                _SPAN_KIND_KEY: _SPAN_KIND_CHAIN,
+                "pipeline.product_id": str(product.product_id),
+                "pipeline.run_id": str(run_id),
+            },
+        )
+        try:
+            outcome = graph.invoke(
+                {
+                    "product": product,
+                    "run_id": str(run_id),
+                    "discover_count": 0,
+                },
+                config={
+                    "run_id": run_id,
+                    "recursion_limit": OUTER_RECURSION_LIMIT,
+                },
+                context=StageDeps(
+                    conn=conn,
+                    telemetry=telemetry,
+                    stage_agent=build_assign_stage_agent(conn),
+                    discover_agent=build_discover_stage_agent(conn),
+                ),
+            )
+        except Exception as exc:
+            product_span.set_status(ok=False, description=str(exc))
+            raise
+        else:
+            assign_result: StageResult = outcome["assign"]
+            product_span.set_attribute(_OUTPUT_VALUE_KEY, assign_result.status)
+            # Defer is a deliberate outcome, not a span failure — OK either way.
+            product_span.set_status(ok=True)
+            return outcome
+        finally:
+            product_span.end()
 
 
 def run_select_products(
@@ -139,23 +216,13 @@ def run_pipeline(
 
     for product in selected.products:
         run_id = uuid7()
-        with connect_app(url) as conn:
-            stage_agent = build_assign_stage_agent(conn)
-            discover_agent = build_discover_stage_agent(conn)
-            outcome = graph.invoke(
-                {
-                    "product": product,
-                    "run_id": str(run_id),
-                    "discover_count": 0,
-                },
-                config={"run_id": run_id, "recursion_limit": OUTER_RECURSION_LIMIT},
-                context=StageDeps(
-                    conn=conn,
-                    telemetry=telemetry,
-                    stage_agent=stage_agent,
-                    discover_agent=discover_agent,
-                ),
-            )
+        outcome = _invoke_product_graph(
+            database_url=url,
+            product=product,
+            run_id=run_id,
+            graph=graph,
+            telemetry=telemetry,
+        )
 
         assign_result: StageResult = outcome["assign"]
         if assign_result.status != "success":
