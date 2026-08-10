@@ -20,16 +20,16 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping
-from typing import Any, Literal, cast
+from typing import Literal, cast
 from uuid import UUID
 
-import psycopg
 from langchain.agents import create_agent
 from langchain.agents.middleware.tool_call_limit import ToolCallLimitMiddleware
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.errors import GraphRecursionError
+from psycopg_pool import ConnectionPool
 from pydantic import BaseModel
 
 from agentic_cataloger.catalog.models import CatalogProductRef
@@ -224,17 +224,18 @@ class LangChainStageAgent:
         return self._to_decision(structured)
 
 
-def build_assign_stage_agent(conn: psycopg.Connection[Any]) -> LangChainStageAgent:
-    """Build the assign stage's agent, with tools bound to ``conn``.
+def build_assign_stage_agent(pool: ConnectionPool) -> LangChainStageAgent:
+    """Build the assign stage's agent, with tools bound to ``pool``.
 
     Args:
-        conn: Live psycopg connection for this product's stages.
+        pool: App connection pool; tools check out per call so parallel
+            tool fan-out never shares one ``Connection``.
 
     Returns:
         Configured agent for the assign stage.
     """
     return LangChainStageAgent(
-        tools=build_assign_tools(conn),
+        tools=build_assign_tools(pool),
         system_prompt=ASSIGN_SYSTEM_PROMPT,
         response_schema=_AssignDecisionSchema,
         to_decision=_assign_decision_from_schema,
@@ -319,17 +320,18 @@ def _discover_decision_from_schema(schema: BaseModel) -> StageDecision:
     )
 
 
-def build_discover_stage_agent(conn: psycopg.Connection[Any]) -> LangChainStageAgent:
-    """Build the discover stage's agent, with tools bound to ``conn``.
+def build_discover_stage_agent(pool: ConnectionPool) -> LangChainStageAgent:
+    """Build the discover stage's agent, with tools bound to ``pool``.
 
     Args:
-        conn: Live psycopg connection for this product's stages.
+        pool: App connection pool; tools check out per call so parallel
+            tool fan-out never shares one ``Connection``.
 
     Returns:
         Configured agent for the discover/create stage.
     """
     return LangChainStageAgent(
-        tools=build_discover_tools(conn),
+        tools=build_discover_tools(pool),
         system_prompt=DISCOVER_SYSTEM_PROMPT,
         response_schema=_DiscoverDecisionSchema,
         to_decision=_discover_decision_from_schema,

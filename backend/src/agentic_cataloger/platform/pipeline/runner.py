@@ -28,6 +28,7 @@ from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgProductRepository,
     connect_app,
 )
+from agentic_cataloger.platform.persistence.db import get_app_pool
 from agentic_cataloger.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
     PsycopgMembershipRepository,
@@ -72,7 +73,11 @@ def _invoke_product_graph(
     graph: Any,
     telemetry: Telemetry,
 ) -> dict[str, Any]:
-    """Open a per-product connection and invoke the stage graph under one span.
+    """Invoke the stage graph for one product under one span.
+
+    Tools and nodes check out short-lived connections from the app pool —
+    nothing holds a connection across LLM latency, and parallel tool calls
+    never share one session.
 
     Hand-rolled ``pipeline.product`` parent: OpenInference instruments
     LangGraph into a span tree, but those spans are *not* attached as OTel
@@ -81,7 +86,7 @@ def _invoke_product_graph(
     a null ``trace_id`` even when Phoenix shows a full tree.
 
     Args:
-        database_url: App DB URL for the per-product connection.
+        database_url: App DB URL for the process pool.
         product: Catalog product this invocation decides about.
         run_id: Caller-minted run id shared with graph state and config.
         graph: Compiled stage graph from ``build_stage_graph``.
@@ -90,44 +95,44 @@ def _invoke_product_graph(
     Returns:
         Final graph state dict for this product.
     """
-    with connect_app(database_url) as conn:
-        product_span = telemetry.start_span(
-            "pipeline.product",
-            attributes={
-                _SPAN_KIND_KEY: _SPAN_KIND_CHAIN,
-                "pipeline.product_id": str(product.product_id),
-                "pipeline.run_id": str(run_id),
+    pool = get_app_pool(database_url)
+    product_span = telemetry.start_span(
+        "pipeline.product",
+        attributes={
+            _SPAN_KIND_KEY: _SPAN_KIND_CHAIN,
+            "pipeline.product_id": str(product.product_id),
+            "pipeline.run_id": str(run_id),
+        },
+    )
+    try:
+        outcome = graph.invoke(
+            {
+                "product": product,
+                "run_id": str(run_id),
+                "discover_count": 0,
             },
+            config={
+                "run_id": run_id,
+                "recursion_limit": OUTER_RECURSION_LIMIT,
+            },
+            context=StageDeps(
+                pool=pool,
+                telemetry=telemetry,
+                assign_agent=build_assign_stage_agent(pool),
+                discover_agent=build_discover_stage_agent(pool),
+            ),
         )
-        try:
-            outcome = graph.invoke(
-                {
-                    "product": product,
-                    "run_id": str(run_id),
-                    "discover_count": 0,
-                },
-                config={
-                    "run_id": run_id,
-                    "recursion_limit": OUTER_RECURSION_LIMIT,
-                },
-                context=StageDeps(
-                    conn=conn,
-                    telemetry=telemetry,
-                    assign_agent=build_assign_stage_agent(conn),
-                    discover_agent=build_discover_stage_agent(conn),
-                ),
-            )
-        except Exception as exc:
-            product_span.set_status(ok=False, description=str(exc))
-            raise
-        else:
-            assign_result: StageResult = outcome["assign"]
-            product_span.set_attribute(_OUTPUT_VALUE_KEY, assign_result.status)
-            # Defer is a deliberate outcome, not a span failure — OK either way.
-            product_span.set_status(ok=True)
-            return outcome
-        finally:
-            product_span.end()
+    except Exception as exc:
+        product_span.set_status(ok=False, description=str(exc))
+        raise
+    else:
+        assign_result: StageResult = outcome["assign"]
+        product_span.set_attribute(_OUTPUT_VALUE_KEY, assign_result.status)
+        # Defer is a deliberate outcome, not a span failure — OK either way.
+        product_span.set_status(ok=True)
+        return outcome
+    finally:
+        product_span.end()
 
 
 def run_select_products(
@@ -172,10 +177,10 @@ def run_pipeline(
 ) -> RunSummary:
     """Select products, ensure a root exists, then run the two-stage graph over each.
 
-    One connection per product (opened and closed around that product's
-    stages, not held for the whole run) so the graph's tools all reuse the
-    same live connection without an idle-in-transaction connection held
-    across the entire run's LLM latency.  Sequential by design: product N's
+    DB access uses the process-wide app pool: each tool call and node write
+    checks out an exclusive connection and returns it promptly, so nothing
+    sits idle-in-transaction across LLM latency and parallel tool calls do
+    not share one session. Sequential by design across products: product N's
     discover stage needs to see what product N-1's discover stage created.
 
     Args:

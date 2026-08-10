@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, cast, final
+from typing import Any, final
 from uuid import UUID
 
 import psycopg
 from psycopg import sql
-from psycopg.rows import DictRow, dict_row
 
 from agentic_cataloger.catalog.identity import SourceIdentity
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
@@ -25,7 +24,16 @@ from agentic_cataloger.catalog.ports import (
     ProductRepository,
     SnapshotRepository,
 )
+from agentic_cataloger.platform.persistence.db import connect_app
 from agentic_cataloger.taxonomy.ports import ProductExistence
+
+# Re-export so existing ``from …catalog_repo import connect_app`` keep working.
+__all__ = [
+    "PsycopgProductRepository",
+    "PsycopgSnapshotRepository",
+    "PsycopgUnitOfWork",
+    "connect_app",
+]
 
 
 @final
@@ -33,10 +41,12 @@ class PsycopgUnitOfWork(CatalogUnitOfWork):
     """Thin Unit of Work over a psycopg connection."""
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Bind to an open connection (caller owns connect/close).
+        """Bind to an open connection leased exclusively to this caller.
 
         Args:
-            conn: Live psycopg connection with autocommit disabled.
+            conn: Live psycopg connection with autocommit disabled. Not safe
+                to share across threads or parallel tool calls — borrow from
+                ``connect_app`` / the app pool per concurrent task.
         """
         super().__init__()
         self._conn = conn
@@ -55,10 +65,11 @@ class PsycopgSnapshotRepository(SnapshotRepository):
     """Snapshot repository backed by ``catalog_snapshots``."""
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Create a repository on ``conn``.
+        """Create a repository on an exclusively leased ``conn``.
 
         Args:
-            conn: Live psycopg connection.
+            conn: Live psycopg connection. Not safe to share across threads
+                or parallel tool calls.
         """
         super().__init__()
         self._conn = conn
@@ -123,10 +134,11 @@ class PsycopgProductRepository(
     """
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Create a repository on ``conn``.
+        """Create a repository on an exclusively leased ``conn``.
 
         Args:
-            conn: Live psycopg connection.
+            conn: Live psycopg connection. Not safe to share across threads
+                or parallel tool calls.
         """
         super().__init__()
         self._conn = conn
@@ -348,26 +360,6 @@ class PsycopgProductRepository(
             msg = f"Upsert did not persist product for {identity}"
             raise RuntimeError(msg)
         return _product_from_row(row)
-
-
-def connect_app(database_url: str) -> psycopg.Connection[DictRow]:
-    """Open an app-role connection with dict rows and autocommit off.
-
-    Args:
-        database_url: ``postgresql://…`` URL for ``agentic_cataloger_app``.
-
-    Returns:
-        Open psycopg connection.
-    """
-    # psycopg stubs default Connection to TupleRow; cast after dict_row.
-    return cast(
-        psycopg.Connection[DictRow],
-        psycopg.connect(
-            database_url,
-            row_factory=cast(Any, dict_row),
-            autocommit=False,
-        ),
-    )
 
 
 def _snapshot_from_row(row: Any) -> CatalogSnapshot:

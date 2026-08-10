@@ -64,9 +64,9 @@ def search_categories(query: str, limit: int = 20) -> str:
     ranked matches (default 20, max 40); each match includes its parent
     name, leaf/non-leaf status, and up to 50 immediate children (useful
     when a match is a branch, since assignment always targets a leaf).
-    Never returns the full tree or a subtree — call again with a
-    different query, or use get_category_children to go deeper, instead
-    of raising `limit`.
+    Never returns the full tree or a subtree — prefer multiple calls in one
+    turn with different queries, or use get_category_children to go deeper,
+    instead of raising `limit`.
 
     Returns:
         One formatted block per match (name, id, parent, leaf status,

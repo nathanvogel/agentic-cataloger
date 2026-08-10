@@ -27,6 +27,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 import pytest
+from psycopg_pool import ConnectionPool
 
 from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
 from agentic_cataloger.catalog.identity import SourceIdentity
@@ -45,6 +46,7 @@ from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgUnitOfWork,
     connect_app,
 )
+from agentic_cataloger.platform.persistence.db import get_app_pool
 from agentic_cataloger.platform.persistence.review_repo import (
     PsycopgDeferredItemRepository,
 )
@@ -148,7 +150,7 @@ def _rejected(category_id: UUID, name: str) -> RejectedCandidate:
 
 
 def _run_graph(
-    conn: psycopg.Connection[Any],
+    pool: ConnectionPool,
     *,
     product_id: UUID,
     assign_agent: Any,
@@ -185,7 +187,7 @@ def _run_graph(
             },
             config={"recursion_limit": 10},
             context=StageDeps(
-                conn=conn,
+                pool=pool,
                 telemetry=telemetry,
                 assign_agent=assign_agent,
                 discover_agent=discover_agent,
@@ -259,7 +261,7 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
                 return AssignDecision(leaf_id=UUID(str(suggested)))
 
         outcome = _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             assign_agent=_SmartAssignAgent(),
             discover_agent=_FakeStageAgent(discover_decisions),
@@ -330,7 +332,7 @@ def test_discover_iteration_cap_produces_at_most_three_discover_calls(
 
     with connect_app(app_database_url) as conn:
         outcome = _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             assign_agent=_FakeStageAgent(
                 [
@@ -374,7 +376,7 @@ def test_empty_rejected_proposal_defers_without_calling_create_category(
 
     with connect_app(app_database_url) as conn:
         _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             assign_agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
             discover_agent=_FakeStageAgent(
@@ -433,7 +435,7 @@ def test_six_level_proposal_defers_without_calling_create_category(
 
     with connect_app(app_database_url) as conn:
         _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             assign_agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
             discover_agent=_FakeStageAgent(
@@ -534,7 +536,7 @@ def test_assign_second_pass_disagrees_with_discover_increments_disagreement_coun
     # directly with our fake agents and verify the summary counts manually.
     with connect_app(app_database_url) as conn:
         outcome = _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             assign_agent=assign_agent_instance,
             discover_agent=_FakeStageAgent(

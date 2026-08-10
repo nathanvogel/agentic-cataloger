@@ -97,6 +97,10 @@ def ensure_external_test_databases(harness: PostgresHarness) -> None:
     Drops and recreates each session so a leftover Alembic head from another
     branch cannot break migrate.
     """
+    # Dropping DBs fails if a process pool still holds connections to them.
+    from agentic_cataloger.platform.persistence.db import close_app_pools
+
+    close_app_pools()
     admin = harness.url("postgres", harness.password, "postgres")
     with psycopg.connect(admin, autocommit=True) as conn:
         for role in ("agentic_cataloger_app", "agentic_cataloger_phoenix"):
@@ -280,6 +284,8 @@ def _resolve_external_postgres() -> PostgresHarness | None:
 @pytest.fixture(scope="session")
 def postgres() -> Generator[PostgresHarness, None, None]:
     """Disposable Postgres via testcontainers, or ``*_test`` DBs when Docker is absent."""
+    from agentic_cataloger.platform.persistence.db import close_app_pools
+
     if _docker_reachable():
         from testcontainers.postgres import PostgresContainer
 
@@ -289,7 +295,10 @@ def postgres() -> Generator[PostgresHarness, None, None]:
             host = container.get_container_host_ip()
             port = int(container.get_exposed_port(5432))
             bootstrap_gate02_roles(host, port, password="test")
-            yield PostgresHarness(host=host, port=port, password="test")
+            try:
+                yield PostgresHarness(host=host, port=port, password="test")
+            finally:
+                close_app_pools()
         return
 
     external = _resolve_external_postgres()
@@ -299,7 +308,10 @@ def postgres() -> Generator[PostgresHarness, None, None]:
             "(set PGHOST/PGPORT, or start compose postgres / localhost:3021)"
         )
     ensure_external_test_databases(external)
-    yield external
+    try:
+        yield external
+    finally:
+        close_app_pools()
 
 
 @pytest.fixture

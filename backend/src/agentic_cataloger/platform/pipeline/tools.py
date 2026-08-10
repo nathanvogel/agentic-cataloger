@@ -1,24 +1,22 @@
-"""LangChain tool factories for pipeline stages, closed over a live connection.
+"""LangChain tool factories for pipeline stages, closed over an app pool.
 
-Tools are built fresh per product from a factory rather than each opening
-its own connection through a runner (unlike
-``platform/taxonomy/tools.py``'s module-level tools) — see the design
-discussion's resolved "where the nodes write" decision: one connection is
-reused across a product's whole stage sequence.
+Tools are built fresh per product from a factory. Each tool call checks out
+its own connection from the pool — ``psycopg.Connection`` is not safe for
+concurrent use, and LangGraph's ``ToolNode`` may run parallel tool calls
+from one model turn on different threads.
 
 The disjoint tool sets per stage are what make same-call create+assign
 structurally impossible: ``assign_product_to_leaf`` is only ever bound in
-``build_assign_tools``, never in ``build_discover_tools`` (Phase 3);
+``build_assign_tools``, never in ``build_discover_tools``;
 ``create_category`` is the reverse.
 """
 
 from __future__ import annotations
 
-from typing import Any
 from uuid import UUID
 
-import psycopg
 from langchain_core.tools import BaseTool, tool
+from psycopg_pool import ConnectionPool
 
 from agentic_cataloger.platform.persistence.catalog_repo import PsycopgProductRepository
 from agentic_cataloger.platform.persistence.taxonomy_repo import (
@@ -74,22 +72,21 @@ def _format_match(match: CategoryMatch) -> str:
     return "\n".join(lines)
 
 
-def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
-    """Build the assign stage's tools, all closed over ``conn``.
+def build_assign_tools(pool: ConnectionPool) -> list[BaseTool]:
+    """Build the assign stage's tools, each checking out from ``pool``.
 
     ``create_category`` is deliberately absent — never reachable from the
-    assign stage, mirroring ``build_discover_tools`` (Phase 3) never
-    binding ``assign_product_to_leaf``.
+    assign stage, mirroring ``build_discover_tools`` never binding
+    ``assign_product_to_leaf``.
 
     Args:
-        conn: Live psycopg connection, reused across every tool call for
-            one product's stages.
+        pool: App connection pool. Each tool call borrows one exclusive
+            connection; do not pass a shared live ``Connection`` here.
 
     Returns:
         ``search_categories``, ``get_category_children``, and
         ``assign_product_to_leaf`` tool objects.
     """
-    categories = PsycopgCategoryRepository(conn)
 
     @tool("search_categories")
     def _search_categories(query: str, limit: int = 20) -> str:
@@ -100,18 +97,19 @@ def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
         `limit` ranked matches (default 20, max 40); each match includes its
         parent name, leaf/non-leaf status, and up to 50 immediate children
         (useful when a match is a branch, since assignment always targets a
-        leaf). Never returns the full tree or a subtree — call again with a
-        different query, or use get_category_children to go deeper, instead
-        of raising `limit`.
+        leaf). Never returns the full tree or a subtree — prefer multiple
+        calls in one turn with different queries, or use
+        get_category_children to go deeper, instead of raising `limit`.
 
         Returns:
             One formatted block per match (name, id, parent, leaf status,
             score, and children), or "no matches".
         """
-        result = search_categories(
-            SearchCategoriesRequest(query=query, limit=limit),
-            categories=categories,
-        )
+        with pool.connection() as conn:
+            result = search_categories(
+                SearchCategoriesRequest(query=query, limit=limit),
+                categories=PsycopgCategoryRepository(conn),
+            )
         if not result.matches:
             return "no matches"
         return "\n".join(_format_match(m) for m in result.matches)
@@ -129,10 +127,11 @@ def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
             One "name [id]" line per child, or "no children".
         """
         parent_id = UUID(category_id) if category_id else None
-        result = list_category_children(
-            ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
-            categories=categories,
-        )
+        with pool.connection() as conn:
+            result = list_category_children(
+                ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
+                categories=PsycopgCategoryRepository(conn),
+            )
         if not result.children:
             return "no children"
         lines = [_format_category_line(c) for c in result.children]
@@ -154,13 +153,16 @@ def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
             "assigned {product_id} to {leaf_id}", or an error line
             explaining why not (e.g. the target is not a leaf).
         """
-        result = assign_product_to_leaf(
-            AssignProductRequest(product_id=UUID(product_id), leaf_id=UUID(leaf_id)),
-            categories=categories,
-            memberships=PsycopgMembershipRepository(conn),
-            products=PsycopgProductRepository(conn),
-            uow=PsycopgUnitOfWork(conn),
-        )
+        with pool.connection() as conn:
+            result = assign_product_to_leaf(
+                AssignProductRequest(
+                    product_id=UUID(product_id), leaf_id=UUID(leaf_id)
+                ),
+                categories=PsycopgCategoryRepository(conn),
+                memberships=PsycopgMembershipRepository(conn),
+                products=PsycopgProductRepository(conn),
+                uow=PsycopgUnitOfWork(conn),
+            )
         pid = result.membership.product_id
         cid = result.membership.category_id
         return f"assigned {pid} to {cid}"
@@ -168,8 +170,8 @@ def build_assign_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
     return [_search_categories, _get_category_children, _assign_product_to_leaf]
 
 
-def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
-    """Build the discover stage's tools, all closed over ``conn``.
+def build_discover_tools(pool: ConnectionPool) -> list[BaseTool]:
+    """Build the discover stage's tools, each checking out from ``pool``.
 
     ``assign_product_to_leaf`` is deliberately absent — never reachable from
     the discover stage, mirroring ``build_assign_tools`` never binding
@@ -183,14 +185,13 @@ def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
     node skips re-creating the same path.
 
     Args:
-        conn: Live psycopg connection, reused across every tool call for
-            one product's stages.
+        pool: App connection pool. Each tool call borrows one exclusive
+            connection; do not pass a shared live ``Connection`` here.
 
     Returns:
         ``search_categories``, ``get_category_children``, and
         ``create_category`` tool objects.
     """
-    categories = PsycopgCategoryRepository(conn)
 
     @tool("search_categories")
     def _search_categories(query: str, limit: int = 20) -> str:
@@ -200,18 +201,19 @@ def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
         — close variants and misspellings still surface. Returns up to
         `limit` ranked matches (default 20, max 40); each match includes its
         parent name, leaf/non-leaf status, and up to 50 immediate children.
-        Never returns the full tree or a subtree — call again with a
-        different query, or use get_category_children to go deeper, instead
-        of raising `limit`.
+        Never returns the full tree or a subtree — prefer multiple calls in
+        one turn with different queries, or use get_category_children to go
+        deeper, instead of raising `limit`.
 
         Returns:
             One formatted block per match (name, id, parent, leaf status,
             score, and children), or "no matches".
         """
-        result = search_categories(
-            SearchCategoriesRequest(query=query, limit=limit),
-            categories=categories,
-        )
+        with pool.connection() as conn:
+            result = search_categories(
+                SearchCategoriesRequest(query=query, limit=limit),
+                categories=PsycopgCategoryRepository(conn),
+            )
         if not result.matches:
             return "no matches"
         return "\n".join(_format_match(m) for m in result.matches)
@@ -229,10 +231,11 @@ def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
             One "name [id]" line per child, or "no children".
         """
         parent_id = UUID(category_id) if category_id else None
-        result = list_category_children(
-            ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
-            categories=categories,
-        )
+        with pool.connection() as conn:
+            result = list_category_children(
+                ListCategoryChildrenRequest(parent_id=parent_id, limit=limit),
+                categories=PsycopgCategoryRepository(conn),
+            )
         if not result.children:
             return "no children"
         lines = [_format_category_line(c) for c in result.children]
@@ -256,12 +259,13 @@ def build_discover_tools(conn: psycopg.Connection[Any]) -> list[BaseTool]:
             "created {name} [{id}]", or an error line explaining why not
             (e.g. parent not found, parent already has product memberships).
         """
-        result = create_category(
-            CreateCategoryRequest(name=name, parent_id=UUID(parent_id)),
-            categories=categories,
-            memberships=PsycopgMembershipRepository(conn),
-            uow=PsycopgUnitOfWork(conn),
-        )
+        with pool.connection() as conn:
+            result = create_category(
+                CreateCategoryRequest(name=name, parent_id=UUID(parent_id)),
+                categories=PsycopgCategoryRepository(conn),
+                memberships=PsycopgMembershipRepository(conn),
+                uow=PsycopgUnitOfWork(conn),
+            )
         return f"created {result.category.name} [{result.category.id}]"
 
     return [_search_categories, _get_category_children, _create_category]

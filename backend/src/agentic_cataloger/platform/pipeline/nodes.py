@@ -1,12 +1,15 @@
 """Graph nodes for the per-product pipeline StateGraph.
 
 ``assign_node`` calls the bound ``StageAgent`` and — on a clean assign —
-writes the membership itself through the live connection's repositories (an
+writes the membership itself through a short-lived pool checkout (an
 invariant-enforced-twice pattern already used elsewhere: the tool the model
 calls can write the same row, but the node is the guaranteed, idempotent
 write site). ``discover_node`` validates the create proposal and loops
 ``create_category`` down the proposed path. ``defer_node`` is the single
 write site for every kind of miss, model-initiated or node-initiated.
+
+All DB access goes through ``StageDeps.pool``: check out per unit of work.
+Never share one ``Connection`` across concurrent tool calls.
 """
 
 from __future__ import annotations
@@ -16,9 +19,9 @@ from dataclasses import dataclass
 from typing import Any, Literal, NotRequired, TypedDict, cast
 from uuid import UUID
 
-import psycopg
 from langgraph.graph import END
 from langgraph.runtime import Runtime
+from psycopg_pool import ConnectionPool
 
 from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.contracts.models import StageKind, StageResult
@@ -84,40 +87,75 @@ class RunState(TypedDict):
 
 @dataclass(frozen=True, slots=True)
 class StageDeps:
-    """Per-invocation context: one live connection, telemetry, and both agents.
+    """Per-invocation context: app pool, telemetry, and both agents.
 
-    ``conn`` is scoped to one product (opened and closed by the runner's
-    per-product loop) — every node in one graph invocation shares it.
-    ``assign_agent`` is the assign stage; ``discover_agent`` is the
-    discover/create stage.
+    ``pool`` is process-scoped; every DB touch in this graph invocation
+    checks out an exclusive connection for that unit of work. Do not put a
+    live ``Connection`` here — tool fan-out and node writes must not share
+    one session across threads.
     """
 
-    conn: psycopg.Connection[Any]
+    pool: ConnectionPool
     telemetry: Telemetry
     assign_agent: StageAgent
     discover_agent: StageAgent
 
 
 def _write_assignment(
-    conn: psycopg.Connection[Any],
+    pool: ConnectionPool,
     *,
     product_id: UUID,
     leaf_id: UUID,
 ) -> None:
-    """Assign ``product_id`` to ``leaf_id`` through the live connection's repositories.
+    """Assign ``product_id`` to ``leaf_id`` on a short-lived pool checkout.
 
     Args:
-        conn: Live psycopg connection for this product.
+        pool: App connection pool.
         product_id: Catalog product to assign.
         leaf_id: Target leaf category.
     """
-    assign_product_to_leaf(
-        AssignProductRequest(product_id=product_id, leaf_id=leaf_id),
-        categories=PsycopgCategoryRepository(conn),
-        memberships=PsycopgMembershipRepository(conn),
-        products=PsycopgProductRepository(conn),
-        uow=PsycopgUnitOfWork(conn),
-    )
+    with pool.connection() as conn:
+        assign_product_to_leaf(
+            AssignProductRequest(product_id=product_id, leaf_id=leaf_id),
+            categories=PsycopgCategoryRepository(conn),
+            memberships=PsycopgMembershipRepository(conn),
+            products=PsycopgProductRepository(conn),
+            uow=PsycopgUnitOfWork(conn),
+        )
+
+
+def _create_category_path(pool: ConnectionPool, decision: CreateDecision) -> UUID:
+    """Create ``decision.names`` under ``decision.parent_id``; return the leaf id.
+
+    Args:
+        pool: App connection pool.
+        decision: Validated create proposal (non-empty ``names``).
+
+    Returns:
+        UUID of the deepest created category.
+
+    Raises:
+        TaxonomyError: Domain create rejected a step in the path.
+    """
+    parent_id = decision.parent_id
+    leaf_id: UUID | None = None
+    with pool.connection() as conn:
+        cats = PsycopgCategoryRepository(conn)
+        mems = PsycopgMembershipRepository(conn)
+        uow = PsycopgUnitOfWork(conn)
+        for name in decision.names:
+            result = create_category(
+                CreateCategoryRequest(name=name, parent_id=parent_id),
+                categories=cats,
+                memberships=mems,
+                uow=uow,
+            )
+            leaf_id = result.category.id
+            parent_id = result.category.id
+    if leaf_id is None:
+        msg = "create proposal produced no categories"
+        raise TaxonomyError(msg)
+    return leaf_id
 
 
 def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
@@ -158,7 +196,7 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
     if isinstance(decision, AssignDecision):
         try:
             _write_assignment(
-                runtime.context.conn,
+                runtime.context.pool,
                 product_id=state["product"].product_id,
                 leaf_id=decision.leaf_id,
             )
@@ -281,24 +319,8 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         return updates
 
     # Loop create_category down the proposed path.
-    conn = runtime.context.conn
-    cats = PsycopgCategoryRepository(conn)
-    mems = PsycopgMembershipRepository(conn)
-    uow = PsycopgUnitOfWork(conn)
-
-    parent_id = decision.parent_id
-    leaf_id: UUID | None = None
-
     try:
-        for name in decision.names:
-            result = create_category(
-                CreateCategoryRequest(name=name, parent_id=parent_id),
-                categories=cats,
-                memberships=mems,
-                uow=uow,
-            )
-            leaf_id = result.category.id
-            parent_id = result.category.id
+        leaf_id = _create_category_path(runtime.context.pool, decision)
     except TaxonomyError as exc:
         logger.warning(
             "Discover create_category failed for product_id=%s: %s",
@@ -316,8 +338,7 @@ def discover_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any
         )
         return updates
 
-    if leaf_id is not None:
-        updates["discover_leaf"] = leaf_id
+    updates["discover_leaf"] = leaf_id
 
     updates["discover"] = StageResult(
         run_id=state["run_id"],
@@ -385,11 +406,12 @@ def defer_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
         attempt_count=attempt_count,
         trace_id=runtime.context.telemetry.current_trace_id(),
     )
-    defer_item(
-        request,
-        items=PsycopgDeferredItemRepository(runtime.context.conn),
-        uow=PsycopgUnitOfWork(runtime.context.conn),
-    )
+    with runtime.context.pool.connection() as conn:
+        defer_item(
+            request,
+            items=PsycopgDeferredItemRepository(conn),
+            uow=PsycopgUnitOfWork(conn),
+        )
     return {}
 
 

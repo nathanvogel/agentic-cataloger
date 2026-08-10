@@ -21,6 +21,7 @@ from uuid import UUID, uuid4
 
 import psycopg
 import pytest
+from psycopg_pool import ConnectionPool
 
 from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
 from agentic_cataloger.catalog.identity import SourceIdentity
@@ -39,6 +40,7 @@ from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgUnitOfWork,
     connect_app,
 )
+from agentic_cataloger.platform.persistence.db import get_app_pool
 from agentic_cataloger.platform.persistence.review_repo import (
     PsycopgDeferredItemRepository,
 )
@@ -202,7 +204,7 @@ class _ActiveSpanTelemetry:
 
 
 def _run_graph(
-    conn: psycopg.Connection[Any],
+    pool: ConnectionPool,
     *,
     product_id: UUID,
     agent: Any,
@@ -243,7 +245,7 @@ def _run_graph(
             },
             config={"recursion_limit": 10},
             context=StageDeps(
-                conn=conn,
+                pool=pool,
                 telemetry=active_telemetry,
                 assign_agent=agent,
                 discover_agent=discover_agent or _AlwaysDeferAgent(),
@@ -264,7 +266,9 @@ def test_assign_success_writes_membership_and_returns_success(
         _, leaf_id = _seed_tree(conn)
 
         agent = _FakeStageAgent([AssignDecision(leaf_id=leaf_id)])
-        outcome = _run_graph(conn, product_id=pid, agent=agent)
+        outcome = _run_graph(
+            get_app_pool(app_database_url), product_id=pid, agent=agent
+        )
 
         result = outcome["assign"]
         assert result.status == "success"
@@ -291,7 +295,9 @@ def test_assign_miss_defers_and_writes_deferred_item(
         pid = _seed_product(conn, product_id_str=f"pa-miss-{uuid4().hex[:8]}")
 
         agent = _FakeStageAgent([DeferDecision(reason="nothing in tree fits")])
-        outcome = _run_graph(conn, product_id=pid, agent=agent)
+        outcome = _run_graph(
+            get_app_pool(app_database_url), product_id=pid, agent=agent
+        )
 
         result = outcome["assign"]
         assert result.status == "defer"
@@ -317,7 +323,9 @@ def test_recursion_error_produces_deferred_row_not_traceback(
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-recurse-{uuid4().hex[:8]}")
 
-        outcome = _run_graph(conn, product_id=pid, agent=_RecursionAgent())
+        outcome = _run_graph(
+            get_app_pool(app_database_url), product_id=pid, agent=_RecursionAgent()
+        )
 
         result = outcome["assign"]
         # GraphRecursionError is caught inside LangChainStageAgent.decide, which
@@ -347,7 +355,7 @@ def test_defer_writes_trace_id_from_product_span(
         telemetry = _ActiveSpanTelemetry()
 
         _run_graph(
-            conn,
+            get_app_pool(app_database_url),
             product_id=pid,
             agent=_FakeStageAgent([DeferDecision(reason="nothing fits")]),
             telemetry=telemetry,

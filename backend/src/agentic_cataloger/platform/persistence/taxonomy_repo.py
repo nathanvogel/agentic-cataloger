@@ -39,10 +39,11 @@ class PsycopgCategoryRepository(CategoryRepository):
     """Category repository backed by ``taxonomy_categories``."""
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Create a repository on ``conn``.
+        """Create a repository on an exclusively leased ``conn``.
 
         Args:
-            conn: Live psycopg connection.
+            conn: Live psycopg connection. Not safe to share across threads
+                or parallel tool calls.
         """
         super().__init__()
         self._conn = conn
@@ -226,10 +227,11 @@ class PsycopgMembershipRepository(MembershipRepository):
     """Membership repository backed by ``taxonomy_memberships``."""
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
-        """Create a repository on ``conn``.
+        """Create a repository on an exclusively leased ``conn``.
 
         Args:
-            conn: Live psycopg connection.
+            conn: Live psycopg connection. Not safe to share across threads
+                or parallel tool calls.
         """
         super().__init__()
         self._conn = conn
