@@ -191,9 +191,8 @@ def route_after_assign(state: RunState) -> str:
             after ``assign_node``).
 
     Returns:
-        ``END`` on a clean assign; otherwise the domain's routing literal
-        (``"discover_create"``/``"defer"``) for ``graph.py``'s path map to
-        resolve into an actual node name.
+        Node name to run next: ``END`` on a clean assign, otherwise
+        ``"discover_create"`` or ``"defer"``.
     """
     outcome = _route_after_assign(
         cast(StageDecision, state.get("assign_decision")),

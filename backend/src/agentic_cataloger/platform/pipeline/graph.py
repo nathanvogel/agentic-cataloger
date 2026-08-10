@@ -58,16 +58,8 @@ def build_stage_graph() -> CompiledStateGraph[Any, Any, Any, Any]:
 
     builder.add_edge("__start__", "assign")
 
-    builder.add_conditional_edges(
-        "assign",
-        route_after_assign,
-        {END: END, "discover_create": "discover_create", "defer": "defer"},
-    )
-    builder.add_conditional_edges(
-        "discover_create",
-        route_after_discover,
-        {"assign": "assign", "defer": "defer"},
-    )
+    builder.add_conditional_edges("assign", route_after_assign)
+    builder.add_conditional_edges("discover_create", route_after_discover)
     builder.add_edge("defer", END)
 
     return builder.compile()
