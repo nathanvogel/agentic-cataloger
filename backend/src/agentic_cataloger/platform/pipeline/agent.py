@@ -118,7 +118,10 @@ def _render_product(product: RunProductRef, context: Mapping[str, object]) -> st
             f"{product.source_category}"
         )
     if product.unified_category:
-        lines.append(f"unified_category: {product.unified_category}")
+        lines.append(
+            "unified_category (retailer label, not authoritative): "
+            f"{product.unified_category}"
+        )
     for key, value in context.items():
         lines.append(f"{key}: {value}")
     return "\n".join(lines)

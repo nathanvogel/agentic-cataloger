@@ -20,10 +20,14 @@ differs enough that comparing them as "the same thing" would be misleading
 (e.g. fresh vs UHT milk, whole vs skim if the leaf is fat-specific, brand-tier
 only when the tree already encodes that facet as separate leaves).
 
-**Facets, not new leaves.** Preference filters within the same product class
-stay as facets (organic/Bio, variety, fat%, brand tier) unless the tree
-already encodes that split as separate leaves. Do not invent a leaf just to
-hold an organic or variety distinction.
+**Categories must be well-established, intuitive, and unambiguous.** A tree
+category is a shopper concept clear enough to label on a shelf sign without
+debate — not a retailer import label, pack size, or subtle preference split.
+If the distinction is ambiguous or preference-driven within the same product
+class, keep one leaf and represent it as a **facet** on the product
+(organic/Bio, variety, fat%, brand tier, pack size) unless the tree already
+encodes that split as separate leaves. Do not invent a leaf just to hold an
+organic or variety distinction.
 
 **Not** criteria for membership:
 

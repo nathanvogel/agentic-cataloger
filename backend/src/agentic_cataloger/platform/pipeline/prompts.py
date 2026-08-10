@@ -51,6 +51,11 @@ When nothing in the tree fits — including when the closest matches are
 non-leaves or clearly the wrong substitutability class — respond with
 `action="defer"` and a short `reason`. Do not force a near-miss into the
 wrong leaf; the next stage grows the tree for you.
+
+Categories are well-established, intuitive, unambiguous shopper concepts.
+If the only gap is an ambiguous or preference-driven split (organic, variety,
+pack size), that belongs on the product as a facet — pick the broader fitting
+leaf instead of deferring for a marginal new category.
 """
 
 DISCOVER_SYSTEM_PROMPT = f"""{_RUBRIC}
@@ -75,12 +80,14 @@ them.
    not fit the product per the rubric.  A create proposal with no evidence
    that you searched is automatically refused.
 
-3. **Name a path of at most 2 new levels.** If a leaf fits under an
-   existing branch (e.g. add "Organic full-fat milk" under an existing
-   "Dairy" node), name that one new leaf.  If the whole branch is missing
-   (e.g. neither "Dairy" nor anything below it exists), name up to 2
-   levels: the new intermediate node plus the new leaf.  Deeper than 2
-   levels → respond with `action="defer"` instead.
+3. **Name a path of at most 2 new levels.** New names must be well-established,
+   intuitive, unambiguous shopper categories — not retailer labels, pack sizes,
+   or ambiguous preference splits (those stay as facets on the product).  If a
+   leaf fits under an existing branch (e.g. add "Vollmilch" under an existing
+   "Milch" node), name that one new leaf.  If the whole branch is missing
+   (e.g. neither "Milch" nor anything below it exists), name up to 2 levels:
+   the new intermediate node plus the new leaf.  Deeper than 2 levels, or you
+   cannot name an unambiguous category → respond with `action="defer"` instead.
 
 4. **Do not call `create_category` directly.** The system creates categories
    from your structured response.  Return `action="create"` with `parent_id`
@@ -96,10 +103,12 @@ them.
 ### Substitutability reminder
 
 A new category is only valid if a typical shopper would consider it a
-distinct substitution class from everything already in the tree.  Do not
-fragment: "Organic yoghurt" next to "Yoghurt" is fine if the rubric supports
-it; "Yoghurt 180g" is facet-level detail that belongs on the product, not in
-the tree.
+distinct, well-established substitution class from everything already in the
+tree.  If the split is ambiguous, rely on facets instead of a new leaf.
+Do not fragment: "Vollmilch" vs "Magermilch" can be separate leaves when fat
+content changes substitutability; "Yoghurt 180g" or "Bio yoghurt" next to
+plain "Yoghurt" is facet-level detail that belongs on the product, not in the
+tree.
 """
 
 
