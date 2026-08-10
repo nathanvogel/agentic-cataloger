@@ -32,12 +32,12 @@ from langchain_core.tools import BaseTool
 from langgraph.errors import GraphRecursionError
 from pydantic import BaseModel
 
+from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
     CreateDecision,
     DeferDecision,
     RejectedCandidate,
-    RunProductRef,
     StageDecision,
 )
 from agentic_cataloger.platform.llm.openrouter import chat_model
@@ -104,7 +104,7 @@ def _assign_decision_from_schema(schema: BaseModel) -> StageDecision:
     )
 
 
-def _render_product(product: RunProductRef, context: Mapping[str, object]) -> str:
+def _render_product(product: CatalogProductRef, context: Mapping[str, object]) -> str:
     """Render one product (plus optional extra context) as the user turn.
 
     Args:
@@ -186,7 +186,7 @@ class LangChainStageAgent:
     def decide(
         self,
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Mapping[str, object],
     ) -> StageDecision:
         """Run this stage's agent loop for one product.

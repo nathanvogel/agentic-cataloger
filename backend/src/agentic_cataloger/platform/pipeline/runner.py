@@ -10,6 +10,7 @@ from uuid import UUID, uuid7
 from phoenix.otel import OpenInferenceSpanKindValues, SpanAttributes
 
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.contracts.models import StageResult
 from agentic_cataloger.pipeline.commands import (
     SelectRunProductsRequest,
@@ -18,14 +19,13 @@ from agentic_cataloger.pipeline.commands import (
 )
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
-    RunProductRef,
     RunSummary,
     SelectRunProductsResult,
 )
 from agentic_cataloger.pipeline.ports import Telemetry
-from agentic_cataloger.platform.persistence.catalog_repo import connect_app
-from agentic_cataloger.platform.persistence.pipeline_repo import (
-    PsycopgRunProductRepository,
+from agentic_cataloger.platform.persistence.catalog_repo import (
+    PsycopgProductRepository,
+    connect_app,
 )
 from agentic_cataloger.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
@@ -66,7 +66,7 @@ def _require_database_url(database_url: str | None) -> str:
 def _invoke_product_graph(
     *,
     database_url: str,
-    product: RunProductRef,
+    product: CatalogProductRef,
     run_id: UUID,
     graph: Any,
     telemetry: Telemetry,
@@ -158,7 +158,7 @@ def run_select_products(
                 unassigned_only=unassigned_only,
                 limit=limit,
             ),
-            products=PsycopgRunProductRepository(conn),
+            products=PsycopgProductRepository(conn),
         )
 
 
@@ -200,7 +200,7 @@ def run_pipeline(
                 unassigned_only=unassigned_only,
                 limit=limit,
             ),
-            products=PsycopgRunProductRepository(conn),
+            products=PsycopgProductRepository(conn),
         )
         ensure_root_category(
             categories=PsycopgCategoryRepository(conn),

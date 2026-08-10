@@ -1,4 +1,4 @@
-"""Integration tests for PsycopgRunProductRepository (pipeline product selection).
+"""Integration tests for PsycopgProductRepository.list_refs (filtered selection).
 
 The shared test database is not wiped between test functions (other suites
 leave real rows behind — e.g. `test_catalog_ingest.py` inserts a product
@@ -28,9 +28,6 @@ from agentic_cataloger.platform.persistence.catalog_repo import (
     PsycopgSnapshotRepository,
     PsycopgUnitOfWork,
     connect_app,
-)
-from agentic_cataloger.platform.persistence.pipeline_repo import (
-    PsycopgRunProductRepository,
 )
 from agentic_cataloger.platform.persistence.taxonomy_repo import (
     PsycopgCategoryRepository,
@@ -187,7 +184,7 @@ def test_run_product_selection_matches_ingest_filter_in_memory(
             ids[f"{tag} Griechischer Joghurt"],
         }
 
-        selected = PsycopgRunProductRepository(conn).list_for_run(
+        selected = PsycopgProductRepository(conn).list_refs(
             ingest_filter=ingest_filter,
             unassigned_only=False,
             limit=None,
@@ -224,7 +221,7 @@ def test_keyword_filter_matches_ingest_filter_in_memory(
         }
         assert expected == set(ids.values())
 
-        selected = PsycopgRunProductRepository(conn).list_for_run(
+        selected = PsycopgProductRepository(conn).list_refs(
             ingest_filter=ingest_filter,
             unassigned_only=False,
             limit=None,
@@ -271,7 +268,7 @@ def test_unassigned_only_excludes_membered_products(
 
         ingest_filter = IngestFilter(source_category=f"{tag} Milchprodukte")
 
-        unassigned_only = PsycopgRunProductRepository(conn).list_for_run(
+        unassigned_only = PsycopgProductRepository(conn).list_refs(
             ingest_filter=ingest_filter,
             unassigned_only=True,
             limit=None,
@@ -280,7 +277,7 @@ def test_unassigned_only_excludes_membered_products(
         assert ids[f"{tag} Vollmilch"] not in selected_ids
         assert ids[f"{tag} Halbrahm"] in selected_ids
 
-        reassign = PsycopgRunProductRepository(conn).list_for_run(
+        reassign = PsycopgProductRepository(conn).list_refs(
             ingest_filter=ingest_filter,
             unassigned_only=False,
             limit=None,

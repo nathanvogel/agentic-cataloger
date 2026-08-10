@@ -7,39 +7,39 @@ from typing import final
 from uuid import uuid4
 
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import CatalogProductRef
+from agentic_cataloger.catalog.ports import CatalogProductQuery
 from agentic_cataloger.pipeline.commands import (
     SelectRunProductsRequest,
     select_run_products,
 )
-from agentic_cataloger.pipeline.models import RunProductRef
-from agentic_cataloger.pipeline.ports import RunProductRepository
 
 
 @final
 @dataclass
-class _FakeRunProducts(RunProductRepository):
-    """In-memory RunProductRepository fake recording its last call args."""
+class _FakeCatalogProducts(CatalogProductQuery):
+    """In-memory CatalogProductQuery fake recording its last call args."""
 
-    rows: list[RunProductRef] = field(default_factory=list)
+    rows: list[CatalogProductRef] = field(default_factory=list)
     last_ingest_filter: IngestFilter | None = None
     last_unassigned_only: bool | None = None
     last_limit: int | None = None
 
-    def list_for_run(
+    def list_refs(
         self,
         *,
         ingest_filter: IngestFilter,
         unassigned_only: bool,
         limit: int | None,
-    ) -> list[RunProductRef]:
+    ) -> list[CatalogProductRef]:
         self.last_ingest_filter = ingest_filter
         self.last_unassigned_only = unassigned_only
         self.last_limit = limit
         return list(self.rows)[:limit] if limit is not None else list(self.rows)
 
 
-def _ref(name: str = "Milk") -> RunProductRef:
-    return RunProductRef(
+def _ref(name: str = "Milk") -> CatalogProductRef:
+    return CatalogProductRef(
         product_id=uuid4(),
         name=name,
         name_de=None,
@@ -51,7 +51,7 @@ def _ref(name: str = "Milk") -> RunProductRef:
 def test_select_run_products_passes_through_filter_and_limit() -> None:
     """select_run_products forwards the request's filter, limit, and flag as-is."""
     ingest_filter = IngestFilter(source_category="Milchprodukte")
-    products = _FakeRunProducts(rows=[_ref("Milk"), _ref("Cheese")])
+    products = _FakeCatalogProducts(rows=[_ref("Milk"), _ref("Cheese")])
 
     result = select_run_products(
         SelectRunProductsRequest(
@@ -69,7 +69,7 @@ def test_select_run_products_passes_through_filter_and_limit() -> None:
 
 def test_select_run_products_defaults_to_unassigned_only() -> None:
     """The default request excludes already-assigned products and has no cap."""
-    products = _FakeRunProducts(rows=[_ref()])
+    products = _FakeCatalogProducts(rows=[_ref()])
 
     select_run_products(
         SelectRunProductsRequest(ingest_filter=IngestFilter()),
@@ -82,7 +82,7 @@ def test_select_run_products_defaults_to_unassigned_only() -> None:
 
 def test_select_run_products_empty_filter_returns_all() -> None:
     """An empty IngestFilter selects everything the repository returns."""
-    products = _FakeRunProducts(rows=[_ref("A"), _ref("B"), _ref("C")])
+    products = _FakeCatalogProducts(rows=[_ref("A"), _ref("B"), _ref("C")])
 
     result = select_run_products(
         SelectRunProductsRequest(ingest_filter=IngestFilter()),

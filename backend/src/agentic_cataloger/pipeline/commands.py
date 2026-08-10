@@ -6,15 +6,15 @@ from dataclasses import dataclass
 from typing import Literal
 
 from agentic_cataloger.catalog.ingest_filter import IngestFilter
+from agentic_cataloger.catalog.models import CatalogProductRef
+from agentic_cataloger.catalog.ports import CatalogProductQuery
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
     CreateDecision,
-    RunProductRef,
     SelectRunProductsResult,
     StageDecision,
 )
-from agentic_cataloger.pipeline.ports import RunProductRepository
 from agentic_cataloger.review.commands import DeferItemRequest
 from agentic_cataloger.review.models import ReasonCode
 from agentic_cataloger.taxonomy.commands import CreateCategoryRequest, create_category
@@ -37,7 +37,7 @@ class SelectRunProductsRequest:
 def select_run_products(
     request: SelectRunProductsRequest,
     *,
-    products: RunProductRepository,
+    products: CatalogProductQuery,
 ) -> SelectRunProductsResult:
     """Select the products a pipeline run will operate on.
 
@@ -47,12 +47,12 @@ def select_run_products(
 
     Args:
         request: Filter, unassigned-only flag, and optional row cap.
-        products: Product-selection repository.
+        products: Catalog product query port.
 
     Returns:
         Matching products.
     """
-    matched = products.list_for_run(
+    matched = products.list_refs(
         ingest_filter=request.ingest_filter,
         unassigned_only=request.unassigned_only,
         limit=request.limit,
@@ -95,7 +95,7 @@ def route_after_assign(
 
 def build_defer_request(
     *,
-    product: RunProductRef,
+    product: CatalogProductRef,
     stage: StageKind,
     decision_or_error: StageDecision | Exception,
     attempt_count: int,

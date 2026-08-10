@@ -24,13 +24,12 @@ import pytest
 
 from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
 from agentic_cataloger.catalog.identity import SourceIdentity
-from agentic_cataloger.catalog.models import ProductObservation
+from agentic_cataloger.catalog.models import CatalogProductRef, ProductObservation
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.commands import ensure_root_category
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
     DeferDecision,
-    RunProductRef,
     StageDecision,
 )
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
@@ -66,7 +65,7 @@ class _FakeStageAgent:
     def decide(
         self,
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Mapping[str, object],
     ) -> StageDecision:
         return next(self._decisions)
@@ -85,7 +84,7 @@ class _RecursionAgent:
     @staticmethod
     def decide(
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Mapping[str, object],
     ) -> StageDecision:
         # Simulates what LangChainStageAgent returns after catching
@@ -150,7 +149,7 @@ class _AlwaysDeferAgent:
     @staticmethod
     def decide(
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Any,
     ) -> StageDecision:
         """Return a defer decision."""
@@ -220,7 +219,7 @@ def _run_graph(
     """
     graph = build_stage_graph()
     active_telemetry = telemetry if telemetry is not None else configure_telemetry()
-    product = RunProductRef(
+    product = CatalogProductRef(
         product_id=product_id,
         name="Test product",
         name_de=None,

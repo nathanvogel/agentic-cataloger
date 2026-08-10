@@ -30,14 +30,13 @@ import pytest
 
 from agentic_cataloger.catalog.commands import ImportSnapshotRequest, import_snapshot
 from agentic_cataloger.catalog.identity import SourceIdentity
-from agentic_cataloger.catalog.models import ProductObservation
+from agentic_cataloger.catalog.models import CatalogProductRef, ProductObservation
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
     CreateDecision,
     DeferDecision,
     RejectedCandidate,
-    RunProductRef,
     StageDecision,
 )
 from agentic_cataloger.platform.persistence.catalog_repo import (
@@ -73,7 +72,7 @@ class _FakeStageAgent:
     def decide(
         self,
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Mapping[str, object],
     ) -> StageDecision:
         """Return the next scripted decision."""
@@ -162,7 +161,7 @@ def _run_graph(
     """
     graph = build_stage_graph()
     telemetry = configure_telemetry()
-    product = RunProductRef(
+    product = CatalogProductRef(
         product_id=product_id,
         name="Test product",
         name_de=None,
@@ -246,7 +245,7 @@ def test_cold_tree_assign_miss_discover_creates_two_levels_assign_places_product
             def decide(
                 self,
                 *,
-                product: RunProductRef,
+                product: CatalogProductRef,
                 context: Mapping[str, object],
             ) -> StageDecision:
                 self._call_count += 1
@@ -316,7 +315,7 @@ def test_discover_iteration_cap_produces_at_most_three_discover_calls(
         def decide(
             self,
             *,
-            product: RunProductRef,
+            product: CatalogProductRef,
             context: Mapping[str, object],
         ) -> StageDecision:
             """Return a create decision and increment the call counter."""
@@ -520,7 +519,7 @@ def test_assign_second_pass_disagrees_with_discover_increments_disagreement_coun
         def decide(
             self,
             *,
-            product: RunProductRef,
+            product: CatalogProductRef,
             context: Mapping[str, object],
         ) -> StageDecision:
             self._call += 1

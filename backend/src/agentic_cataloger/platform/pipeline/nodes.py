@@ -20,6 +20,7 @@ import psycopg
 from langgraph.graph import END
 from langgraph.runtime import Runtime
 
+from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.contracts.models import StageKind, StageResult
 from agentic_cataloger.pipeline.commands import (
     build_defer_request,
@@ -32,7 +33,6 @@ from agentic_cataloger.pipeline.models import (
     AssignDecision,
     CreateDecision,
     DeferDecision,
-    RunProductRef,
     StageDecision,
 )
 from agentic_cataloger.pipeline.ports import StageAgent, Telemetry
@@ -68,7 +68,7 @@ class RunState(TypedDict):
     ``discover_count`` which caps assign↔discover ping-ponging.
     """
 
-    product: RunProductRef
+    product: CatalogProductRef
     run_id: str
     discover_count: int
     # Set by assign_node:

@@ -4,18 +4,18 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+from agentic_cataloger.catalog.models import CatalogProductRef
 from agentic_cataloger.contracts.models import StageKind
 from agentic_cataloger.pipeline.commands import build_defer_request, route_after_assign
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
     DeferDecision,
-    RunProductRef,
 )
 from agentic_cataloger.review.models import ReasonCode
 
 
-def _product() -> RunProductRef:
-    return RunProductRef(
+def _product() -> CatalogProductRef:
+    return CatalogProductRef(
         product_id=uuid4(),
         name="Vollmilch",
         name_de="Vollmilch",

@@ -82,6 +82,21 @@ class CatalogProduct:
 
 
 @dataclass(frozen=True, slots=True)
+class CatalogProductRef:
+    """Slim read projection of a catalog product.
+
+    Enough for filter matching and stage payloads — not the full
+    ``CatalogProduct`` shape.
+    """
+
+    product_id: UUID
+    name: str
+    name_de: str | None
+    source_category: str | None
+    unified_category: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class ImportSnapshotResult:
     """Outcome of registering a snapshot and upserting its products."""
 

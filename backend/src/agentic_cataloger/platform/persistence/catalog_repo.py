@@ -8,15 +8,19 @@ from typing import Any, cast, final
 from uuid import UUID
 
 import psycopg
+from psycopg import sql
 from psycopg.rows import DictRow, dict_row
 
 from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
 from agentic_cataloger.catalog.models import (
     CatalogProduct,
+    CatalogProductRef,
     CatalogSnapshot,
     ProductObservation,
 )
 from agentic_cataloger.catalog.ports import (
+    CatalogProductQuery,
     CatalogUnitOfWork,
     ProductRepository,
     SnapshotRepository,
@@ -108,11 +112,14 @@ class PsycopgSnapshotRepository(SnapshotRepository):
 
 
 @final
-class PsycopgProductRepository(ProductRepository, ProductExistence):
+class PsycopgProductRepository(
+    ProductRepository, ProductExistence, CatalogProductQuery
+):
     """Product repository backed by ``catalog_products``.
 
-    Implements the full ``ProductRepository`` surface plus the slim
-    ``ProductExistence`` check used by taxonomy assign.
+    Implements the full ``ProductRepository`` surface, the slim
+    ``ProductExistence`` check used by taxonomy assign, and
+    ``CatalogProductQuery`` for filtered product selection.
     """
 
     def __init__(self, conn: psycopg.Connection[Any]) -> None:
@@ -131,6 +138,78 @@ class PsycopgProductRepository(ProductRepository, ProductExistence):
             (product_id,),
         ).fetchone()
         return row is not None
+
+    def list_refs(
+        self,
+        *,
+        ingest_filter: IngestFilter,
+        unassigned_only: bool,
+        limit: int | None,
+    ) -> list[CatalogProductRef]:
+        """Return catalog products matching ``ingest_filter``.
+
+        Args:
+            ingest_filter: Category/keyword criteria (empty = no filtering).
+            unassigned_only: Exclude products with an existing taxonomy leaf
+                membership when True.
+            limit: Optional row cap; None means no limit.
+
+        Returns:
+            Matching products, ordered by name (then id) for a stable order.
+        """
+        # Each fragment below is a string literal, not a runtime-built value —
+        # sql.SQL() intentionally rejects non-literal strings (it does no
+        # escaping). Dynamic parts only ever reach the query as %()s bind
+        # parameters in `params`, never spliced into the SQL text itself.
+        conditions: list[sql.Composable] = []
+        params: dict[str, object] = {}
+
+        if ingest_filter.source_category is not None:
+            conditions.append(
+                sql.SQL(
+                    "(source_category ILIKE %(source_category_needle)s "
+                    "OR lower(unified_category) = lower(%(source_category)s))"
+                )
+            )
+            params["source_category_needle"] = f"%{ingest_filter.source_category}%"
+            params["source_category"] = ingest_filter.source_category
+
+        if ingest_filter.keyword is not None:
+            conditions.append(
+                sql.SQL(
+                    "(name ILIKE %(keyword_needle)s "
+                    "OR name_de ILIKE %(keyword_needle)s)"
+                )
+            )
+            params["keyword_needle"] = f"%{ingest_filter.keyword}%"
+
+        if unassigned_only:
+            conditions.append(
+                sql.SQL(
+                    "NOT EXISTS ("
+                    "SELECT 1 FROM taxonomy_memberships m "
+                    "WHERE m.product_id = catalog_products.id"
+                    ")"
+                )
+            )
+
+        query_parts: list[sql.Composable] = [
+            sql.SQL(
+                "SELECT id, name, name_de, source_category, unified_category "
+                "FROM catalog_products"
+            )
+        ]
+        if conditions:
+            query_parts.append(sql.SQL(" WHERE "))
+            query_parts.append(sql.SQL(" AND ").join(conditions))
+        query_parts.append(sql.SQL(" ORDER BY name, id"))
+        if limit is not None:
+            query_parts.append(sql.SQL(" LIMIT %(limit)s"))
+            params["limit"] = limit
+
+        query = sql.SQL("").join(query_parts)
+        rows = self._conn.execute(query, params).fetchall()
+        return [_product_ref_from_row(row) for row in rows]
 
     def get_by_source_identity(self, identity: SourceIdentity) -> CatalogProduct | None:
         """Return the product for a source identity, if present."""
@@ -335,6 +414,17 @@ def _product_from_row(row: Any) -> CatalogProduct:
         unified_subcategory=_optional_str(data.get("unified_subcategory")),
         identity_policy_version=str(data["identity_policy_version"]),
         last_snapshot_id=UUID(str(data["last_snapshot_id"])),
+    )
+
+
+def _product_ref_from_row(row: Any) -> CatalogProductRef:
+    data = _as_mapping(row)
+    return CatalogProductRef(
+        product_id=UUID(str(data["id"])),
+        name=str(data["name"]),
+        name_de=_optional_str(data.get("name_de")),
+        source_category=_optional_str(data.get("source_category")),
+        unified_category=_optional_str(data.get("unified_category")),
     )
 
 

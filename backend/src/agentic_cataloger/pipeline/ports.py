@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from typing import Protocol
 
-from agentic_cataloger.catalog.ingest_filter import IngestFilter
-from agentic_cataloger.pipeline.models import RunProductRef, StageDecision
+from agentic_cataloger.catalog.models import CatalogProductRef
+from agentic_cataloger.pipeline.models import StageDecision
 
 AttributeValue = str | int | float | bool
 
@@ -53,27 +53,6 @@ class Telemetry(Protocol):
         ...
 
 
-class RunProductRepository(Protocol):
-    """Read path for selecting a set of catalog products for a pipeline run."""
-
-    def list_for_run(
-        self,
-        *,
-        ingest_filter: IngestFilter,
-        unassigned_only: bool,
-        limit: int | None,
-    ) -> Sequence[RunProductRef]:
-        """Return products matching ``ingest_filter``.
-
-        Args:
-            ingest_filter: Category/keyword criteria (empty = no filtering).
-            unassigned_only: Exclude products with an existing taxonomy leaf
-                membership when True.
-            limit: Optional row cap; None means no limit.
-        """
-        ...
-
-
 class StageAgent(Protocol):
     """One separately-prompted stage. The adapter owns the model and tools.
 
@@ -86,7 +65,7 @@ class StageAgent(Protocol):
     def decide(
         self,
         *,
-        product: RunProductRef,
+        product: CatalogProductRef,
         context: Mapping[str, object],
     ) -> StageDecision:
         """Decide this stage's outcome for one product.
