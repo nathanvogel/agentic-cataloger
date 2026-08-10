@@ -19,6 +19,7 @@ from agentic_cataloger.pipeline.commands import (
 )
 from agentic_cataloger.pipeline.models import (
     AssignDecision,
+    CreateDecision,
     RunSummary,
     SelectRunProductsResult,
 )
@@ -211,7 +212,7 @@ def run_pipeline(
     telemetry = configure_telemetry()
     graph = build_stage_graph()
     deferred_count = 0
-    created_count = 0
+    categories_created_count = 0
     disagreement_count = 0
 
     for product in selected.products:
@@ -228,10 +229,12 @@ def run_pipeline(
         if assign_result.status != "success":
             deferred_count += 1
 
-        # Discover / create stats
+        # Discover / create stats: sum category nodes across successful paths.
         discover_result = outcome.get("discover")
         if discover_result is not None and discover_result.status == "success":
-            created_count += 1
+            discover_decision = outcome.get("discover_decision")
+            if isinstance(discover_decision, CreateDecision):
+                categories_created_count += len(discover_decision.names)
             # Check if the assign second pass disagreed with discover's leaf.
             discover_leaf = outcome.get("discover_leaf")
             assign_decision = outcome.get("assign_decision")
@@ -252,7 +255,7 @@ def run_pipeline(
     return RunSummary(
         product_count=len(selected.products),
         deferred_count=deferred_count,
-        created_count=created_count,
+        categories_created_count=categories_created_count,
         disagreement_count=disagreement_count,
     )
 

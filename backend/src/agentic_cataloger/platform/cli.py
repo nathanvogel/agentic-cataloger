@@ -298,7 +298,7 @@ def _run_pipeline(argv: list[str]) -> int:
     print(
         f"run ok: {summary.product_count} products, "
         f"{summary.deferred_count} deferred, "
-        f"{summary.created_count} created, "
+        f"{summary.categories_created_count} categories created, "
         f"{summary.disagreement_count} assign/discover disagreements"
     )
     return 0

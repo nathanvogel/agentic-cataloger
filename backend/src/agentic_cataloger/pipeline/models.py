@@ -75,13 +75,13 @@ StageDecision = AssignDecision | DeferDecision | CreateDecision
 class RunSummary:
     """Counts printed at the end of a pipeline run.
 
-    ``created_count``/``disagreement_count`` stay 0 until Phase 3 adds the
-    discover/create stage — nothing creates categories yet.
+    ``categories_created_count`` is the total number of category nodes written
+    by discover stages (sum of path lengths)
     """
 
     product_count: int
     deferred_count: int
-    created_count: int = 0
+    categories_created_count: int = 0
     disagreement_count: int = 0
 
 
