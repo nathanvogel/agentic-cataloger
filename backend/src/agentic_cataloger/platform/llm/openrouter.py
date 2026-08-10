@@ -13,7 +13,7 @@ from phoenix.otel import OpenInferenceSpanKindValues, SpanAttributes
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 
 if TYPE_CHECKING:
-    from langchain_openai import ChatOpenAI
+    from langchain_core.language_models.chat_models import BaseChatModel
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ def complete_openrouter(
     )
 
 
-def chat_model() -> ChatOpenAI:
+def chat_model() -> BaseChatModel:
     """Build the shared chat model for pipeline stages (OpenRouter-backed).
 
     Model comes from ``PIPELINE_MODEL`` (default ``openai/gpt-4o-mini``,
