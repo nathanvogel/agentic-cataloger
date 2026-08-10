@@ -155,17 +155,21 @@ Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../
 
 ### Environment variables
 
-| Variable | Used by | Example (devcontainer / compose network) |
-|----------|---------|---------|
-| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app` |
+| Variable | Used by | Example / default |
+|----------|---------|-------------------|
+| `DATABASE_URL` | `api`, `worker`, `ingest`, `taxonomy`, `run`, `review` | `postgresql://agentic_cataloger_app:agentic_cataloger_app_dev@postgres:5432/agentic_cataloger_app` |
 | `MIGRATE_DATABASE_URL` | `migrate` only | `postgresql://postgres:postgres@postgres:5432/agentic_cataloger_app` |
+| `API_PORT` | `api` listen port | `3020` |
 | `PHOENIX_DATABASE_URL` | `migrate` when Phoenix is running | `postgresql://agentic_cataloger_phoenix:...@postgres:5432/agentic_cataloger_phoenix` |
 | `PHOENIX_HOST` | `migrate` when Phoenix is running | `phoenix` (compose network) or `localhost` |
-| `PHOENIX_COLLECTOR_ENDPOINT` | telemetry export (`phoenix.otel.register`) | preset in the **devcontainer** to `http://phoenix:6006`;  **Unset → NoOpTelemetry** |
+| `PHOENIX_PORT` | `migrate` Phoenix readiness probe | `6006` |
+| `PHOENIX_COLLECTOR_ENDPOINT` | telemetry export (`phoenix.otel.register`) | preset in the **devcontainer** to `http://phoenix:6006`; **unset → NoOpTelemetry** |
 | `PHOENIX_PROJECT` / `PHOENIX_PROJECT_NAME` | Phoenix project name | preset in the **devcontainer** to `agentic-cataloger` (same default if unset) |
 | `PHOENIX_API_KEY` | optional Bearer for authenticated Phoenix | omit for local Compose |
-| `OPENROUTER_API_KEY` | `telemetry smoke` / future LLM hops | local secret (not in Compose) |
-| `OPENROUTER_SMOKE_MODEL` | `telemetry smoke` model id | default `openai/gpt-4o-mini` |
+| `OPENROUTER_API_KEY` | `telemetry smoke`, `run` (pipeline stages) | local secret (not in Compose) |
+| `OPENROUTER_SMOKE_MODEL` | `telemetry smoke` model id | `openai/gpt-4o-mini` |
+| `PIPELINE_MODEL` | `run` (assign / discover stages) | `openai/gpt-4o-mini` |
+| `PIPELINE_RECURSION_LIMIT` | `run` inner agent loop step budget | `50` |
 
 From the host machine, swap `@postgres:5432` for `@localhost:3021` in each URL above.
 

@@ -19,6 +19,7 @@ Owns the three loop guards from the design discussion's resolved
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import Callable, Mapping
 from typing import Literal, cast
 from uuid import UUID
@@ -56,8 +57,12 @@ logger = logging.getLogger(__name__)
 # the model to answer (assign or defer) with what it already has.
 TOOL_CALL_BUDGET = 8
 # LangGraph step budget for the inner agent loop. Each model/tool cycle
-# costs ~3 steps (model → tool → middleware)
-RECURSION_LIMIT = 50
+# costs ~3 steps (model → tool → middleware). Override with
+# ``PIPELINE_RECURSION_LIMIT``.
+DEFAULT_RECURSION_LIMIT = 50
+RECURSION_LIMIT = int(
+    os.environ.get("PIPELINE_RECURSION_LIMIT", DEFAULT_RECURSION_LIMIT)
+)
 
 
 class _AssignDecisionSchema(BaseModel):
