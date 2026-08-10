@@ -37,6 +37,7 @@ RUN apt-get update \
         fd-find \
         git \
         git-lfs \
+        graphviz \
         openssh-client \
         ripgrep \
         xz-utils \
