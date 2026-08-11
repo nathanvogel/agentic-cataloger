@@ -17,3 +17,5 @@
 - Architectural decisions that outlive a PR go in [`docs/decision_records/`](docs/decision_records/) (template: [`docs/templates/decision_record.md`](docs/templates/decision_record.md)).
 - Implementation plans go in `docs/plans/YYYYMMDD-<main-component>-<slug>.md` (`<main-component>` = primary package/module/service from the repo).
 - When committing, use conventional commit messages.
+- **Comments and docstrings describe current code, not history.** No roadmap/story IDs, phase labels, or "design discussion" asides in code. Skip "X, and not Z" when Z was never a real option. 
+- **Code comments (if any) explain the why.** Do not reformulate the code in prose.
