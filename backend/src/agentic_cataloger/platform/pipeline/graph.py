@@ -1,6 +1,6 @@
 """Per-product LangGraph StateGraph: assign, discover, and defer nodes.
 
-Graph shape (from the design discussion diagram):
+Graph shape:
 
     __start__ → assign
     assign → END       (clean assign)
@@ -13,9 +13,7 @@ Graph shape (from the design discussion diagram):
 Both ``assign`` and ``discover`` carry ``RetryPolicy(max_attempts=3)``
 so a flaky LLM call retries at the node level before escalating to defer.
 
-Compiled without a checkpointer: no resume path exists yet, and the
-``langgraph`` schema created at migrate time is deliberately unused until
-durable stage outcomes / replay (roadmap 4.2) lands.
+Compiled without a checkpointer (no resume path yet).
 """
 
 from __future__ import annotations

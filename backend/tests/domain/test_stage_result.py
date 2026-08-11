@@ -10,7 +10,7 @@ from agentic_cataloger.contracts.models import StageKind, StageResult
 
 
 def test_stage_kind_values_match_reserved_vocabulary() -> None:
-    """StageKind is the closed discover/assign set (roadmap 4.1 scope)."""
+    """StageKind covers discover and assign only."""
     assert {member.value for member in StageKind} == {"discover", "assign"}
 
 

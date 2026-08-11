@@ -87,13 +87,9 @@ def configure_telemetry() -> Telemetry:
         # runner's hand-rolled pipeline.product parent. OpenInference does
         # *not* attach those spans as OTel current context — that parent is
         # what makes telemetry.current_trace_id() work in defer_node.
-        # auto_instrument is a *global* flag (patches
-        # langchain_core.callbacks.BaseCallbackManager.__init__), so it also
-        # starts auto-instrumenting complete_openrouter's ChatOpenAI call
-        # (telemetry smoke) — that path now emits both the hand-rolled leaf
-        # LLM span (record_leaf_llm_span) and an auto-instrumented one.
-        # Accepted for now (roadmap 4.6 is where cost-join double-counting
-        # would actually bite); the pipeline spans are the ones that matter.
+        # auto_instrument is a global flag, so it also instruments
+        # complete_openrouter's telemetry smoke path. Duplicate spans there
+        # are fine; pipeline spans are what matter.
         auto_instrument=True,
     )
     tracer = provider.get_tracer(_TRACER_NAME)

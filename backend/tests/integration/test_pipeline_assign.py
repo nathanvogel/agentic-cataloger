@@ -1,4 +1,4 @@
-"""Integration tests for the Phase 2 assign-only stage graph.
+"""Integration tests for the assign stage graph (discover stubbed to defer).
 
 Uses a ``_FakeStageAgent`` instead of a real LLM — real Postgres, real
 graph, no network.  Covers:
@@ -213,8 +213,7 @@ def _run_graph(
 ) -> dict[str, Any]:
     """Invoke the stage graph for one product and return the full state dict.
 
-    ``discover_agent`` defaults to ``_AlwaysDeferAgent`` so existing Phase 2
-    callers don't break; Phase 3 callers pass their own scripted agent.
+    ``discover_agent`` defaults to ``_AlwaysDeferAgent`` when omitted.
 
     Mirrors ``run_pipeline``: wraps ``graph.invoke`` in a ``pipeline.product``
     span so ``defer_node`` can read ``telemetry.current_trace_id()``.
@@ -287,9 +286,9 @@ def test_assign_miss_defers_and_writes_deferred_item(
 ) -> None:
     """Assign miss → discover also defers → one deferred_items row.
 
-    In Phase 3 the assign miss routes to discover first.  With a stub
-    discover that always defers, the deferred_items row is attributed to
-    DISCOVER (the last stage that ran and could not place the product).
+    With a stub discover that always defers, the deferred_items row is
+    attributed to DISCOVER (the last stage that ran and could not place
+    the product).
     """
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-miss-{uuid4().hex[:8]}")
@@ -305,8 +304,8 @@ def test_assign_miss_defers_and_writes_deferred_item(
         items = PsycopgDeferredItemRepository(conn).list_open()
         matching = [i for i in items if i.product_id == pid]
         assert len(matching) == 1
-        # Phase 3: assign miss → discover (stub, also defers) → defer_node
-        # attributes to DISCOVER, the terminal failing stage.
+        # assign miss → discover (stub, also defers) → defer_node attributes
+        # to DISCOVER, the terminal failing stage.
         assert matching[0].stage == StageKind.DISCOVER
 
 
@@ -317,8 +316,8 @@ def test_recursion_error_produces_deferred_row_not_traceback(
 ) -> None:
     """A GraphRecursionError from the agent is caught and defers the product.
 
-    In Phase 3 the deferred row is attributed to DISCOVER because the
-    stub discover agent also defers after the assign agent defers.
+    The deferred row is attributed to DISCOVER because the stub discover
+    agent also defers after the assign agent defers.
     """
     with connect_app(app_database_url) as conn:
         pid = _seed_product(conn, product_id_str=f"pa-recurse-{uuid4().hex[:8]}")
@@ -335,7 +334,7 @@ def test_recursion_error_produces_deferred_row_not_traceback(
         items = PsycopgDeferredItemRepository(conn).list_open()
         matching = [i for i in items if i.product_id == pid]
         assert len(matching) == 1
-        # Phase 3: assign defer → discover (stub, also defers) → DISCOVER.
+        # assign defer → discover (stub, also defers) → DISCOVER.
         assert matching[0].stage == StageKind.DISCOVER
 
 

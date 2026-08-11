@@ -1,4 +1,4 @@
-"""Domain tests for Phase 3 additions: ensure_root_category, validate_create_proposal.
+"""Domain tests for ensure_root_category and validate_create_proposal.
 
 Uses in-memory fakes only — no DB, no LLM.  Covers:
 - ensure_root_category skips the write when a root already exists.

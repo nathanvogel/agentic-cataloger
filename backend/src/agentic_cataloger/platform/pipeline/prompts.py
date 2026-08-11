@@ -1,9 +1,7 @@
 """System prompts for pipeline stages — rubric loaded from a packaged file.
 
 The rubric lives at ``platform/pipeline/prompts/substitutability-rubric.md``
-(not a Python package — just a data file loaded via ``importlib.resources``
-relative to this package) so it ships with the wheel instead of being read
-by a relative filesystem path that breaks in a container image.
+and is loaded via ``importlib.resources`` so it ships inside the wheel.
 """
 
 from __future__ import annotations

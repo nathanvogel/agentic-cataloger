@@ -41,9 +41,8 @@ def select_run_products(
 ) -> SelectRunProductsResult:
     """Select the products a pipeline run will operate on.
 
-    Pure pass-through to the port — the filter semantics live in the SQL
-    (mirroring ``IngestFilter.matches``), this just shapes the request/result
-    the way every other command file does.
+    Pure pass-through to the port; filter semantics live in the SQL. This
+    just shapes the request/result the way every other command file does.
 
     Args:
         request: Filter, unassigned-only flag, and optional row cap.
@@ -67,11 +66,9 @@ def route_after_assign(
 ) -> Literal["done", "discover", "defer"]:
     """Decide where the graph goes after an assign-stage decision.
 
-    This is the checkable half of roadmap 2.6 ("prefer matching an existing
-    category before creating") and the defer contract: any decision that
-    isn't a clean ``action="assign"`` with a ``leaf_id`` is a miss, and a
-    miss reaches ``discover`` only while ``discover_count`` is below
-    ``_MAX_DISCOVER_ITERATIONS``; further misses defer instead of
+    Any decision that isn't a clean ``action="assign"`` with a ``leaf_id`` is
+    a miss. A miss reaches ``discover`` only while ``discover_count`` is
+    below ``_MAX_DISCOVER_ITERATIONS``; further misses defer instead of
     ping-ponging.
 
     Args:
@@ -154,10 +151,8 @@ def ensure_root_category(
 ) -> None:
     """Ensure a root category exists before a pipeline run starts.
 
-    Creates "All products" when no root is present so the model never
-    needs to reason about roots, and a ``RootAlreadyExistsError`` can
-    never surface mid-run from the discover stage.  Called once before
-    the product loop (not per product).
+    Creates "All products" when no root is present. Called once before
+    the product loop.
 
     Args:
         categories: Category repository.
@@ -182,11 +177,8 @@ _MAX_DISCOVER_ITERATIONS = 3
 def validate_create_proposal(decision: CreateDecision) -> None:
     """Validate a discover stage's create proposal before calling ``create_category``.
 
-    A create with no rejected-candidate evidence is refused (roadmap 2.6 —
-    enforced in the node, not only in the prompt). A path longer than
-    ``_MAX_CREATE_LEVELS`` is also refused to keep the tree shallow and bounded
-    (design discussion: cap new levels at ``_MAX_CREATE_LEVELS``; deeper than
-    that, defer).
+    Requires at least one rejected candidate, a non-empty path, and a path
+    no deeper than ``_MAX_CREATE_LEVELS``.
 
     Args:
         decision: The discover stage's create proposal.
@@ -196,10 +188,7 @@ def validate_create_proposal(decision: CreateDecision) -> None:
             path is deeper than ``_MAX_CREATE_LEVELS``.
     """
     if not decision.rejected:
-        msg = (
-            "create proposal must include at least one rejected candidate "
-            "(roadmap 2.6 — a create with no evidence is refused)"
-        )
+        msg = "create proposal must include at least one rejected candidate"
         raise ValueError(msg)
     if not decision.names:
         msg = "create proposal must include at least one category name"

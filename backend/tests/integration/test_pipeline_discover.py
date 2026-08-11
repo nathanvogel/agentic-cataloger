@@ -1,4 +1,4 @@
-"""Integration tests for the Phase 3 discover/create stage graph.
+"""Integration tests for the discover/create stage graph.
 
 Uses ``_FakeStageAgent`` scripted per-call — real Postgres, real graph, no
 network.  Covers:

@@ -1,11 +1,9 @@
 """LangChain-backed StageAgent: model + bound tools + structured output.
 
 Along with ``tools.py``, this is the only module allowed to import
-``langchain``/``langgraph`` in the pipeline vertical — mirrors
-``platform/taxonomy/tools.py``'s role for the taxonomy vertical.
+``langchain``/``langgraph`` in the pipeline vertical.
 
-Owns the three loop guards from the design discussion's resolved
-"tool-calling agent loop" decision:
+Guards against unbounded agent loops:
 
 - **Loop length** — ``recursion_limit`` passed at invoke time;
   ``GraphRecursionError`` is caught here and turned into
@@ -68,9 +66,8 @@ RECURSION_LIMIT = int(
 class _AssignDecisionSchema(BaseModel):
     """Structured output schema for the assign stage.
 
-    Converted to the domain ``StageDecision`` by
-    ``_assign_decision_from_schema`` — the assign stage can never emit
-    ``action="create"`` because this schema doesn't offer it.
+    Only ``assign`` and ``defer`` actions; converted to a domain
+    ``StageDecision`` by ``_assign_decision_from_schema``.
     """
 
     action: Literal["assign", "defer"]
@@ -88,9 +85,7 @@ def _assign_decision_from_schema(schema: BaseModel) -> StageDecision:
         Domain decision; an unparseable ``leaf_id`` is treated as absent
         (the node then routes it like any other miss).
     """
-    # to_decision is only ever wired to the matching response_schema at
-    # construction time (build_assign_stage_agent pairs the two) — cast
-    # rather than assert/isinstance since this is a static, not runtime, fact.
+    # to_decision is paired with response_schema at construction time.
     parsed = cast(_AssignDecisionSchema, schema)
     if parsed.action == "defer":
         return DeferDecision(reason=parsed.reason)
@@ -115,7 +110,7 @@ def _render_product(product: CatalogProductRef, context: Mapping[str, object]) -
     Args:
         product: Product this stage attempt is deciding about.
         context: Extra prompt context (e.g. a discover-created candidate
-            leaf in Phase 3); empty on a first pass.
+            leaf); empty on a first pass.
 
     Returns:
         Plain-text product description for the agent's first message.
@@ -262,9 +257,8 @@ class _RejectedCandidateSchema(BaseModel):
 class _DiscoverDecisionSchema(BaseModel):
     """Structured output schema for the discover stage.
 
-    Converted to the domain ``StageDecision`` by
-    ``_discover_decision_from_schema``.  The discover stage can never emit
-    ``action="assign"`` because this schema doesn't offer it.
+    Only ``create`` and ``defer`` actions; converted to a domain
+    ``StageDecision`` by ``_discover_decision_from_schema``.
     """
 
     action: Literal["create", "defer"]

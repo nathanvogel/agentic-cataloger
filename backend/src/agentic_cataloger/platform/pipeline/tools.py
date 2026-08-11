@@ -1,14 +1,11 @@
 """LangChain tool factories for pipeline stages, closed over an app pool.
 
-Tools are built fresh per product from a factory. Each tool call checks out
-its own connection from the pool — ``psycopg.Connection`` is not safe for
-concurrent use, and LangGraph's ``ToolNode`` may run parallel tool calls
-from one model turn on different threads.
+Each tool call checks out its own connection from the pool because
+``psycopg.Connection`` is not safe for concurrent use and LangGraph's
+``ToolNode`` may run parallel tool calls on different threads.
 
-The disjoint tool sets per stage are what make same-call create+assign
-structurally impossible: ``assign_product_to_leaf`` is only ever bound in
-``build_assign_tools``, never in ``build_discover_tools``;
-``create_category`` is the reverse.
+Assign and discover stages bind disjoint tool sets: only assign binds
+``assign_product_to_leaf``, only discover binds ``create_category``.
 """
 
 from __future__ import annotations
@@ -75,17 +72,12 @@ def _format_match(match: CategoryMatch) -> str:
 def build_assign_tools(pool: ConnectionPool) -> list[BaseTool]:
     """Build the assign stage's tools, each checking out from ``pool``.
 
-    ``create_category`` is deliberately absent — never reachable from the
-    assign stage, mirroring ``build_discover_tools`` never binding
-    ``assign_product_to_leaf``.
-
     Args:
-        pool: App connection pool. Each tool call borrows one exclusive
-            connection; do not pass a shared live ``Connection`` here.
+        pool: App connection pool.
 
     Returns:
         ``search_categories``, ``get_category_children``, and
-        ``assign_product_to_leaf`` tool objects.
+        ``assign_product_to_leaf``.
     """
 
     @tool("search_categories")
@@ -175,24 +167,16 @@ def build_assign_tools(pool: ConnectionPool) -> list[BaseTool]:
 def build_discover_tools(pool: ConnectionPool) -> list[BaseTool]:
     """Build the discover stage's tools, each checking out from ``pool``.
 
-    ``assign_product_to_leaf`` is deliberately absent — never reachable from
-    the discover stage, mirroring ``build_assign_tools`` never binding
-    ``create_category``.
-
-    ``create_category`` is included here so the model can explore parent
-    candidates by checking what names are already taken.  The DISCOVER prompt
-    instructs the model NOT to call it directly; the node creates from the
-    structured-output proposal instead.  A real LLM that ignores the prompt
-    and calls the tool will successfully write the category, after which the
-    node skips re-creating the same path.
+    ``create_category`` lets the model check whether a name slot is taken.
+    The discover prompt asks for ``action="create"`` in structured output;
+    if the model calls the tool directly, the node skips re-creating the path.
 
     Args:
-        pool: App connection pool. Each tool call borrows one exclusive
-            connection; do not pass a shared live ``Connection`` here.
+        pool: App connection pool.
 
     Returns:
         ``search_categories``, ``get_category_children``, and
-        ``create_category`` tool objects.
+        ``create_category``.
     """
 
     @tool("search_categories")

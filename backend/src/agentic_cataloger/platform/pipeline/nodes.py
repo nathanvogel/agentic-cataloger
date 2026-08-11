@@ -78,7 +78,7 @@ class RunState(TypedDict):
     assign_decision: NotRequired[StageDecision]
     assign_error: NotRequired[Exception]
     assign: NotRequired[StageResult]
-    # Set by discover_node (Phase 3):
+    # Set by discover_node:
     discover_decision: NotRequired[StageDecision]
     discover_error: NotRequired[Exception]
     discover: NotRequired[StageResult]
@@ -209,8 +209,7 @@ def assign_node(state: RunState, runtime: Runtime[StageDeps]) -> dict[str, Any]:
     elif isinstance(decision, DeferDecision):
         status = "defer"
     else:
-        # CreateDecision — the assign stage schema never offers "create",
-        # so this is a node-level rejection.
+        # Unexpected decision type for the assign stage.
         status = "invalid"
         exc = ValueError(
             f"assign stage returned unexpected decision {type(decision).__name__!r}"

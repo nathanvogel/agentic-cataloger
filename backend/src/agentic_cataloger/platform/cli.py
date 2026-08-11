@@ -210,8 +210,7 @@ def _run_pipeline(argv: list[str]) -> int:
 
     ``--dry-run`` selects and prints the matching products without making
     any LLM call. Without it, categorizes each selected product through the
-    two-stage assign/defer graph (Phase 2 — discover/create lands in
-    Phase 3) and prints a run summary.
+    assign/discover graph and prints a run summary.
 
     Args:
         argv: Arguments after ``run``.

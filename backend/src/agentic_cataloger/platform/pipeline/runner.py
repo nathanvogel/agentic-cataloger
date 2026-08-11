@@ -128,7 +128,6 @@ def _invoke_product_graph(
     else:
         assign_result: StageResult = outcome["assign"]
         product_span.set_attribute(_OUTPUT_VALUE_KEY, assign_result.status)
-        # Defer is a deliberate outcome, not a span failure — OK either way.
         product_span.set_status(ok=True)
         return outcome
     finally:

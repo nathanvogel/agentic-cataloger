@@ -83,11 +83,7 @@ class CatalogProduct:
 
 @dataclass(frozen=True, slots=True)
 class CatalogProductRef:
-    """Slim read projection of a catalog product.
-
-    Enough for filter matching and stage payloads — not the full
-    ``CatalogProduct`` shape.
-    """
+    """Fields needed for filter matching and stage payloads."""
 
     product_id: UUID
     name: str

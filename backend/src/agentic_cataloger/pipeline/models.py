@@ -20,8 +20,8 @@ class SelectRunProductsResult:
 class RejectedCandidate:
     """One existing category the discover stage considered and rejected.
 
-    Required evidence for a create proposal (roadmap 2.6) — checked by
-    ``validate_create_proposal`` on ``CreateDecision``.
+    Required on every ``CreateDecision``; validated by
+    ``validate_create_proposal``.
     """
 
     category_id: UUID

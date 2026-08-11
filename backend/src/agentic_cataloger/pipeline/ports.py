@@ -56,10 +56,8 @@ class Telemetry(Protocol):
 class StageAgent(Protocol):
     """One separately-prompted stage. The adapter owns the model and tools.
 
-    Production wiring supplies a LangChain-backed implementation (tools
-    closed over a live connection); tests supply a fake returning canned
-    ``StageDecision``s, with no network and no DB — that substitutability is
-    the whole point of routing decisions through this port.
+    Production wiring supplies a LangChain-backed implementation; tests
+    supply a fake returning canned ``StageDecision``s.
     """
 
     def decide(
