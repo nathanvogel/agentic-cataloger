@@ -168,7 +168,8 @@ Prose rubric for later agent work: [`docs/specs/substitutability-rubric.md`](../
 | `PHOENIX_API_KEY` | optional Bearer for authenticated Phoenix | omit for local Compose |
 | `OPENROUTER_API_KEY` | `telemetry smoke`, `run` (pipeline stages) | local secret (not in Compose) |
 | `OPENROUTER_SMOKE_MODEL` | `telemetry smoke` model id | `openai/gpt-4o-mini` |
-| `PIPELINE_MODEL` | `run` (assign / discover stages) | `openai/gpt-4o-mini` |
+| `PIPELINE_MODEL` | `run` (assign / discover stages) | `openai/gpt-5.6-luna` |
+| `PIPELINE_REASONING_EFFORT` | `run` reasoning effort (OpenRouter) | `low` |
 | `PIPELINE_RECURSION_LIMIT` | `run` inner agent loop step budget | `50` |
 
 From the host machine, swap `@postgres:5432` for `@localhost:3021` in each URL above.

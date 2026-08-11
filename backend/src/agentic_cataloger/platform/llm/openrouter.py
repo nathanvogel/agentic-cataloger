@@ -19,9 +19,8 @@ logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api/v1"
 DEFAULT_SMOKE_MODEL: Final = "openai/gpt-4o-mini"
-# Same default model as the smoke path — cheap and already proven to work
-# against OpenRouter; override with PIPELINE_MODEL for a stronger model.
-DEFAULT_PIPELINE_MODEL: Final = "openai/gpt-4o-mini"
+DEFAULT_PIPELINE_MODEL: Final = "openai/gpt-5.6-luna"
+DEFAULT_PIPELINE_REASONING_EFFORT: Final = "low"
 PIPELINE_LLM_TIMEOUT_SECONDS: Final = 60.0
 
 # OpenInference keys via phoenix.otel re-exports (platform only; domain stays SDK-free)
@@ -145,11 +144,12 @@ def complete_openrouter(
 def chat_model() -> BaseChatModel:
     """Build the shared chat model for pipeline stages (OpenRouter-backed).
 
-    Model comes from ``PIPELINE_MODEL`` (default ``openai/gpt-4o-mini``,
-    same as the smoke path). ``max_retries=0`` is deliberate: LangGraph's
-    node-level ``RetryPolicy`` owns retries, not the client — a client-side
-    retry inside a ``RetryPolicy``-wrapped node would silently multiply
-    spend and hide the failure from the attempt counter.
+    Model comes from ``PIPELINE_MODEL`` (default ``openai/gpt-5.6-luna``).
+    Reasoning effort comes from ``PIPELINE_REASONING_EFFORT`` (default
+    ``low``). ``max_retries=0`` is deliberate: LangGraph's node-level
+    ``RetryPolicy`` owns retries, not the client — a client-side retry
+    inside a ``RetryPolicy``-wrapped node would silently multiply spend and
+    hide the failure from the attempt counter.
 
     Returns:
         Configured chat model — no tools or structured output bound yet;
@@ -166,6 +166,9 @@ def chat_model() -> BaseChatModel:
         msg = "OPENROUTER_API_KEY is required for pipeline stages"
         raise ValueError(msg)
     model = os.environ.get("PIPELINE_MODEL") or DEFAULT_PIPELINE_MODEL
+    reasoning_effort = (
+        os.environ.get("PIPELINE_REASONING_EFFORT") or DEFAULT_PIPELINE_REASONING_EFFORT
+    )
     return ChatOpenAI(
         model=model,
         api_key=SecretStr(api_key),
@@ -173,6 +176,7 @@ def chat_model() -> BaseChatModel:
         temperature=0,
         timeout=PIPELINE_LLM_TIMEOUT_SECONDS,
         max_retries=0,
+        reasoning={"effort": reasoning_effort},
     )
 
 
