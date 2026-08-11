@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api/v1"
-DEFAULT_SMOKE_MODEL: Final = "openai/gpt-4o-mini"
+DEFAULT_SMOKE_MODEL: Final = "openai/gpt-5.6-luna"
 DEFAULT_PIPELINE_MODEL: Final = "openai/gpt-5.6-luna"
 DEFAULT_PIPELINE_REASONING_EFFORT: Final = "low"
 PIPELINE_LLM_TIMEOUT_SECONDS: Final = 60.0
@@ -192,7 +192,7 @@ def run_telemetry_smoke(
     Args:
         telemetry: Configured telemetry port.
         api_key: OpenRouter key; defaults to ``OPENROUTER_API_KEY``.
-        model: Model id; defaults to ``OPENROUTER_SMOKE_MODEL`` or gpt-4o-mini.
+        model: Model id; defaults to ``OPENROUTER_SMOKE_MODEL`` or gpt-5.6-luna.
         complete: Optional injectable completion (unit tests; skips network).
 
     Returns:

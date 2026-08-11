@@ -10,6 +10,7 @@ import pytest
 
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 from agentic_cataloger.platform.llm.openrouter import (
+    DEFAULT_SMOKE_MODEL,
     LlmCompletion,
     record_leaf_llm_span,
     run_telemetry_smoke,
@@ -117,7 +118,7 @@ def test_record_leaf_llm_span_emits_exactly_one_llm_span() -> None:
     telemetry = RecordingTelemetry()
     completion = LlmCompletion(
         text="ok",
-        model_name="openai/gpt-4o-mini",
+        model_name=DEFAULT_SMOKE_MODEL,
         prompt_tokens=3,
         completion_tokens=1,
         total_tokens=4,
@@ -140,7 +141,7 @@ def test_record_leaf_llm_span_emits_exactly_one_llm_span() -> None:
     leaf = llm_spans[0]
     assert leaf.ended
     assert leaf.attributes["llm.provider"] == "openrouter"
-    assert leaf.attributes["llm.model_name"] == "openai/gpt-4o-mini"
+    assert leaf.attributes["llm.model_name"] == DEFAULT_SMOKE_MODEL
     assert leaf.attributes["llm.token_count.prompt"] == 3
     assert leaf.attributes["llm.token_count.completion"] == 1
     assert leaf.attributes["llm.token_count.total"] == 4

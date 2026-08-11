@@ -12,6 +12,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.trace import StatusCode
 
 from agentic_cataloger.platform.llm.openrouter import (
+    DEFAULT_SMOKE_MODEL,
     LlmCompletion,
     record_leaf_llm_span,
 )
@@ -96,7 +97,7 @@ def test_phoenix_adapter_records_leaf_llm_attrs() -> None:
 
     completion = LlmCompletion(
         text="ok",
-        model_name="openai/gpt-4o-mini",
+        model_name=DEFAULT_SMOKE_MODEL,
         prompt_tokens=2,
         completion_tokens=1,
         total_tokens=3,
@@ -115,7 +116,7 @@ def test_phoenix_adapter_records_leaf_llm_attrs() -> None:
     assert span.attributes is not None
     assert span.attributes["openinference.span.kind"] == "LLM"
     assert span.attributes["llm.provider"] == "openrouter"
-    assert span.attributes["llm.model_name"] == "openai/gpt-4o-mini"
+    assert span.attributes["llm.model_name"] == DEFAULT_SMOKE_MODEL
     assert span.attributes["llm.token_count.prompt"] == 2
     assert span.attributes["llm.token_count.completion"] == 1
     assert span.attributes["llm.token_count.total"] == 3
