@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
 from agentic_cataloger.catalog.identity import SourceIdentity
+from agentic_cataloger.catalog.ingest_filter import IngestFilter
 from agentic_cataloger.catalog.models import (
     CatalogProduct,
+    CatalogProductRef,
     CatalogSnapshot,
     ProductObservation,
 )
@@ -64,4 +67,25 @@ class ProductRepository(Protocol):
         now: datetime,
     ) -> CatalogProduct:
         """Insert or update mutable observations; never touch enrichment state."""
+        ...
+
+
+class CatalogProductQuery(Protocol):
+    """Read path for filtered slim catalog product refs."""
+
+    def list_refs(
+        self,
+        *,
+        ingest_filter: IngestFilter,
+        unassigned_only: bool,
+        limit: int | None,
+    ) -> Sequence[CatalogProductRef]:
+        """Return products matching ``ingest_filter``.
+
+        Args:
+            ingest_filter: Category/keyword criteria (empty = no filtering).
+            unassigned_only: Exclude products with an existing taxonomy leaf
+                membership when True.
+            limit: Optional row cap; None means no limit.
+        """
         ...

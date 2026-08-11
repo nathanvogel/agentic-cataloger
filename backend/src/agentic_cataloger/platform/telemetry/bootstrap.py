@@ -82,7 +82,15 @@ def configure_telemetry() -> Telemetry:
         endpoint=traces_endpoint,
         protocol="http/protobuf",
         batch=False,
-        auto_instrument=False,
+        # Wires openinference-instrumentation-langchain so LangGraph +
+        # create_agent ChatOpenAI calls emit OpenInference spans under the
+        # runner's hand-rolled pipeline.product parent. OpenInference does
+        # *not* attach those spans as OTel current context — that parent is
+        # what makes telemetry.current_trace_id() work in defer_node.
+        # auto_instrument is a global flag, so it also instruments
+        # complete_openrouter's telemetry smoke path. Duplicate spans there
+        # are fine; pipeline spans are what matter.
+        auto_instrument=True,
     )
     tracer = provider.get_tracer(_TRACER_NAME)
     _state.active = PhoenixTelemetry(tracer, provider)

@@ -15,7 +15,7 @@ Two facts drove the reorder:
 agentic-cataloger ingest --source-category "Milchprodukte"     # products land with stable identity
 agentic-cataloger run --source-category "Milchprodukte"        # agent builds tree + assigns
 agentic-cataloger taxonomy show                                # a real tree, sane leaves
-agentic-cataloger deferred list                                # what it refused to guess
+agentic-cataloger review list                                  # what it refused to guess
 # and Phoenix shows two separately-scored stages per product, with cost
 ```
 
@@ -61,9 +61,9 @@ Two stages, separately prompted and separately scored. Extract is not one of the
 - [x] **4.1** Define the shared vocabulary for agent runs in `contracts/` — run ID, stage ID, LLM-call ID, and a common result shape (success / defer / invalid + payload). Only discover/create and assign for now; extract comes later with 3.5.
 - [x] **3.1** `deferred_items` table — the agent needs somewhere to put "I won't guess this" before it can be allowed to refuse. Small table, unblocks everything downstream.
 - [x] **4.3** Telemetry through a domain-owned port (OTel only in adapters). Early, not last — debugging LLM stages without traces is the slowest way to build this.
-- [ ] **4.4** Discover/create and assign as two separately-prompted stages. Same-call create+assign stays structurally impossible.
-- [ ] **2.6** Prefer matching an existing category before creating; no draft/provisional state. This is the anti-fragmentation policy the discover stage implements.
-- [ ] **4.5** Orchestrate the stages in LangGraph; launch a run from an ingest filter (1.5). Node-level `RetryPolicy` covers flaky calls.
+- [x] **4.4** Discover/create and assign as two separately-prompted stages. Same-call create+assign stays structurally impossible.
+- [x] **2.6** Prefer matching an existing category before creating; no draft/provisional state. This is the anti-fragmentation policy the discover stage implements.
+- [x] **4.5** Orchestrate the stages in LangGraph; launch a run from an ingest filter (1.5). Node-level `RetryPolicy` covers flaky calls.
 
 ## M3 — Trust it
 

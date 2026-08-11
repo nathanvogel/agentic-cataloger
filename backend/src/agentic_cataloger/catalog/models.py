@@ -82,6 +82,17 @@ class CatalogProduct:
 
 
 @dataclass(frozen=True, slots=True)
+class CatalogProductRef:
+    """Fields needed for filter matching and stage payloads."""
+
+    product_id: UUID
+    name: str
+    name_de: str | None
+    source_category: str | None
+    unified_category: str | None
+
+
+@dataclass(frozen=True, slots=True)
 class ImportSnapshotResult:
     """Outcome of registering a snapshot and upserting its products."""
 

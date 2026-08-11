@@ -6,16 +6,22 @@ import logging
 import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from phoenix.otel import OpenInferenceSpanKindValues, SpanAttributes
 
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 
+if TYPE_CHECKING:
+    from langchain_core.language_models.chat_models import BaseChatModel
+
 logger = logging.getLogger(__name__)
 
 OPENROUTER_BASE_URL: Final = "https://openrouter.ai/api/v1"
-DEFAULT_SMOKE_MODEL: Final = "openai/gpt-4o-mini"
+DEFAULT_SMOKE_MODEL: Final = "openai/gpt-5.6-luna"
+DEFAULT_PIPELINE_MODEL: Final = "openai/gpt-5.6-luna"
+DEFAULT_PIPELINE_REASONING_EFFORT: Final = "low"
+PIPELINE_LLM_TIMEOUT_SECONDS: Final = 60.0
 
 # OpenInference keys via phoenix.otel re-exports (platform only; domain stays SDK-free)
 SPAN_KIND_KEY: Final = SpanAttributes.OPENINFERENCE_SPAN_KIND
@@ -135,6 +141,45 @@ def complete_openrouter(
     )
 
 
+def chat_model() -> BaseChatModel:
+    """Build the shared chat model for pipeline stages (OpenRouter-backed).
+
+    Model comes from ``PIPELINE_MODEL`` (default ``openai/gpt-5.6-luna``).
+    Reasoning effort comes from ``PIPELINE_REASONING_EFFORT`` (default
+    ``low``). ``max_retries=0`` is deliberate: LangGraph's node-level
+    ``RetryPolicy`` owns retries, not the client — a client-side retry
+    inside a ``RetryPolicy``-wrapped node would silently multiply spend and
+    hide the failure from the attempt counter.
+
+    Returns:
+        Configured chat model — no tools or structured output bound yet;
+        ``langchain.agents.create_agent`` does that per stage.
+
+    Raises:
+        ValueError: ``OPENROUTER_API_KEY`` is unset.
+    """
+    from langchain_openai import ChatOpenAI
+    from pydantic import SecretStr
+
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        msg = "OPENROUTER_API_KEY is required for pipeline stages"
+        raise ValueError(msg)
+    model = os.environ.get("PIPELINE_MODEL") or DEFAULT_PIPELINE_MODEL
+    reasoning_effort = (
+        os.environ.get("PIPELINE_REASONING_EFFORT") or DEFAULT_PIPELINE_REASONING_EFFORT
+    )
+    return ChatOpenAI(
+        model=model,
+        api_key=SecretStr(api_key),
+        base_url=OPENROUTER_BASE_URL,
+        temperature=0,
+        timeout=PIPELINE_LLM_TIMEOUT_SECONDS,
+        max_retries=0,
+        reasoning={"effort": reasoning_effort},
+    )
+
+
 def run_telemetry_smoke(
     telemetry: Telemetry,
     *,
@@ -147,7 +192,7 @@ def run_telemetry_smoke(
     Args:
         telemetry: Configured telemetry port.
         api_key: OpenRouter key; defaults to ``OPENROUTER_API_KEY``.
-        model: Model id; defaults to ``OPENROUTER_SMOKE_MODEL`` or gpt-4o-mini.
+        model: Model id; defaults to ``OPENROUTER_SMOKE_MODEL`` or gpt-5.6-luna.
         complete: Optional injectable completion (unit tests; skips network).
 
     Returns:

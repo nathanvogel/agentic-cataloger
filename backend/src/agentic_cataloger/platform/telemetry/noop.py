@@ -16,6 +16,10 @@ class NoOpSpanHandle(SpanHandle):
         """Discard the attribute."""
         _ = (self, key, value)
 
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        """Discard the status."""
+        _ = (self, ok, description)
+
     def end(self) -> None:
         """No-op end."""
         _ = self

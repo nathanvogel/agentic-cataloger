@@ -10,8 +10,8 @@ from agentic_cataloger.contracts.models import StageKind, StageResult
 
 
 def test_stage_kind_values_match_reserved_vocabulary() -> None:
-    """StageKind is the closed discover_create/assign set (roadmap 4.1 scope)."""
-    assert {member.value for member in StageKind} == {"discover_create", "assign"}
+    """StageKind covers discover and assign only."""
+    assert {member.value for member in StageKind} == {"discover", "assign"}
 
 
 def test_stage_result_is_frozen() -> None:
@@ -32,7 +32,7 @@ def test_stage_result_constructs_for_each_status(status: str) -> None:
     """Every status literal constructs a valid StageResult."""
     result = StageResult(
         run_id="run-1",
-        stage=StageKind.DISCOVER_CREATE,
+        stage=StageKind.DISCOVER,
         attempt=1,
         status=status,  # type: ignore[arg-type]
         payload={"note": "example"},
@@ -40,4 +40,4 @@ def test_stage_result_constructs_for_each_status(status: str) -> None:
     )
 
     assert result.status == status
-    assert result.stage is StageKind.DISCOVER_CREATE
+    assert result.stage is StageKind.DISCOVER

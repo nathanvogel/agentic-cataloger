@@ -10,6 +10,7 @@ import pytest
 
 from agentic_cataloger.pipeline.ports import AttributeValue, SpanHandle, Telemetry
 from agentic_cataloger.platform.llm.openrouter import (
+    DEFAULT_SMOKE_MODEL,
     LlmCompletion,
     record_leaf_llm_span,
     run_telemetry_smoke,
@@ -24,6 +25,8 @@ class _RecordedSpan:
     span_id: str
     parent_id: str | None
     ended: bool = False
+    ok: bool | None = None
+    status_description: str = ""
 
 
 @dataclass
@@ -35,6 +38,10 @@ class RecordingSpanHandle:
 
     def set_attribute(self, key: str, value: AttributeValue) -> None:
         self._span.attributes[key] = value
+
+    def set_status(self, *, ok: bool, description: str = "") -> None:
+        self._span.ok = ok
+        self._span.status_description = description
 
     def end(self) -> None:
         self._span.ended = True
@@ -111,7 +118,7 @@ def test_record_leaf_llm_span_emits_exactly_one_llm_span() -> None:
     telemetry = RecordingTelemetry()
     completion = LlmCompletion(
         text="ok",
-        model_name="openai/gpt-4o-mini",
+        model_name=DEFAULT_SMOKE_MODEL,
         prompt_tokens=3,
         completion_tokens=1,
         total_tokens=4,
@@ -134,7 +141,7 @@ def test_record_leaf_llm_span_emits_exactly_one_llm_span() -> None:
     leaf = llm_spans[0]
     assert leaf.ended
     assert leaf.attributes["llm.provider"] == "openrouter"
-    assert leaf.attributes["llm.model_name"] == "openai/gpt-4o-mini"
+    assert leaf.attributes["llm.model_name"] == DEFAULT_SMOKE_MODEL
     assert leaf.attributes["llm.token_count.prompt"] == 3
     assert leaf.attributes["llm.token_count.completion"] == 1
     assert leaf.attributes["llm.token_count.total"] == 4
@@ -188,6 +195,42 @@ def test_smoke_requires_openrouter_api_key(
     telemetry = RecordingTelemetry()
     with pytest.raises(ValueError, match="OPENROUTER_API_KEY"):
         run_telemetry_smoke(telemetry)
+
+
+def test_pipeline_stage_span_may_wrap_an_llm_span() -> None:
+    """A non-LLM pipeline.stage span wrapping an LLM-kind span is fine.
+
+    Proves the auto-instrumentor's LLM spans (pipeline stage calls) are
+    allowed to nest under the hand-rolled ``pipeline.stage`` span — only
+    LLM-under-LLM nesting is disallowed.
+    """
+    telemetry = RecordingTelemetry()
+    completion = LlmCompletion(text="ok", model_name="pipeline-model")
+
+    stage_handle = telemetry.start_span(
+        "pipeline.stage",
+        attributes={"pipeline.stage.kind": "assign"},
+    )
+    record_leaf_llm_span(
+        telemetry,
+        name="pipeline.stage.llm",
+        complete=lambda: completion,
+        model_name=completion.model_name,
+    )
+    stage_handle.end()
+
+    stage_spans = [s for s in telemetry.spans if s.name == "pipeline.stage"]
+    assert len(stage_spans) == 1
+    assert stage_spans[0].attributes.get("openinference.span.kind") != "LLM"
+
+    llm_spans = [
+        s
+        for s in telemetry.spans
+        if s.attributes.get("openinference.span.kind") == "LLM"
+    ]
+    assert len(llm_spans) == 1
+    assert llm_spans[0].parent_id == stage_spans[0].span_id
+    _assert_no_llm_parent_of_llm(telemetry.spans)
 
 
 def _assert_no_llm_parent_of_llm(spans: list[_RecordedSpan]) -> None:

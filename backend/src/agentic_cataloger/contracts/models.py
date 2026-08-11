@@ -11,7 +11,7 @@ from typing import Literal
 class StageKind(StrEnum):
     """Closed set of in-scope pipeline stages."""
 
-    DISCOVER_CREATE = "discover_create"
+    DISCOVER = "discover"
     ASSIGN = "assign"
 
 
@@ -19,10 +19,15 @@ class StageKind(StrEnum):
 class StageResult:
     """Outcome of one stage attempt, keyed by the LangGraph run it belongs to.
 
-    ``run_id`` is reused as-is from LangGraph's own run identifier (e.g.
-    ``RunnableConfig.run_id``) — no synthetic per-stage-execution or
-    per-attempt ID is minted here. ``attempt`` is a plain retry counter,
-    mirroring LangGraph's own ``node_attempt``.
+    ``run_id`` is caller-supplied, in LangGraph's own terminology — we reuse
+    LangGraph's ``run_id``/``attempt`` vocabulary rather than inventing
+    ``stage_execution_id``/``stage_attempt_id``; it does not mean LangGraph
+    mints the id itself. The caller mints a UUIDv7 per product and passes
+    it as both ``RunnableConfig["run_id"]`` (``uuid.UUID | None``) and graph
+    state; note the type difference from this field, which is ``str``.
+    ``attempt`` mirrors LangGraph's own ``node_attempt``, read from
+    ``runtime.execution_info.node_attempt`` (LangGraph 1.2+) inside a node —
+    not synthesized here.
     """
 
     run_id: str
